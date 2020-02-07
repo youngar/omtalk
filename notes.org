@@ -1,0 +1,41 @@
+TODO list
+
+- fix 
+
+# How class loading works
+
+1. load all class desciptions
+
+Create all class descriptions
+- Load ObjectDes
+- Load ClassDes
+
+2. create all on heap class objects
+Create all class instances
+
+- ObjectObj= new ClassDes
+    - superclass = Nil
+    - class = ClassObj
+
+- ClassObj = new ClassDes
+    - superclass = ObjectObj
+    - class = ClassObj
+
+IntegerObj = new ClassDes
+    - superclass = ObjectObj
+    - class = ClassObj
+
+i := Integer new
+    - i.class = Integer
+
+Valid Calls:
+Integer name.
+Object name.
+Class name.
+
+
+1. create stub classes
+
+ClassShape {
+    constant pool
+}

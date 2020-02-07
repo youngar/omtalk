@@ -1,0 +1,5 @@
+#ifndef GENCOMP_GENCOMP_HPP_
+#define GENCOMP_GENCOMP_HPP_
+
+
+#endif // GENCOMP_GENCOMP_HPP_

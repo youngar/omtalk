@@ -1,0 +1,9 @@
+language: cxx
+git:
+  depth: 1
+  quiet: true
+script:
+  - mkdir build
+  - cd build; cmake ..
+  - cd build; make -j2
+cache: ccache
