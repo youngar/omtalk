@@ -93,20 +93,22 @@ TEST(Omtalk, Function_Args) {
     module.push_back(add_ten);
   }
 
+  module.dump();
+
   // run
   {
-    auto func_type = builder.getFunctionType({}, {i64_type});
+    auto func_type = builder.getFunctionType({}, {box_type});
     mlir::FuncOp run = mlir::FuncOp::create(location, "run", func_type);
     auto &entryBlock = *run.addEntryBlock();
     auto block_args = entryBlock.getArguments();
     builder.setInsertionPointToStart(&entryBlock);
 
     auto value1 = builder.create<omtalk::ConstantOp>(
-        builder.getUnknownLoc(), i64_type, builder.getI64IntegerAttr(5));
+        builder.getUnknownLoc(), box_type, builder.getI64IntegerAttr(5));
 
     llvm::ArrayRef<mlir::Value> args = {value1};
     auto value2 = builder.create<omtalk::StaticSendOp>(
-        builder.getUnknownLoc(), i64_type, llvm::StringRef("add_ten"), args);
+        builder.getUnknownLoc(), box_type, llvm::StringRef("add_ten"), args);
 
     omtalk::ReturnOp returnOp =
         builder.create<omtalk::ReturnOp>(builder.getUnknownLoc(), value2);
