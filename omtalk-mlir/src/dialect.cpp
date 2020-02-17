@@ -21,13 +21,9 @@ struct InlinerInterface : public mlir::DialectInlinerInterface {
     return true;
   }
 
-  /// This hook is called when a terminator operation has been inlined. The only
-  /// terminator that we have in the Toy dialect is the return
-  /// operation(toy.return). We handle the return by replacing the values
-  /// previously returned by the call operation with the operands of the
-  /// return.
   void handleTerminator(mlir::Operation *op,
                         llvm::ArrayRef<mlir::Value> valuesToRepl) const final {
+
     // // Only "toy.return" needs to be handled here.
     auto returnOp = llvm::cast<omtalk::ReturnOp>(op);
 
@@ -46,7 +42,7 @@ Dialect::Dialect(mlir::MLIRContext *ctx) : mlir::Dialect("omtalk", ctx) {
   addOperations<
 #include "omtalk/ops.cpp.inc"
       >();
-  addTypes<BoxType>();
+  addTypes<BoxType, BoxIntType, BoxRefType>();
   addInterfaces<InlinerInterface>();
 }
 
@@ -55,20 +51,40 @@ Dialect::Dialect(mlir::MLIRContext *ctx) : mlir::Dialect("omtalk", ctx) {
 ///
 
 mlir::Type Dialect::parseType(mlir::DialectAsmParser &parser) const {
-  //
-  // Box Types
-  //
-  if (parser.parseKeyword("box") || parser.parseLess() ||
-      parser.parseOptionalQuestion() || parser.parseGreater())
+
+  if (parser.parseKeyword("box") || parser.parseLess())
     return mlir::Type();
 
-  return BoxType::get(getContext());
+  if(parser.parseKeyword("int") || parser.parseGreater())
+    return BoxIntType::get(getContext());
+
+  if(parser.parseKeyword("ref") || parser.parseGreater())
+    return BoxRefType::get(getContext());
+
+  if(parser.parseOptionalQuestion() || parser.parseGreater())
+    return BoxType::get(getContext());
+  
+  return mlir::Type();
 }
 
 void Dialect::printType(mlir::Type type,
                         mlir::DialectAsmPrinter &printer) const {
-  BoxType boxType = type.cast<BoxType>();
-  printer << "box<?>";
+
+  // BoxType boxType = type.cast<BoxType>();
+  switch (type.getKind()) {
+  default:
+    llvm_unreachable("Unhandled Linalg type");
+    break;
+  case OmtalkTypes::Box:
+    printer << "box<?>";
+    break;
+  case OmtalkTypes::BoxInt:
+    printer << "box<int>";
+    break;
+  case OmtalkTypes::BoxRef:
+    printer << "box<ref>";
+    break;
+  }
 }
 
 }  // namespace omtalk
@@ -78,13 +94,13 @@ namespace omtalk {
 
 /// Return the callee of the generic call operation, this is required by the
 /// call interface.
-mlir::CallInterfaceCallable StaticSendOp::getCallableForCallee() {
+mlir::CallInterfaceCallable SendOp::getCallableForCallee() {
   return getAttrOfType<SymbolRefAttr>("message");
 }
 
 /// Get the argument operands to the called function, this is required by the
 /// call interface.
-mlir::Operation::operand_range StaticSendOp::getArgOperands() {
+mlir::Operation::operand_range SendOp::getArgOperands() {
   return inputs();
 }
 

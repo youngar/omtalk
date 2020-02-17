@@ -25,11 +25,11 @@ struct AddOpLowering : public mlir::OpRewritePattern<omtalk::IAddOp> {
   }
 };
 
-struct ConstantOpLowering : public mlir::OpRewritePattern<omtalk::ConstantOp> {
-  using OpRewritePattern<omtalk::ConstantOp>::OpRewritePattern;
+struct ConstantIntOpLowering : public mlir::OpRewritePattern<omtalk::ConstantIntOp> {
+  using OpRewritePattern<omtalk::ConstantIntOp>::OpRewritePattern;
 
   mlir::PatternMatchResult matchAndRewrite(
-      omtalk::ConstantOp op, mlir::PatternRewriter &rewriter) const final {
+      omtalk::ConstantIntOp op, mlir::PatternRewriter &rewriter) const final {
     rewriter.replaceOpWithNewOp<mlir::ConstantOp>(op, op.valueAttr());
     return matchSuccess();
   }
@@ -66,7 +66,7 @@ void OmtalkLoweringPass::runOnFunction() {
   target.addIllegalDialect<omtalk::Dialect>();
 
   mlir::OwningRewritePatternList patterns;
-  patterns.insert<AddOpLowering, ConstantOpLowering, ReturnOpLowering>(
+  patterns.insert<AddOpLowering, ConstantIntOpLowering, ReturnOpLowering>(
       &getContext());
 
   if (failed(applyPartialConversion(getFunction(), target, patterns))) {

@@ -45,6 +45,8 @@ class Dialect : public mlir::Dialect {
 namespace OmtalkTypes {
 enum Types {
   Box = mlir::Type::FIRST_PRIVATE_EXPERIMENTAL_0_TYPE,
+  BoxInt,
+  BoxRef,
 };
 }  // namespace OmtalkTypes
 
@@ -56,6 +58,28 @@ class BoxType : public mlir::Type::TypeBase<BoxType, mlir::Type> {
 
   static BoxType get(mlir::MLIRContext *context) {
     return Base::get(context, OmtalkTypes::Box);
+  }
+};
+
+class BoxIntType : public mlir::Type::TypeBase<BoxIntType, mlir::Type> {
+ public:
+  using Base::Base;
+
+  static bool kindof(unsigned kind) { return kind == OmtalkTypes::BoxInt; }
+
+  static BoxIntType get(mlir::MLIRContext *context) {
+    return Base::get(context, OmtalkTypes::BoxInt);
+  }
+};
+
+class BoxRefType : public mlir::Type::TypeBase<BoxRefType, mlir::Type> {
+ public:
+  using Base::Base;
+
+  static bool kindof(unsigned kind) { return kind == OmtalkTypes::BoxRef; }
+
+  static BoxRefType get(mlir::MLIRContext *context) {
+    return Base::get(context, OmtalkTypes::BoxRef);
   }
 };
 
