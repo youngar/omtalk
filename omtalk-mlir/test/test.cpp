@@ -30,6 +30,7 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR.h"
 #include "mlir/Transforms/Passes.h"
+#include "mlir/Transforms/Passes.h"
 
 // TEST(Omtalk, DISABLED_Module) {
 //   mlir::MLIRContext context;
@@ -187,13 +188,11 @@
 namespace omtalk {
 
 class ObjectBuilder {
-public:
-
-private:
-  
+ public:
+ private:
 };
 
-}
+}  // namespace omtalk
 
 TEST(Omtalk, Send) {
   omtalk::Process process;
@@ -211,7 +210,25 @@ TEST(Omtalk, Send) {
   auto location = builder.getUnknownLoc();
 
   // Class AddTen
-  mlir::Type = builder.getT
+  // mlir::Type = builder.getT
+
+  struct Integer {
+    void *klass;
+    // char *name = "Integer";
+  };
+
+  Integer integer;
+
+  // Integer +
+  {
+    auto func_type = builder.getFunctionType({box_type}, {box_type});
+    mlir::FuncOp func = mlir::FuncOp::create(location, "Integer_+", func_type);
+    auto &entryBlock = *func.addEntryBlock();
+    auto args = entryBlock.getArguments();
+    builder.setInsertionPointToStart(&entryBlock);
+
+    auto rhs = args[0];
+  }
 
   // Add 10
   {
@@ -240,10 +257,10 @@ TEST(Omtalk, Send) {
     builder.setInsertionPointToStart(&entryBlock);
 
     auto value1 = builder.create<omtalk::ConstantIntOp>(
-        location, box_type, builder.getI64IntegerAttr(5));
+        location, bint_type, builder.getI64IntegerAttr(5));
 
     auto recv = builder.create<omtalk::ConstantRefOp>(
-        location, box_type, builder.getI64IntegerAttr(0x0));
+        location, bref_type, builder.getI64IntegerAttr(0x0));
 
     llvm::ArrayRef<mlir::Value> args = {value1};
     auto value2 = builder.create<omtalk::SendOp>(
@@ -256,6 +273,17 @@ TEST(Omtalk, Send) {
   }
 
   module.dump();
+
+  // Canonicalize
+  {
+    std::cout << "Canonicalization\n";
+    mlir::PassManager pm(&context);
+    pm.addNestedPass<mlir::FuncOp>(mlir::createCanonicalizerPass());
+    if (mlir::failed(pm.run(module))) {
+      // TODO handle error
+    }
+    module.dump();
+  }
 
   // Optimize
   {
@@ -291,8 +319,8 @@ TEST(Omtalk, Send) {
 
   // JIT
   {
-      auto &ctx = module->getContext();
-  llvm::IRBuilder<> builder(ctx);
+    //     auto &ctx = module->getContext();
+    // llvm::IRBuilder<> builder(ctx);
 
     auto llvmModule = mlir::translateModuleToLLVMIR(module);
     llvm::InitializeNativeTarget();

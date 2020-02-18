@@ -92,17 +92,30 @@ void Dialect::printType(mlir::Type type,
 namespace mlir {
 namespace omtalk {
 
-/// Return the callee of the generic call operation, this is required by the
-/// call interface.
 mlir::CallInterfaceCallable SendOp::getCallableForCallee() {
   return getAttrOfType<SymbolRefAttr>("message");
 }
 
-/// Get the argument operands to the called function, this is required by the
-/// call interface.
 mlir::Operation::operand_range SendOp::getArgOperands() {
   return inputs();
 }
+
+mlir::CallInterfaceCallable SendIntOp::getCallableForCallee() {
+  return getAttrOfType<SymbolRefAttr>("message");
+}
+
+mlir::Operation::operand_range SendIntOp::getArgOperands() {
+  return inputs();
+}
+
+mlir::CallInterfaceCallable SendRefOp::getCallableForCallee() {
+  return getAttrOfType<SymbolRefAttr>("message");
+}
+
+mlir::Operation::operand_range SendRefOp::getArgOperands() {
+  return inputs();
+}
+
 
 #define GET_OP_CLASSES
 #include "omtalk/ops.cpp.inc"

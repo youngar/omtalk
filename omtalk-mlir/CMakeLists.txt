@@ -28,6 +28,7 @@ endfunction(omtalk_tablegen)
 ### libomtalk-mlir
 
 add_library(libomtalk-mlir
+	src/canonicalize.cpp
 	src/dead_code_elimination.cpp
 	src/dialect.cpp
 	src/lowering.cpp
@@ -39,10 +40,12 @@ target_include_directories(libomtalk-mlir
 	PUBLIC
 		include
 		${CMAKE_CURRENT_BINARY_DIR}/include/
+		${CMAKE_CURRENT_BINARY_DIR}/src/
 		${MLIR_INCLUDES}
 		${LLVM_INCLUDES}
 )
 
+add_dependencies(libomtalk-mlir omtalk-canonicalize-tblgen)
 add_dependencies(libomtalk-mlir omtalk-mlir-tblgen)
 
 target_link_libraries(libomtalk-mlir
@@ -69,7 +72,6 @@ target_link_libraries(libomtalk-mlir
 		${llvm_libs}
 )
 
-
 ### omtalk-mlir
 
 add_executable(omtalk-mlir
@@ -83,4 +85,5 @@ target_link_libraries(omtalk-mlir
 )
 
 add_subdirectory(include/omtalk)
+add_subdirectory(src)
 add_subdirectory(test)

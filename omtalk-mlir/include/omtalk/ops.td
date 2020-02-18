@@ -20,9 +20,7 @@ class Omtalk_Op<string mnemonic, list<OpTrait> traits = []> :
 // Types
 //
 
-// Provide a definition for the Toy StructType for use in ODS. This allows for
-// using StructType in a similar way to Tensor or MemRef.
-def Omtalk_BoxType :
+def Omtalk_BoxUnkType :
     Type<CPred<"$_self.isa<::omtalk::BoxType>()">, "Omtalk Boxed Type">;
 
 def Omtalk_BoxIntType :
@@ -31,8 +29,9 @@ def Omtalk_BoxIntType :
 def Omtalk_BoxRefType :
     Type<CPred<"$_self.isa<::omtalk::BoxRefType>()">, "Omtalk Boxed Reference Type">;
 
-// Provide a definition of the types that are used within the Toy dialect.
-def Omtalk_Type : AnyTypeOf<[Omtalk_BoxType, Omtalk_BoxIntType, Omtalk_BoxRefType]>;
+def Omtalk_AnyBoxType : AnyTypeOf<[Omtalk_BoxUnkType, Omtalk_BoxIntType, Omtalk_BoxRefType]>;
+
+def Omtalk_Type : AnyTypeOf<[Omtalk_AnyBoxType]>;
 
 //
 // Operations
@@ -58,12 +57,36 @@ def ConstantIntOp : Omtalk_Op<"constant_int"> {
 
 def SendOp : Omtalk_Op<"send",
     [DeclareOpInterfaceMethods<CallOpInterface>]> {
-  let summary = "Send symbol to receiver";
+  let summary = "Send message to receiver (generic)";
   let description = [{
-    The "send" operation sends the message to the receiver.
+    A generic send operation, where the receiver parameter may be a boxed integer or boxed reference.
+    This operation is lowered to the more specific send_int and send_ref operations. 
   }];
 
   let arguments = (ins Omtalk_Type:$recv, FlatSymbolRefAttr:$message, Variadic<Omtalk_Type>:$inputs);
+  let results = (outs Omtalk_Type);
+  let hasCanonicalizer = 1;
+}
+
+def SendIntOp : Omtalk_Op<"send_int",
+    [DeclareOpInterfaceMethods<CallOpInterface>]> {
+  let summary = "Send message to an integer receiver";
+  let description = [{
+    Send a message, where the receiver is guaranteed to be a boxed integer.
+  }];
+
+  let arguments = (ins Omtalk_BoxIntType:$recv, FlatSymbolRefAttr:$message, Variadic<Omtalk_Type>:$inputs);
+  let results = (outs Omtalk_Type);
+}
+
+def SendRefOp : Omtalk_Op<"send_ref",
+    [DeclareOpInterfaceMethods<CallOpInterface>]> {
+  let summary = "Send message to an object receiver";
+  let description = [{
+    Send a message, where the receiver is guaranteed to be a regular object reference.
+  }];
+
+  let arguments = (ins Omtalk_BoxRefType:$recv, FlatSymbolRefAttr:$message, Variadic<Omtalk_Type>:$inputs);
   let results = (outs Omtalk_Type);
 }
 
