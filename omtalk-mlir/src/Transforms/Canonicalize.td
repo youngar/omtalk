@@ -2,7 +2,7 @@
 #ifndef OMTALK_CANONICALIZE_TD_
 #define OMTALK_CANONICALIZE_TD_
 
-include "omtalk/ops.td"
+include "mlir/Dialect/Omtalk/OmtalkOps.td"
 
 //
 // Integer Canonicalization

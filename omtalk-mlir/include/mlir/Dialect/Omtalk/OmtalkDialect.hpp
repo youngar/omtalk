@@ -13,7 +13,7 @@ namespace mlir {
 namespace omtalk {
 
 #define GET_OP_CLASSES
-#include <omtalk/ops.h.inc>
+#include <mlir/Dialect/Omtalk/OmtalkOps.h.inc>
 
 }  // namespace omtalk
 }  // namespace mlir

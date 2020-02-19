@@ -1,5 +1,5 @@
-#ifndef OMTALK_OPS_TD_
-#define OMTALK_OPS_TD_
+#ifndef OMTALK_OMTALKOPS_TD_
+#define OMTALK_OMTALKOPS_TD_
 
 include "mlir/IR/OpBase.td"
 include "mlir/Analysis/CallInterfaces.td"
@@ -114,4 +114,4 @@ def IAddOp : Omtalk_Op<"iadd", [NoSideEffect]> {
   ];
 }
 
-#endif // OMTALK_OPS_TD_
+#endif // OMTALK_OMTALKOPS_TD_

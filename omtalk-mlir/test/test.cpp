@@ -3,7 +3,7 @@
 
 #include <fstream>
 #include <iostream>
-#include <omtalk/dialect.hpp>
+#include <mlir/Dialect/Omtalk/OmtalkDialect.hpp>
 #include <omtalk/omtalk.hpp>
 #include <omtalk/parser.hpp>
 #include <omtalk/passes.hpp>

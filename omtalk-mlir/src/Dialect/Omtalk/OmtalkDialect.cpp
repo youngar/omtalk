@@ -1,13 +1,11 @@
-#include <mlir/IR/Builders.h>
-#include <mlir/IR/Dialect.h>
-#include <mlir/IR/StandardTypes.h>
-#include <mlir/Transforms/InliningUtils.h>
-
-#include <omtalk/dialect.hpp>
-
+#include "mlir/Dialect/Omtalk/OmtalkDialect.hpp"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/StandardTypes.h"
+#include "mlir/IR/StandardTypes.h"
+#include "mlir/Transforms/InliningUtils.h"
 #include "mlir/Transforms/InliningUtils.h"
 
 namespace omtalk {
@@ -115,7 +113,6 @@ mlir::CallInterfaceCallable SendRefOp::getCallableForCallee() {
 mlir::Operation::operand_range SendRefOp::getArgOperands() {
   return inputs();
 }
-
 
 #define GET_OP_CLASSES
 #include "omtalk/ops.cpp.inc"

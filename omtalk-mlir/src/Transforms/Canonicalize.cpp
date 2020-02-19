@@ -1,15 +1,16 @@
 
 #include <numeric>
+
+#include "mlir/Dialect/Omtalk/OmtalkDialect.hpp"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
-#include "omtalk/dialect.hpp"
 
 namespace mlir {
 
 namespace omtalk {
 
 namespace {
-#include "canonicalize.inc"
+#include "Transforms/canonicalize.inc"
 }
 
 void SendOp::getCanonicalizationPatterns(OwningRewritePatternList &results,

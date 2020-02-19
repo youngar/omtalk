@@ -1,8 +1,8 @@
 #include <algorithm>
 
 #include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -15,7 +15,7 @@
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Support/LogicalResult.h"
-#include "omtalk/passes.hpp"
+#include "omtalk/Passes.hpp"
 
 namespace {
 class DeadFunctionEliminationPass

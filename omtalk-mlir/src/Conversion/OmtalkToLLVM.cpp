@@ -8,10 +8,10 @@
 #include "mlir/Dialect/AffineOps/AffineOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LoopOps/LoopOps.h"
+#include "mlir/Dialect/Omtalk/OmtalkDialect.hpp"
 #include "mlir/Dialect/StandardOps/Ops.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "omtalk/dialect.hpp"
 
 namespace {
 

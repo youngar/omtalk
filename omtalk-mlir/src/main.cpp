@@ -2,8 +2,7 @@
 #include <llvm/Support/CommandLine.h>
 
 #include <iostream>
-#include <omtalk/dialect.hpp>
-
+#include <mlir/Dialect/Omtalk/OmtalkDialect.hpp>
 #include "mlir/Pass/PassManager.h"
 
 namespace cl = llvm::cl;

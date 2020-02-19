@@ -28,12 +28,10 @@ endfunction(omtalk_tablegen)
 ### libomtalk-mlir
 
 add_library(libomtalk-mlir
-	src/canonicalize.cpp
-	src/dead_code_elimination.cpp
-	src/dialect.cpp
-	src/lowering.cpp
-	src/omtalk.cpp
-	src/parser.cpp
+	src/Conversion/OmtalkToLLVM.cpp
+	src/Dialect/Omtalk/OmtalkDialect.cpp
+	src/Transforms/Canonicalize.cpp
+	src/Transforms/DeadCodeElimination.cpp
 )
 
 target_include_directories(libomtalk-mlir
@@ -84,6 +82,6 @@ target_link_libraries(omtalk-mlir
 		libomtalk-mlir
 )
 
-add_subdirectory(include/omtalk)
+add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(test)

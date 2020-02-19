@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <omtalk/dialect.hpp>
+#include <mlir/Dialect/Omtalk/OmtalkDialect.hpp>
 
 namespace omtalk::test {
 

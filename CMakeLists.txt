@@ -37,22 +37,8 @@ if(UBSAN)
 	link_libraries(-fsanitize=undefined)
 endif(UBSAN)
 
-
-# if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-# 	add_compile_options(-fdiagnostics-color=always)
-# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-# 	add_compile_options(-fcolor-diagnostics)
-# endif()
-
 # Subdirectories
 
 add_subdirectory(external)
 
 add_subdirectory(omtalk-mlir)
-
-# add_subdirectory(gencomp)
-# add_subdirectory(libgencomp)
-# add_subdirectory(libomtalk)
-# add_subdirectory(omtalk)
-# add_subdirectory(test)
-# add_subdirectory(option-parser)
