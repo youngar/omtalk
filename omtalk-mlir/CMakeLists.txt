@@ -82,6 +82,6 @@ target_link_libraries(omtalk-mlir
 		libomtalk-mlir
 )
 
-add_subdirectory(include)
+add_subdirectory(include/mlir/Dialect/Omtalk)
 add_subdirectory(src)
 add_subdirectory(test)

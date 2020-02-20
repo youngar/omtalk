@@ -10,7 +10,7 @@ namespace mlir {
 namespace omtalk {
 
 namespace {
-#include "Transforms/canonicalize.inc"
+#include "Transforms/Canonicalize.inc"
 }
 
 void SendOp::getCanonicalizationPatterns(OwningRewritePatternList &results,

@@ -3,10 +3,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <mlir/Dialect/Omtalk/OmtalkDialect.hpp>
-#include <omtalk/omtalk.hpp>
-#include <omtalk/parser.hpp>
-#include <omtalk/passes.hpp>
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Module.h"
@@ -17,6 +13,10 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Analysis/Verifier.h"
+#include "mlir/Dialect/Omtalk/Omtalk.hpp"
+#include "mlir/Dialect/Omtalk/OmtalkDialect.hpp"
+#include "mlir/Dialect/Omtalk/Parser.hpp"
+#include "mlir/Dialect/Omtalk/Passes.hpp"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/Attributes.h"
@@ -29,7 +29,6 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR.h"
-#include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
 
 // TEST(Omtalk, DISABLED_Module) {
@@ -194,6 +193,21 @@ class ObjectBuilder {
 
 }  // namespace omtalk
 
+void emitIntegerAdd(mlir::MLIRContext context, mlir::OpBuilder builder) {}
+
+constexpr std::uint64_t BOX_MAX = 20;
+
+std::uint64_t new_integer(std::uint64_t value) {
+  if (value > BOX_MAX) throw;
+  return (value << 1) | 1;
+}
+
+std::uint64_t get_integer(std::uint64_t value) { return (value >> 1); }
+
+std::uint64_t new_reference(void *value) { return (std::uint64_t)value; }
+
+void *get_reference(std::uint64_t value) { return (void *)value; }
+
 TEST(Omtalk, Send) {
   omtalk::Process process;
   omtalk::Thread thread(process);
@@ -228,6 +242,8 @@ TEST(Omtalk, Send) {
     builder.setInsertionPointToStart(&entryBlock);
 
     auto rhs = args[0];
+    auto lhs = args[1];
+    // auto val = builder.create <
   }
 
   // Add 10
