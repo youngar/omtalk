@@ -193,20 +193,45 @@ class ObjectBuilder {
 
 }  // namespace omtalk
 
-void emitIntegerAdd(mlir::MLIRContext context, mlir::OpBuilder builder) {}
+//===----------------------------------------------------------------------===//
+// Integer Primitives
+//===----------------------------------------------------------------------===//
 
-constexpr std::uint64_t BOX_MAX = 20;
+namespace mlir {
 
-std::uint64_t new_integer(std::uint64_t value) {
-  if (value > BOX_MAX) throw;
-  return (value << 1) | 1;
+template <typename LHS, typename RHS>
+void emitIntegerAdd(Location location, OpBuilder builder, LHS lhs, RHS rhs) {
+  // mlir::Type box_type = ::omtalk::BoxType::get(location->getContext());
+  // mlir::Type box_type = omtalk::BoxType::get(&context);
+
+  // auto func_type = builder.getFunctionType({box_type}, {box_type});
+  // mlir::FuncOp func = mlir::FuncOp::create(location, "Integer_+", func_type);
+  // auto &entryBlock = *func.addEntryBlock();
+  // auto args = entryBlock.getArguments();
+  // builder.setInsertionPointToStart(&entryBlock);
+
+  // auto rhs = args[0];
+  // auto lhs = args[1];
+
+  // auto val = builder.create<SubIOp>(location, rhs,
+  //                              builder.create<ConstantOp>(location, 1));
+  // val = builder.create<AddIOp>(location, val, lhs);
+
+  // // builder.create<mlir::ReturnOp>(location, val);
+
+  // omtalk::ReturnOp returnOp = builder.create<omtalk::ReturnOp>(location,
+  // val);
+
+  // module.push_back(func);
 }
 
-std::uint64_t get_integer(std::uint64_t value) { return (value >> 1); }
 
-std::uint64_t new_reference(void *value) { return (std::uint64_t)value; }
 
-void *get_reference(std::uint64_t value) { return (void *)value; }
+}  // namespace mlir
+
+//===----------------------------------------------------------------------===//
+// Integer Tests
+//===----------------------------------------------------------------------===//
 
 TEST(Omtalk, Send) {
   omtalk::Process process;
@@ -223,47 +248,6 @@ TEST(Omtalk, Send) {
   mlir::Type bref_type = omtalk::BoxRefType::get(&context);
   auto location = builder.getUnknownLoc();
 
-  // Class AddTen
-  // mlir::Type = builder.getT
-
-  struct Integer {
-    void *klass;
-    // char *name = "Integer";
-  };
-
-  Integer integer;
-
-  // Integer +
-  {
-    auto func_type = builder.getFunctionType({box_type}, {box_type});
-    mlir::FuncOp func = mlir::FuncOp::create(location, "Integer_+", func_type);
-    auto &entryBlock = *func.addEntryBlock();
-    auto args = entryBlock.getArguments();
-    builder.setInsertionPointToStart(&entryBlock);
-
-    auto rhs = args[0];
-    auto lhs = args[1];
-    // auto val = builder.create <
-  }
-
-  // Add 10
-  {
-    auto func_type = builder.getFunctionType({box_type}, {box_type});
-    mlir::FuncOp add_ten = mlir::FuncOp::create(location, "add_ten", func_type);
-    auto &entryBlock = *add_ten.addEntryBlock();
-    auto args = entryBlock.getArguments();
-    builder.setInsertionPointToStart(&entryBlock);
-
-    auto v1 = builder.create<omtalk::ConstantIntOp>(
-        location, bint_type, builder.getI64IntegerAttr(10));
-
-    auto v2 = builder.create<omtalk::SendOp>(location, box_type, v1,
-                                             llvm::StringRef("+"), args[0]);
-    omtalk::ReturnOp returnOp = builder.create<omtalk::ReturnOp>(location, v2);
-
-    module.push_back(add_ten);
-  }
-
   // run
   {
     auto func_type = builder.getFunctionType({}, {box_type});
@@ -273,17 +257,17 @@ TEST(Omtalk, Send) {
     builder.setInsertionPointToStart(&entryBlock);
 
     auto value1 = builder.create<omtalk::ConstantIntOp>(
-        location, bint_type, builder.getI64IntegerAttr(5));
+        location, bint_type, builder.getI64IntegerAttr(4));
 
-    auto recv = builder.create<omtalk::ConstantRefOp>(
-        location, bref_type, builder.getI64IntegerAttr(0x0));
+    auto value2 = builder.create<omtalk::ConstantIntOp>(
+        location, bint_type, builder.getI64IntegerAttr(3));
 
-    llvm::ArrayRef<mlir::Value> args = {value1};
-    auto value2 = builder.create<omtalk::SendOp>(
-        location, box_type, recv, llvm::StringRef("add_ten"), args);
+    llvm::ArrayRef<mlir::Value> args = {value2};
+    auto value3 = builder.create<omtalk::SendOp>(location, box_type, value1,
+                                                 llvm::StringRef("+"), args);
 
     omtalk::ReturnOp returnOp =
-        builder.create<omtalk::ReturnOp>(location, value2);
+        builder.create<omtalk::ReturnOp>(location, value3);
 
     module.push_back(run);
   }
@@ -292,7 +276,7 @@ TEST(Omtalk, Send) {
 
   // Canonicalize
   {
-    std::cout << "Canonicalization\n";
+    std::cout << "\n!!! Canonicalization\n";
     mlir::PassManager pm(&context);
     pm.addNestedPass<mlir::FuncOp>(mlir::createCanonicalizerPass());
     if (mlir::failed(pm.run(module))) {
@@ -303,6 +287,7 @@ TEST(Omtalk, Send) {
 
   // Optimize
   {
+     std::cout << "\n!!! Optimize\n";
     mlir::PassManager pm(&context);
 
     pm.addPass(mlir::createInlinerPass());
@@ -315,6 +300,7 @@ TEST(Omtalk, Send) {
 
   // Lower to Standard
   {
+    std::cout << "\n!!! Lower to Standard\n";
     mlir::PassManager pm(&context);
     pm.addPass(omtalk::createLowerPass());
     if (mlir::failed(pm.run(module))) {
@@ -325,6 +311,8 @@ TEST(Omtalk, Send) {
 
   // Lower to LLVM
   {
+    std::cout << "\n!!! Lower to LLVM\n";
+
     mlir::PassManager pm(&context);
     pm.addPass(omtalk::createToLlvmLoweringPass());
     if (mlir::failed(pm.run(module))) {
@@ -335,8 +323,6 @@ TEST(Omtalk, Send) {
 
   // JIT
   {
-    //     auto &ctx = module->getContext();
-    // llvm::IRBuilder<> builder(ctx);
 
     auto llvmModule = mlir::translateModuleToLLVMIR(module);
     llvm::InitializeNativeTarget();

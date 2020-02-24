@@ -79,6 +79,16 @@ def SendIntOp : Omtalk_Op<"send_int",
   let results = (outs Omtalk_Type);
 }
 
+def SendIntAddOp : Omtalk_Op<"send_int_add",
+  [DeclareOpInterfaceMethods<CallOpInterface>]> {
+  let summary = "Send \"+\" to an Integer receiver";
+
+  let arguments = (ins Omtalk_BoxIntType:$recv, Variadic<Omtalk_Type>:$inputs);
+  let results = (outs Omtalk_BoxIntType);
+  
+  let hasFolder = 1;
+}
+
 def SendRefOp : Omtalk_Op<"send_ref",
     [DeclareOpInterfaceMethods<CallOpInterface>]> {
   let summary = "Send message to an object receiver";

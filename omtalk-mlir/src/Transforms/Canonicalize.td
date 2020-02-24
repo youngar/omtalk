@@ -8,6 +8,7 @@ include "mlir/Dialect/Omtalk/OmtalkOps.td"
 // Integer Canonicalization
 //
 
+
 def ReplaceSendInt : Pat<
     (SendOp Omtalk_BoxIntType:$recv, $message, $args),
     (SendIntOp $recv, $message, $args)>;

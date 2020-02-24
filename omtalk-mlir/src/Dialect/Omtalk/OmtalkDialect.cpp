@@ -1,11 +1,9 @@
 #include "mlir/Dialect/Omtalk/OmtalkDialect.hpp"
-#include "mlir/IR/Builders.h"
+
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/StandardTypes.h"
-#include "mlir/IR/StandardTypes.h"
-#include "mlir/Transforms/InliningUtils.h"
 #include "mlir/Transforms/InliningUtils.h"
 
 namespace omtalk {
@@ -21,7 +19,6 @@ struct InlinerInterface : public mlir::DialectInlinerInterface {
 
   void handleTerminator(mlir::Operation *op,
                         llvm::ArrayRef<mlir::Value> valuesToRepl) const final {
-
     // // Only "toy.return" needs to be handled here.
     auto returnOp = llvm::cast<omtalk::ReturnOp>(op);
 
@@ -49,72 +46,37 @@ Dialect::Dialect(mlir::MLIRContext *ctx) : mlir::Dialect("omtalk", ctx) {
 ///
 
 mlir::Type Dialect::parseType(mlir::DialectAsmParser &parser) const {
+  if (parser.parseKeyword("box") || parser.parseLess()) return mlir::Type();
 
-  if (parser.parseKeyword("box") || parser.parseLess())
-    return mlir::Type();
-
-  if(parser.parseKeyword("int") || parser.parseGreater())
+  if (parser.parseKeyword("int") || parser.parseGreater())
     return BoxIntType::get(getContext());
 
-  if(parser.parseKeyword("ref") || parser.parseGreater())
+  if (parser.parseKeyword("ref") || parser.parseGreater())
     return BoxRefType::get(getContext());
 
-  if(parser.parseOptionalQuestion() || parser.parseGreater())
+  if (parser.parseOptionalQuestion() || parser.parseGreater())
     return BoxType::get(getContext());
-  
+
   return mlir::Type();
 }
 
 void Dialect::printType(mlir::Type type,
                         mlir::DialectAsmPrinter &printer) const {
-
   // BoxType boxType = type.cast<BoxType>();
   switch (type.getKind()) {
-  default:
-    llvm_unreachable("Unhandled Linalg type");
-    break;
-  case OmtalkTypes::Box:
-    printer << "box<?>";
-    break;
-  case OmtalkTypes::BoxInt:
-    printer << "box<int>";
-    break;
-  case OmtalkTypes::BoxRef:
-    printer << "box<ref>";
-    break;
+    default:
+      llvm_unreachable("Unhandled Linalg type");
+      break;
+    case OmtalkTypes::Box:
+      printer << "box<?>";
+      break;
+    case OmtalkTypes::BoxInt:
+      printer << "box<int>";
+      break;
+    case OmtalkTypes::BoxRef:
+      printer << "box<ref>";
+      break;
   }
 }
 
 }  // namespace omtalk
-
-namespace mlir {
-namespace omtalk {
-
-mlir::CallInterfaceCallable SendOp::getCallableForCallee() {
-  return getAttrOfType<SymbolRefAttr>("message");
-}
-
-mlir::Operation::operand_range SendOp::getArgOperands() {
-  return inputs();
-}
-
-mlir::CallInterfaceCallable SendIntOp::getCallableForCallee() {
-  return getAttrOfType<SymbolRefAttr>("message");
-}
-
-mlir::Operation::operand_range SendIntOp::getArgOperands() {
-  return inputs();
-}
-
-mlir::CallInterfaceCallable SendRefOp::getCallableForCallee() {
-  return getAttrOfType<SymbolRefAttr>("message");
-}
-
-mlir::Operation::operand_range SendRefOp::getArgOperands() {
-  return inputs();
-}
-
-#define GET_OP_CLASSES
-#include "omtalk/ops.cpp.inc"
-}  // namespace omtalk
-}  // namespace mlir

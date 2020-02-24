@@ -8,6 +8,7 @@
 #include "mlir/Dialect/AffineOps/AffineOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LoopOps/LoopOps.h"
+#include "mlir/Dialect/Omtalk/Box.hpp"
 #include "mlir/Dialect/Omtalk/OmtalkDialect.hpp"
 #include "mlir/Dialect/StandardOps/Ops.h"
 #include "mlir/Pass/Pass.h"
@@ -25,12 +26,30 @@ struct AddOpLowering : public mlir::OpRewritePattern<omtalk::IAddOp> {
   }
 };
 
-struct ConstantIntOpLowering : public mlir::OpRewritePattern<omtalk::ConstantIntOp> {
+struct ConstantIntOpLowering
+    : public mlir::OpRewritePattern<omtalk::ConstantIntOp> {
   using OpRewritePattern<omtalk::ConstantIntOp>::OpRewritePattern;
 
   mlir::PatternMatchResult matchAndRewrite(
       omtalk::ConstantIntOp op, mlir::PatternRewriter &rewriter) const final {
-    rewriter.replaceOpWithNewOp<mlir::ConstantOp>(op, op.valueAttr());
+    // auto attr = op.valueAttr();
+
+    auto value = box_int(op.valueAttr().getInt());
+    rewriter.replaceOpWithNewOp<mlir::ConstantOp>(
+        op, rewriter.getI64IntegerAttr(value));
+    return matchSuccess();
+  }
+};
+
+struct ConstantRefOpLowering
+    : public mlir::OpRewritePattern<omtalk::ConstantRefOp> {
+  using OpRewritePattern<omtalk::ConstantRefOp>::OpRewritePattern;
+
+  mlir::PatternMatchResult matchAndRewrite(
+      omtalk::ConstantRefOp op, mlir::PatternRewriter &rewriter) const final {
+    auto value = box_ref(op.valueAttr().getInt());
+    rewriter.replaceOpWithNewOp<mlir::ConstantOp>(
+        op, rewriter.getI64IntegerAttr(value));
     return matchSuccess();
   }
 };
@@ -56,18 +75,18 @@ struct OmtalkLoweringPass : public mlir::FunctionPass<OmtalkLoweringPass> {
 void OmtalkLoweringPass::runOnFunction() {
   auto function = getFunction();
 
-  if (function.getName() != "run") {
-    return;
-  }
+  // if (function.getName() != "run") {
+  //   return;
+  // }
 
   mlir::ConversionTarget target(getContext());
 
   target.addLegalDialect<mlir::StandardOpsDialect>();
-  target.addIllegalDialect<omtalk::Dialect>();
+  // target.addIllegalDialect<omtalk::Dialect>();
 
   mlir::OwningRewritePatternList patterns;
-  patterns.insert<AddOpLowering, ConstantIntOpLowering, ReturnOpLowering>(
-      &getContext());
+  patterns.insert<AddOpLowering, ConstantIntOpLowering, ConstantRefOpLowering,
+                  ReturnOpLowering>(&getContext());
 
   if (failed(applyPartialConversion(getFunction(), target, patterns))) {
     signalPassFailure();
