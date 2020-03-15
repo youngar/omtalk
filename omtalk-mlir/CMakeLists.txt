@@ -30,6 +30,7 @@ endfunction(omtalk_tablegen)
 add_library(libomtalk-mlir
 	src/Conversion/OmtalkToLLVM.cpp
 	src/Dialect/Omtalk/OmtalkDialect.cpp
+	src/Dialect/Omtalk/Ops.cpp
 	src/Transforms/Canonicalize.cpp
 	src/Transforms/DeadCodeElimination.cpp
 )

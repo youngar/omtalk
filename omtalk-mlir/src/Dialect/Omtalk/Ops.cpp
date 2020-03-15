@@ -42,11 +42,11 @@ mlir::Operation::operand_range SendIntAddOp::getArgOperands() {
 
 OpFoldResult SendIntAddOp::fold(ArrayRef<Attribute> operands) {
   /// addi(x, 0) -> x
-  if (matchPattern(rhs(), m_Zero()))
-    return lhs();
+  return {};
+//   if (matchPattern(rhs(), m_Zero())) return lhs();
 
-  return constFoldBinaryOp<IntegerAttr>(operands,
-                                        [](APInt a, APInt b) { return a + b; });
+//   return constFoldBinaryOp<IntegerAttr>(operands,
+//                                         [](APInt a, APInt b) { return a + b; });
 }
 
 //===----------------------------------------------------------------------===//
@@ -64,7 +64,7 @@ mlir::Operation::operand_range SendRefOp::getArgOperands() { return inputs(); }
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "omtalk/ops.cpp.inc"
+#include "mlir/Dialect/Omtalk/OmtalkOps.cpp.inc"
 
 }  // namespace omtalk
 }  // namespace mlir

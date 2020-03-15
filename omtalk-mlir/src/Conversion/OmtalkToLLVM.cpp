@@ -93,8 +93,6 @@ void OmtalkLoweringPass::runOnFunction() {
   }
 }
 
-/// Create a pass for lowering operations in the `Affine` and `Std` dialects,///
-/// for a subset of the Toy IR (e.g. matmul).
 std::unique_ptr<mlir::Pass> createLowerPass() {
   return std::make_unique<OmtalkLoweringPass>();
 }

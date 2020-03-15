@@ -1,8 +1,9 @@
 #ifndef OMTALK_OMTALKOPS_TD_
 #define OMTALK_OMTALKOPS_TD_
 
+include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Interfaces/SideEffects.td"
 include "mlir/IR/OpBase.td"
-include "mlir/Analysis/CallInterfaces.td"
 
 //
 // Dialect
@@ -46,7 +47,7 @@ def ConstantRefOp : Omtalk_Op<"constant_ref", [NoSideEffect]> {
   let results = (outs Omtalk_BoxRefType);
 }
 
-def ConstantIntOp : Omtalk_Op<"constant_int"> {
+def ConstantIntOp : Omtalk_Op<"constant_int", [NoSideEffect]> {
   let summary = "constant_int";
   let description = [{
       A constant boxed integer

@@ -35,7 +35,7 @@ struct InlinerInterface : public mlir::DialectInlinerInterface {
 Dialect::Dialect(mlir::MLIRContext *ctx) : mlir::Dialect("omtalk", ctx) {
 #define GET_OP_LIST
   addOperations<
-#include "omtalk/ops.cpp.inc"
+#include "mlir/Dialect/Omtalk/OmtalkOps.cpp.inc"
       >();
   addTypes<BoxType, BoxIntType, BoxRefType>();
   addInterfaces<InlinerInterface>();
