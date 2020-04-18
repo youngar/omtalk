@@ -1,5 +1,5 @@
-#ifndef OMTALK_OMTALK_HPP_
-#define OMTALK_OMTALK_HPP_
+#ifndef MLIR_DIALECT_OMTALK_OMTALK_HPP
+#define MLIR_DIALECT_OMTALK_OMTALK_HPP
 
 #include <cstdint>
 
@@ -74,4 +74,4 @@ inline bool VirtualMachine::load_classes() {
 
 }  // namespace omtalk
 
-#endif  // OMTALK_OMTALK_HPP_
+#endif  // MLIR_DIALECT_OMTALK_OMTALK_HPP

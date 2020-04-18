@@ -1,7 +1,19 @@
+# if(OMTALK_LLVM_)
+#     return()
+# endif()
+# set(OMTALK_LLVM_ true)
+
 include(ExternalProject)
 
 set(LLVM_PROJECT_REPO https://github.com/llvm/llvm-project.git)
 set(LLVM_PROJECT_TAG master)
+
+# cmake -G Ninja ../llvm \
+#    -DLLVM_ENABLE_PROJECTS=mlir \
+#    -DLLVM_BUILD_EXAMPLES=ON \
+#    -DLLVM_TARGETS_TO_BUILD="X86;NVPTX;AMDGPU" \
+#    -DCMAKE_BUILD_TYPE=Release \
+#    -DLLVM_ENABLE_ASSERTIONS=ON
 
 ExternalProject_Add(
 	llvm
@@ -11,7 +23,6 @@ ExternalProject_Add(
 	SOURCE_SUBDIR llvm
 	CMAKE_ARGS
 		-DLLVM_ENABLE_PROJECTS=mlir
-		-DLLVM_BUILD_EXAMPLES=ON
 		-DLLVM_TARGETS_TO_BUILD=host
 		-DCMAKE_BUILD_TYPE=Release
 		-DLLVM_ENABLE_ASSERTIONS=ON
@@ -20,6 +31,7 @@ ExternalProject_Add(
 )
 
 ExternalProject_Get_Property(llvm SOURCE_DIR BINARY_DIR)
+
 set(LLVM_PROJECT_SOURCE_DIR ${SOURCE_DIR})
 set(LLVM_PROJECT_BINARY_DIR ${BINARY_DIR})
 set(LLVM_DIR "${LLVM_PROJECT_BINARY_DIR}/lib/cmake/llvm")

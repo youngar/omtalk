@@ -1,7 +1,9 @@
-#ifndef OMTALK_BOX_HPP_
-#define OMTALK_BOX_HPP_
+#ifndef MLIR_DIALECT_OMTALK_BOX_H
+#define MLIR_DIALECT_OMTALK_BOX_H
 
 #include <cstdint>
+
+namespace omtalk {
 
 constexpr std::uint64_t BOX_MAX = 20;
 
@@ -17,4 +19,6 @@ constexpr std::uint64_t box_ref(std::uint64_t value) { return value; }
 
 constexpr void *unbox_ref(std::uint64_t value) { return (void *)value; }
 
-#endif  // OMTALK_BOX_HPP_;p
+} //endif
+
+#endif  // MLIR_DIALECT_OMTALK_BOX_H

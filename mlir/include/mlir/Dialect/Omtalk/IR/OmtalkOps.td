@@ -1,9 +1,38 @@
-#ifndef OMTALK_OMTALKOPS_TD_
+//===- OmtalkOps.td - Omtalk dialect ops -------------------*- tablegen -*-===//
+//
+// This file is licensed under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef OMTALK_OPS
 #define OMTALK_OMTALKOPS_TD_
 
 include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/SideEffects.td"
 include "mlir/IR/OpBase.td"
+
+//===----------------------------------------------------------------------===//
+// Omtalk dialect definition.
+//===----------------------------------------------------------------------===//
+
+def Omtalk_Dialect : Dialect {
+  let name = "omtalk";
+  let summary = "Omtalk Smalltalk Dialect"
+  let description = [{
+      This is a dialect for representing small talk objects. It is tightly
+      coupled to the omtalk virtual machine.
+  }]
+  let cppNamespace = "omtalk";
+}
+
+//===----------------------------------------------------------------------===//
+// Base omtalk operation definition.
+//===----------------------------------------------------------------------===//
+
+class Omtalk_Op<string mnemonic, list<OpTrait> traits = []> :
+    Op<Omtalk_Dialect, mnemonic, traits>;
 
 //
 // Dialect
@@ -67,17 +96,6 @@ def SendOp : Omtalk_Op<"send",
   let arguments = (ins Omtalk_Type:$recv, FlatSymbolRefAttr:$message, Variadic<Omtalk_Type>:$inputs);
   let results = (outs Omtalk_Type);
   let hasCanonicalizer = 1;
-}
-
-def SendIntOp : Omtalk_Op<"send_int",
-    [DeclareOpInterfaceMethods<CallOpInterface>]> {
-  let summary = "Send message to an integer receiver";
-  let description = [{
-    Send a message, where the receiver is guaranteed to be a boxed integer.
-  }];
-
-  let arguments = (ins Omtalk_BoxIntType:$recv, FlatSymbolRefAttr:$message, Variadic<Omtalk_Type>:$inputs);
-  let results = (outs Omtalk_Type);
 }
 
 def SendIntAddOp : Omtalk_Op<"send_int_add",

@@ -1,4 +1,13 @@
-#include "mlir/Dialect/Omtalk/OmtalkDialect.hpp"
+//===- StandaloneOps.cpp - Standalone dialect ops ---------------*- C++ -*-===//
+//
+// This file is licensed under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#include "mlir/Dialect/Omtalk/IR/OmtalkDialect.hpp"
+#include "mlir/Dialect/Omtalk/IR/OmtalkOps.hpp"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -17,16 +26,6 @@ mlir::CallInterfaceCallable SendOp::getCallableForCallee() {
 }
 
 mlir::Operation::operand_range SendOp::getArgOperands() { return inputs(); }
-
-//===----------------------------------------------------------------------===//
-// SendIntOp
-//===----------------------------------------------------------------------===//
-
-mlir::CallInterfaceCallable SendIntOp::getCallableForCallee() {
-  return getAttrOfType<SymbolRefAttr>("message");
-}
-
-mlir::Operation::operand_range SendIntOp::getArgOperands() { return inputs(); }
 
 //===----------------------------------------------------------------------===//
 // SendIntAddOp
@@ -60,11 +59,11 @@ mlir::CallInterfaceCallable SendRefOp::getCallableForCallee() {
 mlir::Operation::operand_range SendRefOp::getArgOperands() { return inputs(); }
 
 //===----------------------------------------------------------------------===//
-// TableGen'd op method definitions
+// ODS Ops
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "mlir/Dialect/Omtalk/OmtalkOps.cpp.inc"
+#include "Standalone/StandaloneOps.cpp.inc"
 
-}  // namespace omtalk
-}  // namespace mlir
+} // namespace standalone
+} // namespace mlir

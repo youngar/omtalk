@@ -1,22 +1,35 @@
-#ifndef OMTALK_DIALECT_HPP_
-#define OMTALK_DIALECT_HPP_
+//===- OmtalkDialect.h - Omtalk dialect -------------------------*- C++ -*-===//
+//
+// This file is licensed under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef MLIR_DIALECT_OMTALK_OMTALKDIALECT_HP
+#define MLIR_DIALECT_OMTALK_OMTALKDIALECT_HP
 
 #include "mlir/IR/Dialect.h"
-#include "mlir/IR/Function.h"
-#include "mlir/IR/StandardTypes.h"
-
-///
-/// Omtalk Opersations
-///
 
 namespace mlir {
 namespace omtalk {
 
-#define GET_OP_CLASSES
-#include <mlir/Dialect/Omtalk/OmtalkOps.h.inc>
+#include "Omtalk/OmtalkOpsDialect.h.inc"
 
-}  // namespace omtalk
-}  // namespace mlir
+} // namespace omtalk
+} // namespace mlir
+
+#endif // MLIR_DIALECT_OMTALK_OMTALKDIALECT_HP
+
+
+//////////////////////////////////////
+//////////////////////////////////////
+//////////////////////////////////////
+//////////////////////////////////////
+//////////////////////////////////////
+
+#include "mlir/IR/Function.h"
+#include "mlir/IR/StandardTypes.h"
 
 ///
 /// Omtalk Dialect
