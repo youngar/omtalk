@@ -2,23 +2,23 @@
 ### LLVM CMake Integration
 ###
 
+message(STATUS "Using LLVM_ENABLE_PROJECTS:    ${LLVM_ENABLE_PROJECTS}")
+message(STATUS "Using OMTALK_LLVM_OPTIONS:     ${OMTALK_LLVM_OPTIONS}")
+
 set(OMTALK_LLVM_SOURCE_DIR "${omtalk_SOURCE_DIR}/external/llvm-project")
 set(OMTALK_LLVM_BINARY_DIR "${omtalk_BINARY_DIR}/external/llvm-project")
 
 file(MAKE_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}")
 
-list(APPEND OMTALK_LLVM_OPTIONS
-	-DLLVM_ENABLE_PROJECTS=mlir
-	-DLLVM_PARALLEL_LINK_JOBS=2
-	-DLLVM_BUILD_EXAMPLES=on
-)
-
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "${OMTALK_LLVM_SOURCE_DIR}/llvm" -G "${CMAKE_GENERATOR}" ${OMTALK_LLVM_OPTIONS}
+	COMMAND "${CMAKE_COMMAND}" "${OMTALK_LLVM_SOURCE_DIR}/llvm" 
+		-G "${CMAKE_GENERATOR}" 
+		${OMTALK_LLVM_OPTIONS}
+		"-DLLVM_ENABLE_PROJECTS=${LLVM_ENABLE_PROJECTS}"
 	WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
 )
 
-message(STATUS "Using CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
+message(STATUS "Using CMAKE_MODULE_PATH:       ${CMAKE_MODULE_PATH}")
 find_package(MLIR REQUIRED PATHS "${OMTALK_LLVM_BINARY_DIR}/lib/cmake/mlir" NO_DEFAULT_PATH)
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
@@ -57,7 +57,8 @@ execute_process(
 	COMMAND "${CMAKE_COMMAND}" --build .
 	WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
 )
-
+	
+# TODO: I don't think there is any benefit to adding a custom target for llvm
 add_custom_target(omtalk_llvm_project ALL
 	COMMAND "${CMAKE_COMMAND}" --build .
 	WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
@@ -74,8 +75,8 @@ add_library(omtalk_llvm INTERFACE)
 add_dependencies(omtalk_llvm omtalk_llvm_project)
 
 target_include_directories(omtalk_llvm
-    INTERFACE
-        ${LLVM_INCLUDE_DIRS}
+	INTERFACE
+		${LLVM_INCLUDE_DIRS}
 )
 
 target_compile_definitions(omtalk_llvm
