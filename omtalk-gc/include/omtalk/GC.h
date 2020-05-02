@@ -12,6 +12,10 @@
 
 namespace omtalk::gc {
 
+//===----------------------------------------------------------------------===//
+// Marking
+//===----------------------------------------------------------------------===//
+
 class Marking {
 public:
   void mark(Ref<void> ref) {
@@ -21,13 +25,13 @@ public:
     }
   }
 
-  void scanWorkUnits() {
+  void handleWorkUnits() {
     while (stack_.more()) {
       scan(stack_.pop().get());
     }
   }
 
-  void scan(Ref<> ref) {
+  void scan(Ref<>) {
     // TODO: something, anything?
     assert(0);
   }
@@ -36,33 +40,9 @@ private:
   WorkStack stack_;
 };
 
-struct CollectorConfig {};
-
-constexpr CollectorConfig DEFAULT_COLLECTOR_CONFIG;
-
-class CollectorContext;
-
-using CollectorContextList = IntrusiveList<CollectorContext>;
-using CollectorContextListNode = CollectorContextList::Node;
-
-class Collector final {
-public:
-  friend CollectorContext;
-
-  Collector(const CollectorConfig &CollectorConfig = DEFAULT_COLLECTOR_CONFIG);
-
-  ~Collector();
-
-  CollectorContext &createCollectorContext();
-
-private:
-  void attach(CollectorContext *cx);
-
-  void detach(CollectorContext *cx);
-
-  RegionManager regionManager;
-  CollectorContextList contexts;
-};
+//===----------------------------------------------------------------------===//
+// AllocationBuffer
+//===----------------------------------------------------------------------===//
 
 class AllocationBuffer final {
 public:
@@ -82,7 +62,7 @@ public:
       return Ref<T>(nullptr);
     }
 
-    Ref<T> ref(begin);
+    Ref<T> ref(new(begin) T());
     begin += size;
     return ref;
   }
@@ -91,10 +71,50 @@ public:
 
   bool empty() const { return available() == 0; }
 
-private:
   std::byte *begin = nullptr;
+
   std::byte *end = nullptr;
 };
+
+//===----------------------------------------------------------------------===//
+// CollectorConfig
+//===----------------------------------------------------------------------===//
+
+struct CollectorConfig {};
+
+constexpr CollectorConfig DEFAULT_COLLECTOR_CONFIG;
+
+//===----------------------------------------------------------------------===//
+// Collector
+//===----------------------------------------------------------------------===//
+
+class CollectorContext;
+using CollectorContextList = IntrusiveList<CollectorContext>;
+using CollectorContextListNode = CollectorContextList::Node;
+
+class Collector final {
+public:
+  friend CollectorContext;
+
+  Collector(const CollectorConfig &CollectorConfig = DEFAULT_COLLECTOR_CONFIG);
+
+  ~Collector();
+
+private:
+  void attach(CollectorContext *cx);
+
+  void detach(CollectorContext *cx);
+
+  bool refreshBuffer(CollectorContext *cx, std::size_t minimumSize);
+
+  RegionManager regionManager;
+  CollectorContextList contexts;
+  FreeList freeList;
+};
+
+//===----------------------------------------------------------------------===//
+// CollectorContext
+//===----------------------------------------------------------------------===//
 
 class CollectorContext final {
 public:
@@ -112,23 +132,47 @@ public:
     return listNode;
   }
 
+  AllocationBuffer &buffer() { return ab; }
+
+  template <typename T = void>
+  Ref<T> allocate(std::size_t size = sizeof(T));
+
+  bool refreshBuffer(std::size_t minimumSize);
+
 private:
   Collector *collector;
   CollectorContextListNode listNode;
   AllocationBuffer ab;
 };
 
+//===----------------------------------------------------------------------===//
+// Collector Inlines
+//===----------------------------------------------------------------------===//
+
 inline Collector::Collector(const CollectorConfig &CollectorConfig) {}
 
 inline Collector::~Collector() {}
 
-inline CollectorContext &Collector::createCollectorContext() {
-  Region *region = regionManager.allocateRegion();
-};
-
 inline void Collector::attach(CollectorContext *cx) { contexts.insert(cx); }
 
 inline void Collector::detach(CollectorContext *cx) { contexts.remove(cx); }
+
+//===----------------------------------------------------------------------===//
+// CollectorContext Inlines
+//===----------------------------------------------------------------------===//
+
+template <typename T = void>
+Ref<T> CollectorContext::allocate(std::size_t size) {
+
+  Ref<T> ref = buffer().allocate<T>(size);
+  if (ref != nullptr) {
+    return ref;
+  }
+
+  refreshBuffer(size);
+
+  return ab.allocate<T>(size);
+}
 
 } // namespace omtalk::gc
 

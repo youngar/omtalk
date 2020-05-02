@@ -42,13 +42,19 @@ static_assert(isPow2(BITCHUNK_NBITS));
 template <std::size_t N>
 using BitChunkArray = std::array<BitChunk, N>;
 
+static_assert(sizeof(BitChunkArray<1>) == sizeof(BitChunk) * 1);
+static_assert(sizeof(BitChunkArray<4>) == sizeof(BitChunk) * 4);
+static_assert(sizeof(BitChunkArray<8>) == sizeof(BitChunk) * 8);
+
 template <std::size_t N>
 class BitArray {
 public:
   static_assert((N % BITCHUNK_NBITS) == 0,
                 "BitArray size must be a multiple of BITCHUNK_NBITS.");
 
-  BitArray();
+  static constexpr std::size_t NCHUNKS = N / BITCHUNK_NBITS;
+
+  BitArray() = default;
 
   bool get(std::size_t index) const noexcept {
     return BitChunk(0) == (chunkForBit(index) & maskForBit(index));
@@ -95,8 +101,12 @@ private:
     return chunks.at(indexForBit(index));
   }
 
-  BitChunkArray<N> chunks;
+  BitChunkArray<NCHUNKS> chunks;
 };
+
+static_assert(sizeof(BitArray<0>) == 1);
+static_assert(sizeof(BitArray<BITCHUNK_NBITS>) == sizeof(BitChunk));
+static_assert(sizeof(BitArray<BITCHUNK_NBITS*4>) == sizeof(BitChunk)*4);
 
 } // namespace omtalk::gc
 

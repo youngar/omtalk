@@ -6,6 +6,10 @@ if(POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
 endif()
 
+###
+### Omtalk
+###
+
 project(omtalk
 	LANGUAGES C CXX ASM_NASM
 	VERSION 0.1
@@ -16,6 +20,7 @@ project(omtalk
 ###
 
 enable_testing()
+add_compile_options(-fconcepts -fdiagnostics-color)
 
 ###
 ### Modules
@@ -33,6 +38,7 @@ option(OMTALK_LLD "Use the LLVM linker ld.lld")
 option(OMTALK_RTTI "Build with RTTI support.")
 option(OMTALK_SPLIT_DEBUG "Split debug information for faster link times")
 option(OMTALK_UBSAN "Build with clang undefined behaviour sanitizer.")
+option(OMTALK_WARNINGS "Build with extra warning enabled")
 
 include(HandleOmtalkOptions)
 
@@ -40,7 +46,7 @@ include(HandleOmtalkOptions)
 ### LLVM integration
 ###
 
-include(BuildLLVM)
+# include(BuildLLVM)
 
 ###
 ### Subdirectories
@@ -48,8 +54,8 @@ include(BuildLLVM)
 
 add_subdirectory(external)
 add_subdirectory(omtalk-gc)
-add_subdirectory(omtalk-mlir)
-add_subdirectory(omtalk-parser)
-add_subdirectory(omtalk)
-add_subdirectory(test)
-add_subdirectory(tools)
+# add_subdirectory(omtalk-mlir)
+# add_subdirectory(omtalk-parser)
+# add_subdirectory(omtalk)
+# add_subdirectory(test)
+# add_subdirectory(tools)

@@ -2,6 +2,7 @@
 #define OMTALK_GC_REF_HPP_
 
 #include <cstdint>
+#include <ostream>
 #include <type_traits>
 
 namespace omtalk::gc {
@@ -17,6 +18,8 @@ public:
   }
 
   Ref() = default;
+
+  constexpr Ref(nullptr_t) : value_(nullptr) {}
 
   constexpr Ref(T *value) : value_(value) {}
 
@@ -45,6 +48,29 @@ public:
 
   constexpr bool operator!=(nullptr_t) const { return value_ != nullptr; }
 
+  template <typename U,
+            typename = decltype(std::declval<T *>() == std::declval<U *>())>
+  constexpr bool operator==(Ref<U> rhs) const {
+    return value_ == rhs.get();
+  }
+
+  template <typename U,
+            typename = decltype(std::declval<T *>() != std::declval<U *>())>
+  constexpr bool operator!=(Ref<U> rhs) const {
+    return value_ != rhs.get();
+  }
+
+  /// Static cast from T to U.
+  template <typename U>
+  Ref<U> cast() const {
+    return Ref<U>(static_cast<U *>(value_));
+  }
+
+  template <typename U>
+  Ref<U> reinterpret() const {
+    return Ref<U>(reinterpret_cast<U *>(value_));
+  }
+
 private:
   PrimitiveRef<T> value_;
 };
@@ -53,6 +79,8 @@ template <>
 class Ref<void> final {
 public:
   Ref() = default;
+
+  constexpr Ref(nullptr_t) : value_(nullptr) {}
 
   constexpr Ref(void *value) : value_(value) {}
 
@@ -71,9 +99,37 @@ public:
 
   constexpr bool operator!=(nullptr_t) const { return value_ != nullptr; }
 
+  template <typename U>
+  constexpr bool operator==(Ref<U> rhs) const {
+    return value_ == rhs.get();
+  }
+
+  template <typename U>
+  constexpr bool operator!=(Ref<U> rhs) const {
+    return value_ != rhs.get();
+  }
+
+  template <typename U>
+  Ref<U> cast() const {
+    return Ref<U>(static_cast<U *>(value_));
+  }
+
+  template <typename U>
+  Ref<U> reinterpret() const {
+    return Ref<U>(reinterpret_cast<U *>(value_));
+  }
+
 private:
   PrimitiveRef<void> value_;
 };
+
+template <typename T>
+std::ostream &operator<<(std::ostream &out, const Ref<T> &ref) {
+  out << "(Ref addr: " << ref.get();
+  out << " value: " << *ref.get();
+  out << ")";
+  return out;
+}
 
 } // namespace omtalk::gc
 

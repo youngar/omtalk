@@ -3,27 +3,39 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
+#include <omtalk/Assert.h>
 #include <omtalk/BitArray.h>
+#include <omtalk/IntrusiveList.h>
 #include <omtalk/Ref.h>
 #include <type_traits>
 #include <vector>
 
 namespace omtalk::gc {
 
-// region size is 512kib
-constexpr std::size_t REGION_SIZE_LOG2 = 19;
-constexpr std::size_t REGION_SIZE = std::size_t(1) << REGION_SIZE_LOG2;
-constexpr std::size_t REGION_ALIGNMENT = REGION_SIZE;
-
-constexpr std::uintptr_t REGION_INDEX_MASK = REGION_ALIGNMENT - 1;
-constexpr std::uintptr_t REGION_ADDRESS_MASK = ~REGION_INDEX_MASK;
+//===----------------------------------------------------------------------===//
+// Heap Constants
+//===----------------------------------------------------------------------===//
 
 constexpr std::size_t MIN_OBJECT_SIZE = 16;
 constexpr std::size_t OBJECT_ALIGNMENT = 8;
 
+// region size is 512kib
+constexpr std::size_t REGION_SIZE_LOG2 = 19;
+constexpr std::size_t REGION_SIZE = std::size_t(1) << REGION_SIZE_LOG2;
+constexpr std::size_t REGION_ALIGNMENT = REGION_SIZE;
+constexpr std::size_t REGION_NSLOTS = REGION_SIZE / OBJECT_ALIGNMENT;
+
+constexpr std::uintptr_t REGION_INDEX_MASK = REGION_ALIGNMENT - 1;
+constexpr std::uintptr_t REGION_ADDRESS_MASK = ~REGION_INDEX_MASK;
+
 // region map size is 4kib (nbits = 32768, 1/128 or 0.78% of the heap)
-constexpr std::size_t REGION_MAP_NBITS = REGION_SIZE / OBJECT_ALIGNMENT;
-constexpr std::size_t REGION_SLOTS = (REGION_SIZE - 16) / OBJECT_ALIGNMENT;
+constexpr std::size_t REGION_MAP_NBITS = REGION_NSLOTS;
+constexpr std::size_t REGION_MAP_NCHUNKS = REGION_MAP_NBITS / BITCHUNK_NBITS;
+
+//===----------------------------------------------------------------------===//
+// FreeList
+//===----------------------------------------------------------------------===//
 
 class alignas(OBJECT_ALIGNMENT) FreeBlock {
 public:
@@ -34,6 +46,10 @@ public:
   std::size_t getSize() const noexcept { return size; }
 
   FreeBlock *getNext() const noexcept { return next; }
+
+  std::byte *begin() noexcept { return reinterpret_cast<std::byte *>(this); }
+
+  std::byte *end() noexcept { return begin() + getSize(); }
 
   void link(FreeBlock *freeBlock) noexcept {
     freeBlock->next = next;
@@ -54,23 +70,55 @@ public:
   }
 
   void addFreeBlock(FreeBlock *freeBlock) noexcept {
-    if(freeList) {
+    if (freeList) {
       addFreeBlockNoCheck(freeBlock);
     } else {
       freeList = freeBlock;
     }
   }
 
+  FreeBlock *firstFit(std::size_t size) {
+    FreeBlock **block = &freeList;
+    while (*block != nullptr) {
+      if (size <= (*block)->getSize()) {
+        // remove block from the free list and return it
+        FreeBlock *firstFit = *block;
+        *block = (*block)->getNext();
+        return firstFit;
+      }
+    }
+
+    return nullptr;
+  }
+
 private:
   FreeBlock *freeList = nullptr;
 };
+
+//===----------------------------------------------------------------------===//
+// HeapIndex
+//===----------------------------------------------------------------------===//
 
 /// An index into the data portion of a region.
 ///
 enum class HeapIndex : std::uintptr_t {};
 
+constexpr std::uintptr_t toAddr(HeapIndex index, std::byte *base) {
+  return (std::uintptr_t(index) * OBJECT_ALIGNMENT) + std::uintptr_t(base);
+}
+
+constexpr HeapIndex toHeapIndex(std::uintptr_t addr) {
+  return HeapIndex((addr & REGION_INDEX_MASK) / OBJECT_ALIGNMENT);
+}
+
+//===----------------------------------------------------------------------===//
+// RegionMap
+//===----------------------------------------------------------------------===//
+
 class RegionMap {
 public:
+  friend struct RegionMapChecks;
+
   RegionMap() { clear(); }
 
   void clear() noexcept { data.clear(); }
@@ -87,7 +135,21 @@ private:
   BitArray<REGION_MAP_NBITS> data;
 };
 
-static_assert(std::is_trivially_destructible_v<RegionMap>);
+struct RegionMapChecks {
+  static_assert(std::is_trivially_destructible_v<RegionMap>);
+  // static_assert(sizeof(RegionMap) == (REGION_MAP_NCHUNKS *
+  // sizeof(BitChunk)));
+  static_assert(
+      check_size<RegionMap, (REGION_MAP_NCHUNKS * sizeof(BitChunk))>());
+};
+
+//===----------------------------------------------------------------------===//
+// Region
+//===----------------------------------------------------------------------===//
+
+class Region;
+using RegionList = IntrusiveList<Region>;
+using RegionListNode = RegionList::Node;
 
 enum class RegionMode : std::uintptr_t {};
 
@@ -97,6 +159,13 @@ public:
 
   static Region *allocate() {
     auto ptr = std::aligned_alloc(REGION_ALIGNMENT, REGION_SIZE);
+    std::cout << "ptr " << ptr << std::endl;
+    std::cout << "region_size " << REGION_SIZE << std::endl;
+    std::cout << "sizeof(Region) " << sizeof(Region) << std::endl;
+    std::cout << "sizeof(RegionMap) " << sizeof(RegionMap) << std::endl;
+    std::cout << "offsetof(Region, data) " << offsetof(Region, data)
+              << std::endl;
+
     if (ptr == nullptr) {
       return nullptr;
     }
@@ -107,9 +176,13 @@ public:
     return reinterpret_cast<Region *>(ref.toAddr() & REGION_ADDRESS_MASK);
   }
 
-  std::byte *heapBegin() noexcept { return &data[0]; }
+  std::byte *heapBegin() noexcept {
+    return reinterpret_cast<std::byte *>(data);
+  }
 
-  const std::byte *heapBegin() const noexcept { return &data[0]; }
+  const std::byte *heapBegin() const noexcept {
+    return reinterpret_cast<const std::byte *>(data);
+  }
 
   std::byte *heapEnd() noexcept {
     return reinterpret_cast<std::byte *>(this) + REGION_SIZE;
@@ -120,10 +193,6 @@ public:
   }
 
   void clearMarkMap() noexcept { markMap.clear(); }
-
-  Region *getNextRegion() const noexcept { return nextRegion; }
-
-  void setNextRegion(Region *region) noexcept { nextRegion = region; }
 
   bool inRange(Ref<> ref) const {
     return (heapBegin() <= ref.get()) && (ref.get() < heapEnd());
@@ -144,13 +213,22 @@ public:
                             std::uintptr_t(this));
   }
 
+  /// Intrusive list
+
+  RegionListNode &getListNode() noexcept { return listNode; }
+
+  const RegionListNode &getListNode() const noexcept { return listNode; }
 
 private:
-  Region() = default;
+  Region() {}
 
   std::size_t flags;
-  Region *nextRegion;
+  RegionListNode listNode;
+
+  // Order is important
   RegionMap markMap;
+
+  // trailing data must be last
   alignas(OBJECT_ALIGNMENT) std::byte data[0];
 };
 
@@ -158,41 +236,40 @@ class RegionChecks {
   static_assert(std::is_trivially_destructible_v<Region>);
   static_assert((sizeof(Region) % OBJECT_ALIGNMENT) == 0);
   static_assert((offsetof(Region, data) % OBJECT_ALIGNMENT) == 0);
+  static_assert(check_size<Region, REGION_SIZE>());
+  static_assert(sizeof(Region) <= REGION_SIZE);
 };
+
+//===----------------------------------------------------------------------===//
+// RegionManager
+//===----------------------------------------------------------------------===//
 
 using RegionTable = std::vector<Region *>;
 
 class RegionManager {
 public:
-  Region *popRegion(Region **regionList) {
-    Region *region = *regionList;
-    if (region != nullptr) {
-      *regionList = region->getNextRegion();
-    }
-    return region;
-  }
-
-  void pushRegion(Region **regionList, Region *region) {
-    Region *nextRegion = *regionList;
-    if (nextRegion != nullptr) {
-      region->setNextRegion(nextRegion);
-      *regionList = region;
+  ~RegionManager() {
+    auto i = regions.begin();
+    while (i != regions.end()) {
+      break;
+      // regions.remove((i++).current());
     }
   }
-
-  Region *getFreeRegion() { popRegion(&freeRegions); }
 
   Region *allocateRegion() {
     Region *region = Region::allocate();
-    pushRegion(&usedRegions, region);
+    if (region == nullptr) {
+      return nullptr;
+    }
+
+    regions.insert(region);
     return region;
   }
 
   void freeRegion(Region *region) { std::free(region); }
 
 private:
-  Region *freeRegions = nullptr;
-  Region *usedRegions = nullptr;
+  RegionList regions;
 };
 
 } // namespace omtalk::gc
