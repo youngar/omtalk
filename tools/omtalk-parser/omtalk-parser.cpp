@@ -13,9 +13,9 @@
 #include <mlir/Target/LLVMIR.h>
 #include <mlir/Transforms/Passes.h>
 #include <omtalk/IRGen/IRGen.h>
-#include <omtalk/parser/AST.h>
-#include <omtalk/parser/Location.h>
-#include <omtalk/parser/Parser.h>
+#include <omtalk/Parser/AST.h>
+#include <omtalk/Parser/Location.h>
+#include <omtalk/Parser/Parser.h>
 
 using namespace omtalk;
 namespace cl = llvm::cl;

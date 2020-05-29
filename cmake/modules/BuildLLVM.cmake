@@ -24,10 +24,10 @@ find_package(MLIR REQUIRED PATHS "${OMTALK_LLVM_BINARY_DIR}/lib/cmake/mlir" NO_D
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
-include(TableGen)
-include(AddLLVM)
-include(AddMLIR)
-include(HandleLLVMOptions)
+# include(TableGen)
+# include(AddLLVM)
+# include(AddMLIR)
+# include(HandleLLVMOptions)
 
 # These must be global for tablegen to work
 include_directories(${LLVM_INCLUDE_DIRS})
@@ -57,7 +57,7 @@ execute_process(
 	COMMAND "${CMAKE_COMMAND}" --build .
 	WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
 )
-	
+
 # TODO: I don't think there is any benefit to adding a custom target for llvm
 add_custom_target(omtalk_llvm_project ALL
 	COMMAND "${CMAKE_COMMAND}" --build .

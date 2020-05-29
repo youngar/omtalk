@@ -4,6 +4,6 @@ git:
   quiet: true
 script:
   - mkdir build
-  - cd build; cmake ..
-  - cd build; make -j2
+  - cd build; cmake -C ./cmake/caches/dev.cmake -G Ninja ..
+  - cd build; ninja
 cache: ccache

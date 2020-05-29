@@ -1,3 +1,8 @@
+# include(TableGen)
+# include(AddLLVM)
+# include(AddMLIR)
+# include(HandleLLVMOptions)
+
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 
@@ -14,7 +19,7 @@ llvm_update_compile_flags(omtalk-parser-bin)
 
 target_link_libraries(omtalk-parser-bin
 	PRIVATE
-		omtalk
+		omtalk-core
 		omtalk-parser
 		MLIROmtalk
 		LLVMCore

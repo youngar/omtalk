@@ -6,6 +6,10 @@ if(POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
 endif()
 
+if(POLICY CMP0076)
+  cmake_policy(SET CMP0076 NEW)
+endif()
+
 ###
 ### Omtalk
 ###
@@ -52,10 +56,11 @@ include(HandleOmtalkOptions)
 ### Subdirectories
 ###
 
+# add_subdirectory(core)
 add_subdirectory(external)
-add_subdirectory(omtalk-gc)
-# add_subdirectory(omtalk-mlir)
-# add_subdirectory(omtalk-parser)
-# add_subdirectory(omtalk)
+add_subdirectory(gc)
+# add_subdirectory(compiler)
+add_subdirectory(parser)
 # add_subdirectory(test)
 # add_subdirectory(tools)
+add_subdirectory(util)
