@@ -31,7 +31,8 @@ add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fdiagnostics-color>)
 ###
 
 if(OMTALK_ASAN)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=address -fno-omit-frame-pointer>)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=address>)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fno-omit-frame-pointer>)
 	add_link_options(-fsanitize=address)
 endif()
 
@@ -68,7 +69,15 @@ endif()
 ###
 
 if(OMTALK_SPLIT_DEBUG)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-gsplit-dwarf>)
-	add_link_options(-Wl,--gdb-index)
-	list(APPEND OMTALK_LLVM_OPTIONS -DLLVM_USE_SPLIT_DWARF=on)
+	add_compile_options(
+		$<$<COMPILE_LANGUAGE:CXX,C>:-gsplit-dwarf>
+	)
+	add_link_options(
+		$<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:GNU>>:-Wl,--gdb-index>
+		$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:-Wl,--gdb-index>
+
+	)
+	list(APPEND OMTALK_LLVM_OPTIONS
+		-DLLVM_USE_SPLIT_DWARF=on
+	)
 endif()
