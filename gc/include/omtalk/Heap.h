@@ -11,6 +11,7 @@
 #include <omtalk/Util/IntrusiveList.h>
 #include <type_traits>
 #include <vector>
+#include <stdlib.h>
 
 namespace omtalk::gc {
 
@@ -104,8 +105,8 @@ private:
 ///
 enum class HeapIndex : std::uintptr_t {};
 
-constexpr std::uintptr_t toAddr(HeapIndex index, std::byte *base) {
-  return (std::uintptr_t(index) * OBJECT_ALIGNMENT) + std::uintptr_t(base);
+constexpr std::byte *toAddr(HeapIndex index, std::byte *base) {
+  return base + (std::uintptr_t(index) * OBJECT_ALIGNMENT);
 }
 
 constexpr HeapIndex toHeapIndex(std::uintptr_t addr) {
@@ -159,7 +160,7 @@ public:
   friend class RegionChecks;
 
   static Region *allocate() {
-    auto ptr = std::aligned_alloc(REGION_ALIGNMENT, REGION_SIZE);
+    auto ptr = aligned_alloc(REGION_ALIGNMENT, REGION_SIZE);
     std::cout << "ptr " << ptr << std::endl;
     std::cout << "region_size " << REGION_SIZE << std::endl;
     std::cout << "sizeof(Region) " << sizeof(Region) << std::endl;
@@ -173,7 +174,8 @@ public:
     return new (ptr) Region();
   }
 
-  static Region *get(Ref<auto> ref) {
+  template <typename T>
+  static Region *get(Ref<T> ref) {
     return reinterpret_cast<Region *>(ref.toAddr() & REGION_ADDRESS_MASK);
   }
 
