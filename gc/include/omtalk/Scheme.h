@@ -18,8 +18,8 @@ using ObjectRef = typename S::ObjectRef;
 template <typename S>
 using ObjectProxy = typename S::ObjectProxy;
 
-template <typename S>
-using RootWalker = typename S::RootWalker;
+// template <typename S>
+// using RootWalker = typename S::RootWalker;
 
 //===----------------------------------------------------------------------===//
 // Object Proxy Construction
@@ -76,6 +76,16 @@ template <typename S, typename ContextT, typename VisitorT>
 void walk(ContextT &cx, ObjectProxy<S> target, VisitorT &visitor) noexcept {
   Walk<S>()(cx, target, visitor);
 }
+
+//===----------------------------------------------------------------------===//
+// RootWalker
+//===----------------------------------------------------------------------===//
+
+template <typename SchemeT>
+struct RootWalker {
+  template <typename ContextT, typename VisitorT>
+  void walk(ContextT &cx, VisitorT &visitor) noexcept {}
+};
 
 } // namespace omtalk::gc
 

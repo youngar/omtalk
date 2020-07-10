@@ -176,6 +176,11 @@ std::ostream &operator<<(std::ostream &out, const Ref<T> &ref) {
   return out << "(Ref " << ref.get() << ")";
 }
 
+template <typename T, typename U>
+constexpr Ref<T> cast(Ref<U> x) {
+  return x.template cast<T>();
+}
+
 } // namespace omtalk::gc
 
 #endif // OMTALK_GC_REF_HPP_

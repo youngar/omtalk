@@ -1,6 +1,6 @@
 
 add_library(omtalk-util
-    src/Dummy.cpp
+    src/Empty.cpp
 )
 
 target_include_directories(omtalk-util

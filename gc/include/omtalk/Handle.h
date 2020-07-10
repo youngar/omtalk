@@ -84,7 +84,6 @@ private:
 
 class HandleBase {
 public:
-
   Ref<void> load() const noexcept { return value; }
 
   void store(Ref<void> address) noexcept { value = address; }

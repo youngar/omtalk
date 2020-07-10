@@ -5,32 +5,33 @@
 
 namespace omtalk::gc {
 
-template <typename ObjectProxyT, typename SlotProxyT>
-void preLoadBarrier(Context &cx, ObjectProxyT &object,
-                    SlotProxyT &slot) {}
+template <typename S, typename ObjectProxyT, typename SlotProxyT>
+void preLoadBarrier(Context<S> &cx, ObjectProxyT &object, SlotProxyT &slot) {}
 
-template <typename ObjectProxyT, typename SlotProxyT>
-void postLoadBarrier(Context &cx, ObjectProxyT &object,
-                     SlotProxyT &slot) {}
+template <typename S, typename ObjectProxyT, typename SlotProxyT>
+void postLoadBarrier(Context<S> &cx, ObjectProxyT &object, SlotProxyT &slot) {}
 
-template <typename ObjectProxyT, typename SlotProxyT, typename ValueT>
-void preStoreBarrier(Context &cx, ObjectProxyT object,
-                     SlotProxyT &slot, ValueT value) {}
+template <typename S, typename ObjectProxyT, typename SlotProxyT,
+          typename ValueT>
+void preStoreBarrier(Context<S> &cx, ObjectProxyT object, SlotProxyT &slot,
+                     ValueT value) {}
 
-template <typename ObjectProxyT, typename SlotProxyT, typename ValueT>
-void postStoreBarrier(Context &cx, ObjectProxyT object,
-                      SlotProxyT &slot, ValueT value) {}
+template <typename S, typename ObjectProxyT, typename SlotProxyT,
+          typename ValueT>
+void postStoreBarrier(Context<S> &cx, ObjectProxyT object, SlotProxyT &slot,
+                      ValueT value) {}
 
-template <typename ObjectProxyT, typename SlotProxyT>
-auto load(Context &cx, ObjectProxyT &object, SlotProxyT &slot) {
+template <typename S, typename ObjectProxyT, typename SlotProxyT>
+auto load(Context<S> &cx, ObjectProxyT &object, SlotProxyT &slot) {
   preLoadBarrier(cx, object, slot);
   auto result = slot.load();
   postLoadBarrier(cx);
   return result;
 }
 
-template <typename ObjectProxyT, typename SlotProxyT, typename ValueT>
-auto store(Context &cx, ObjectProxyT object, SlotProxyT &slot,
+template <typename S, typename ObjectProxyT, typename SlotProxyT,
+          typename ValueT>
+auto store(Context<S> &cx, ObjectProxyT object, SlotProxyT &slot,
            ValueT value) {
   preStoreBarrier(cx);
   auto result = slot.store(value);

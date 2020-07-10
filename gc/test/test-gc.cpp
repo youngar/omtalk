@@ -34,7 +34,7 @@ private:
 };
 
 //===----------------------------------------------------------------------===//
-// TestRObjectProxy
+// TestObjectProxy
 //===----------------------------------------------------------------------===//
 
 // template <typename S>
@@ -108,8 +108,6 @@ private:
   gc::Ref<TestObject> target;
 };
 
-class TestRootWalker {};
-
 //===----------------------------------------------------------------------===//
 // TestValueProxy inlines
 //===----------------------------------------------------------------------===//
@@ -134,14 +132,30 @@ struct gc::GetProxy<TestCollectorScheme> {
   }
 };
 
+template <>
+struct gc::RootWalker<TestCollectorScheme> {
+
+  RootWalker() {}
+
+  template <typename ContextT, typename VisitorT>
+  void walk(ContextT &cx, VisitorT &visitor) noexcept {
+    // for (auto h : rootScope) {
+    //   visitor.rootEdge(cx, RefProxy());
+    // }
+  }
+
+  gc::RootHandleScope rootScope;
+};
+
 //===----------------------------------------------------------------------===//
 // Test Allocator
 //===----------------------------------------------------------------------===//
 
 inline gc::Ref<TestStructObject>
-allocateTestStructObject(gc::Context &cx, std::size_t nslots) noexcept {
+allocateTestStructObject(gc::Context<TestCollectorScheme> &cx,
+                         std::size_t nslots) noexcept {
   auto size = TestStructObject::allocSize(nslots);
-  return gc::allocate<TestStructObject>(
+  return gc::allocate<TestCollectorScheme, TestStructObject>(
       cx, size, [=](auto object) { object->length = nslots; });
 }
 
@@ -150,15 +164,19 @@ allocateTestStructObject(gc::Context &cx, std::size_t nslots) noexcept {
 //===----------------------------------------------------------------------===//
 
 TEST_CASE("allocation", "[garbage collector]") {
-  gc::MemoryManager mm;
-  // gc::MemoryManager<TestCollectorScheme> collector;
-  // gc::MarkingScheme<TestCollectorScheme> markingScheme;
 
-  gc::Context context(mm);
-  auto ref = allocateTestStructObject(context, 10);
+  auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
+                .withRootWalker(
+                    std::make_unique<gc::RootWalker<TestCollectorScheme>>())
+                .build();
 
-  for (int i = 0; i < 1000; i++) {
-   
+  gc::HandleScope scope = mm.getRootWalker().rootScope.createScope();
+
+  gc::Context<TestCollectorScheme> context(mm);
+
+  for (int i = 0; i < 1; i++) {
+    auto ref = allocateTestStructObject(context, 10);
+    gc::Handle<TestStructObject> handle(scope, ref);
 
     if (ref == nullptr) {
       std::cout << "Bad Allocation\n";
@@ -172,10 +190,4 @@ TEST_CASE("allocation", "[garbage collector]") {
   REQUIRE(x == 1234);
 }
 
-TEST_CASE("this is dumb", "[dumb[") {
-
-  // auto collector = gc::Scheme().marking(testMarkingScheme()).build();
-}
-
-// MarkingScheme *testMarkingScheme() { return MakeMarkingScheme<TestScheme>();
-// }
+TEST_CASE("roots", "[garbage collector") {}

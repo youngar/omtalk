@@ -12,18 +12,18 @@ namespace omtalk {
 
 using TypeTag = std::uint8_t;
 
-// namespace CoreTypes {
-// enum Types {
-//   /// integer types
-//   I8, I16, I32, I64,
-//   /// float types
-//   F32, F64,
-//   /// special types
-//   REF, PLY,
-//   // Marker for last type
-//   LAST_TYPE
-// };
-// }
+namespace CoreTypes {
+enum Types {
+  /// integer types
+  I8, I16, I32, I64,
+  /// float types
+  F32, F64,
+  /// special types
+  REF, PLY,
+  // Marker for last type
+  LAST_TYPE
+};
+}
 
 class Type {
   virtual std::size_t getSize();
@@ -97,8 +97,7 @@ class OmtalkBasicType : public BasicType<OmtalkType> {
   virtual bool shouldTrace();
 
   std::vector<std::byte> getTraceMap() override {
-    // TODO ????
-    // return {0};
+    return {0};
   }
 };
 

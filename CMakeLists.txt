@@ -24,7 +24,7 @@ project(omtalk
 ###
 
 enable_testing()
-add_compile_options(-fconcepts -fdiagnostics-color)
+add_compile_options(-fdiagnostics-color)
 
 ###
 ### Modules
@@ -50,17 +50,20 @@ include(HandleOmtalkOptions)
 ### LLVM integration
 ###
 
-# include(BuildLLVM)
+# TODO: Including these files here causes LLVM to change how everything
+# is built across all of omtalk
+include(BuildLLVM)
 
 ###
 ### Subdirectories
 ###
 
-# add_subdirectory(core)
+add_subdirectory(compiler)
+add_subdirectory(core)
 add_subdirectory(external)
 add_subdirectory(gc)
-# add_subdirectory(compiler)
 add_subdirectory(parser)
-# add_subdirectory(test)
-# add_subdirectory(tools)
+add_subdirectory(test)
+add_subdirectory(tools)
 add_subdirectory(util)
+add_subdirectory(vm)

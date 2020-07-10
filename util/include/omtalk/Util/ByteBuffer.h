@@ -10,10 +10,10 @@
 namespace omtalk {
 
 class ByteBuffer {
- public:
+public:
   /// disown the byte array.
-  std::uint8_t* release() {
-    std::uint8_t* data = _data;
+  std::uint8_t *release() {
+    std::uint8_t *data = _data;
     _data = nullptr;
     _capacity = 0;
     _size = 0;
@@ -44,7 +44,7 @@ class ByteBuffer {
       clear();
       return true;
     }
-    _data = (std::uint8_t*)std::realloc(_data, capacity);
+    _data = (std::uint8_t *)std::realloc(_data, capacity);
     if (_data != nullptr) {
       _capacity = capacity;
       return true;
@@ -53,25 +53,29 @@ class ByteBuffer {
   }
 
   template <typename T>
-  bool emit(const T& value) {
+  bool emit(const T &value) {
     if (!grow(_size + sizeof(T))) {
       return false;
     }
-    std::memcpy(end(), (void*)&value, sizeof(T));
+    std::memcpy(end(), (void *)&value, sizeof(T));
 
     _size += sizeof(T);
     return true;
   }
 
-  std::uint8_t* start() { return _data; }
+  std::uint8_t *start() { return _data; }
 
-  std::uint8_t* end() { return _data + _size; }
+  std::uint8_t *end() { return _data + _size; }
 
-  const std::uint8_t* start() const { return _data; }
+  const std::uint8_t *start() const { return _data; }
 
-  const std::uint8_t* end() const { return _data + _size; }
+  const std::uint8_t *end() const { return _data + _size; }
 
- private:
+  const std::uint8_t *cstart() const { return _data; }
+
+  const std::uint8_t *cend() const { return _data + _size; }
+
+private:
   bool grow(std::size_t mincapa) {
     std::size_t newcapa = _capacity != 0 ? _capacity : 128;
     while (newcapa < mincapa) {
@@ -80,17 +84,17 @@ class ByteBuffer {
     return reserve(newcapa);
   }
 
-  std::uint8_t* _data = nullptr;
+  std::uint8_t *_data = nullptr;
   std::size_t _size = 0;
   std::size_t _capacity = 0;
 };
 
 template <typename T>
-ByteBuffer& operator<<(ByteBuffer& buffer, const T& value) {
+ByteBuffer &operator<<(ByteBuffer &buffer, const T &value) {
   buffer.emit(value);
   return buffer;
 }
 
-}  // namespace omtalk
+} // namespace omtalk
 
-#endif  // OMTALK_BYTEBUFFER_HPP_
+#endif // OMTALK_BYTEBUFFER_HPP_

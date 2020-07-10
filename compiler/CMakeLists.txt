@@ -1,11 +1,3 @@
-# message(STATUS "Using CMAKE_MODULE_PATH:       ${CMAKE_MODULE_PATH}")
-# find_package(MLIR REQUIRED PATHS "${OMTALK_LLVM_BINARY_DIR}/lib/cmake/mlir" NO_DEFAULT_PATH)
-
-include(TableGen)
-include(AddLLVM)
-include(AddMLIR)
-include(HandleLLVMOptions)
-
 add_mlir_dialect_library(MLIROmtalk
 	lib/Dialect/Omtalk/OmtalkDialect.cpp
 	lib/Dialect/Omtalk/OmtalkOps.cpp

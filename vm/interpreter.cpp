@@ -91,7 +91,7 @@ do_push_global:
 
 do_send:
   pc += SEND_SIZE;
-  // goto SNED_TARGET[function.sendtarget]
+  // goto SEND_TARGET[function.sendtarget]
   DISPATCH_INSTRUCTION(pc);
 
 //

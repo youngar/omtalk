@@ -3,12 +3,15 @@
 
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include <omtalk/Heap.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Util/IntrusiveList.h>
 #include <omtalk/WorkStack.h>
 #include <sys/mman.h>
 #include <vector>
+
+#include <omtalk/Scheme.h>
 
 namespace omtalk::gc {
 
@@ -52,61 +55,118 @@ public:
 
 struct MemoryManagerConfig {};
 
-constexpr MemoryManagerConfig DEFAULT_COLLECTOR_CONFIG;
+constexpr MemoryManagerConfig DEFAULT_MEMORY_MANAGER_CONFIG;
 
 //===----------------------------------------------------------------------===//
 // MemoryManager
 //===----------------------------------------------------------------------===//
 
+template <typename S>
 class Context;
-using ContextList = IntrusiveList<Context>;
-using ContextListNode = ContextList::Node;
 
+template <typename S>
+using ContextList = IntrusiveList<Context<S>>;
+
+template <typename S>
+using ContextListNode = ContextList<S>::Node;
+
+template <typename S>
+class MemoryManager;
+
+template <typename S>
+struct MemoryManagerBuilder final {
+  friend MemoryManager<S>;
+
+  MemoryManagerBuilder() {}
+
+  MemoryManager<S> build() { return MemoryManager<S>(std::move(*this)); }
+
+  MemoryManagerBuilder &
+  withRootWalker(std::unique_ptr<RootWalker<S>> &&rootWalker) {
+    this->rootWalker = std::move(rootWalker);
+    return *this;
+  }
+
+  MemoryManagerBuilder &
+  withConfig(std::unique_ptr<MemoryManagerConfig> &&config) {
+    this->config = std::move(config);
+    return *this;
+  }
+
+private:
+  std::unique_ptr<RootWalker<S>> rootWalker;
+  std::unique_ptr<MemoryManagerConfig> config;
+};
+
+template <typename S>
 class MemoryManager final {
 public:
-  friend Context;
+  friend Context<S>;
 
-  MemoryManager(const MemoryManagerConfig &MemoryManagerConfig =
-                    DEFAULT_COLLECTOR_CONFIG);
+  explicit MemoryManager(MemoryManagerBuilder<S> &&builder)
+      : rootWalker(std::move(builder.rootWalker)) {}
 
   ~MemoryManager();
 
-  bool refreshBuffer(Context &cx, std::size_t minimumSize);
+  RootWalker<S> &getRootWalker() { return *rootWalker; }
+
+  bool refreshBuffer(Context<S> &cx, std::size_t minimumSize) {
+    // search the free list for an entry at least as big
+    FreeBlock *block = freeList.firstFit(minimumSize);
+    if (block != nullptr) {
+      cx.buffer().begin = block->begin();
+      cx.buffer().end = block->end();
+      return true;
+    }
+
+    // Get a new region
+    Region *region = regionManager.allocateRegion();
+    if (region != nullptr) {
+      cx.buffer().begin = region->heapBegin();
+      cx.buffer().end = region->heapEnd();
+      return true;
+    }
+
+    // Failed to allocate
+    return false;
+  }
 
 private:
-  void attach(Context &cx);
+  void attach(Context<S> &cx);
 
-  void detach(Context &cx);
+  void detach(Context<S> &cx);
 
   RegionManager regionManager;
-  ContextList contexts;
+  ContextList<S> contexts;
   FreeList freeList;
+  std::unique_ptr<RootWalker<S>> rootWalker;
 };
 
 //===----------------------------------------------------------------------===//
 // Context
 //===----------------------------------------------------------------------===//
 
+template <typename S>
 class Context final {
 public:
-  friend MemoryManager;
+  friend MemoryManager<S>;
 
-  Context(MemoryManager &memoryManager) : memoryManager(&memoryManager) {
+  Context(MemoryManager<S> &memoryManager) : memoryManager(&memoryManager) {
     memoryManager.attach(*this);
   }
 
   ~Context() { memoryManager->detach(*this); }
 
-  ContextListNode &getListNode() noexcept { return listNode; }
+  ContextListNode<S> &getListNode() noexcept { return listNode; }
 
-  const ContextListNode &getListNode() const noexcept { return listNode; }
+  const ContextListNode<S> &getListNode() const noexcept { return listNode; }
 
-  MemoryManager *getCollector() { return memoryManager; }
+  MemoryManager<S> *getCollector() { return memoryManager; }
   AllocationBuffer &buffer() { return ab; }
 
 private:
-  MemoryManager *memoryManager;
-  ContextListNode listNode;
+  MemoryManager<S> *memoryManager;
+  ContextListNode<S> listNode;
   AllocationBuffer ab;
 };
 
@@ -114,14 +174,18 @@ private:
 // MemoryManager Inlines
 //===----------------------------------------------------------------------===//
 
-inline MemoryManager::MemoryManager(
-    const MemoryManagerConfig &MemoryManagerConfig) {}
+template <typename S>
+inline MemoryManager<S>::~MemoryManager() {}
 
-inline MemoryManager::~MemoryManager() {}
+template <typename S>
+inline void MemoryManager<S>::attach(Context<S> &cx) {
+  contexts.insert(&cx);
+}
 
-inline void MemoryManager::attach(Context &cx) { contexts.insert(&cx); }
-
-inline void MemoryManager::detach(Context &cx) { contexts.remove(&cx); }
+template <typename S>
+inline void MemoryManager<S>::detach(Context<S> &cx) {
+  contexts.remove(&cx);
+}
 
 } // namespace omtalk::gc
 
