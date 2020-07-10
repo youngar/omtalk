@@ -104,7 +104,6 @@ private:
   BitChunkArray<NCHUNKS> chunks;
 };
 
-static_assert(sizeof(BitArray<0>) == 1);
 static_assert(sizeof(BitArray<BITCHUNK_NBITS>) == sizeof(BitChunk));
 static_assert(sizeof(BitArray<BITCHUNK_NBITS * 4>) == sizeof(BitChunk) * 4);
 
