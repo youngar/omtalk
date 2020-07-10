@@ -26,8 +26,8 @@ public:
 
   constexpr Ref(const Ref &other) = default;
 
-  template <typename U>
-  constexpr Ref(const Ref<U> &other) : value_(other.get()) {}
+  template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+  explicit constexpr Ref(const Ref<U> &other) : value_(other.get()) {}
 
   constexpr T *get() const noexcept { return value_; }
 
@@ -111,7 +111,7 @@ public:
   constexpr Ref(const Ref<void> &other) = default;
 
   template <typename U>
-  constexpr Ref(Ref<U> other) : value_(other.get()) {}
+  explicit constexpr Ref(Ref<U> other) : value_(other.get()) {}
 
   constexpr void *get() const noexcept { return value_; }
 
