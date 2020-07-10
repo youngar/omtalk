@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace omtalk {
 
@@ -15,9 +16,9 @@ using Symbol = uintptr_t;
 static const Symbol invalid_symbol = 0x0;
 
 class SymbolTable {
- public:
+public:
   class Iterator {
-   public:
+  public:
     Iterator &operator++() {
       ++_iter;
       return *this;
@@ -25,7 +26,7 @@ class SymbolTable {
 
     Symbol &operator*() const { return _iter->second; }
 
-   private:
+  private:
     friend class SymbolTable;
 
     explicit Iterator(
@@ -61,14 +62,14 @@ class SymbolTable {
 
   Iterator end() { return Iterator(_symbols.end()); }
 
- private:
+private:
   Symbol _next = 1;
   std::unordered_map<Symbol, std::string> _strings;
   std::unordered_map<std::string, Symbol> _symbols;
 };
 
 class StringTable {
- public:
+public:
   const char *operator[](const std::string &s) {
     auto it = _strings.insert(s).first;
     return (*it).c_str();
@@ -84,10 +85,10 @@ class StringTable {
     return (*it).c_str();
   }
 
- private:
+private:
   std::unordered_set<std::string> _strings;
 };
 
-}  // namespace omtalk
+} // namespace omtalk
 
-#endif  // OMTALK_SYMBOL_HPP_
+#endif // OMTALK_SYMBOL_HPP_

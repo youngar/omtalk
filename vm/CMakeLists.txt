@@ -14,4 +14,4 @@ target_include_directories(libomtalk
         ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
-add_subdirectory(test)
+# add_subdirectory(test)

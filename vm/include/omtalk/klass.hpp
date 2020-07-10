@@ -2,58 +2,49 @@
 #define OMTALK_KLASS_HPP_
 
 #include <cstdint>
+#include <map>
 #include <omtalk/bytecodes.hpp>
+#include <omtalk/symbol.hpp>
 #include <omtalk/vm/klass.hpp>
 #include <omtalk/vm/symbol.hpp>
-#include <omtalk/symbol.hpp>
-
-#include <map>
 #include <vector>
 
 namespace omtalk {
 
 // using Bytecode = std::uint8_t;
 
-class String {
+class String {};
 
-};
-
-class Symbol {
- private:
-  vm::SymbolHandle _symbol_handle;
-  std::string _symbol;
-};
+// class Symbol {
+//  private:
+//   vm::SymbolHandle _symbol_handle;
+//   std::string _symbol;
+// };
 
 struct Klass {
   Symbol name;
   vm::KlassHandle _this;
   Klass *super_klass = nullptr;
-  std::vector<MethodDef> _methods;
+  // std::vector<MethodDef> _methods;
 };
 
-class Fields {
+class Fields {};
 
-};
+class Methods {};
 
-class Methods {
-
-};
-
-class ConstantPoolEntry {
-
-};
+class ConstantPoolEntry {};
 
 class ConstantPool {
   std::vector<ConstantPoolEntry> _constant_pool;
 };
 
 enum class CPItemType {
-    UNUSED,
-    SYMBOL,
-    STRING,
-    METHOD,
-    FIELD,
-    CLASS,
+  UNUSED,
+  SYMBOL,
+  STRING,
+  METHOD,
+  FIELD,
+  CLASS,
 };
 
 enum SendTarget {
@@ -69,6 +60,6 @@ class MethodDef {
   void *jit_address;
 };
 
-}  // namespace omtalk
+} // namespace omtalk
 
-#endif  // OMTALK_KLASS_HPP_
+#endif // OMTALK_KLASS_HPP_

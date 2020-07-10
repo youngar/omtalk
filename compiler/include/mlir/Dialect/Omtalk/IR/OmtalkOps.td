@@ -10,7 +10,7 @@
 #define OMTALK_OPS
 
 include "mlir/Interfaces/CallInterfaces.td"
-include "mlir/Interfaces/SideEffects.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/OpBase.td"
 
 //===----------------------------------------------------------------------===//

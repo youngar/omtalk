@@ -10,7 +10,7 @@ namespace omtalk {
 namespace vm {
 
 struct KlassData {
-  std::map<Symbol, HeapPtr> methods;
+  std::unordered_map<Symbol, HeapPtr> methods;
 };
 
 constexpr std::size_t KLASS_PTR_DATA_SIZE =  8;

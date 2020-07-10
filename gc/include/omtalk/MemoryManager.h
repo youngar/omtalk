@@ -68,7 +68,7 @@ template <typename S>
 using ContextList = IntrusiveList<Context<S>>;
 
 template <typename S>
-using ContextListNode = ContextList<S>::Node;
+using ContextListNode = typename ContextList<S>::Node;
 
 template <typename S>
 class MemoryManager;

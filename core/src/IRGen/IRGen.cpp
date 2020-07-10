@@ -1,4 +1,4 @@
-#include <mlir/Analysis/Verifier.h>
+#include <mlir/IR/Verifier.h>
 #include <mlir/IR/Builders.h>
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/Module.h>

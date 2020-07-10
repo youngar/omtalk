@@ -10,13 +10,25 @@ set(OMTALK_LLVM_BINARY_DIR "${omtalk_BINARY_DIR}/external/llvm-project")
 
 file(MAKE_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}")
 
-# execute_process(
-# 	COMMAND "${CMAKE_COMMAND}" "${OMTALK_LLVM_SOURCE_DIR}/llvm" 
-# 		-G "${CMAKE_GENERATOR}" 
-# 		${OMTALK_LLVM_OPTIONS}
-# 		"-DLLVM_ENABLE_PROJECTS=${LLVM_ENABLE_PROJECTS}"
-# 	WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
-# )
+if(NOT OMTALK_RAN_LLVM_CMAKE)
+	execute_process(
+		COMMAND "${CMAKE_COMMAND}" "${OMTALK_LLVM_SOURCE_DIR}/llvm" 
+			-G "${CMAKE_GENERATOR}" 
+			${OMTALK_LLVM_OPTIONS}
+			"-DLLVM_ENABLE_PROJECTS=${LLVM_ENABLE_PROJECTS}"
+		WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
+	)
+
+	# TODO: properly import targets from MLIR. mlir-tblgen is not an exported
+	# target, and dependencies are not represented. Therefore we have to force a
+	# build of LLVM at configure time to make sure tblgen is built.
+	execute_process(
+		COMMAND "${CMAKE_COMMAND}" --build .
+		WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
+	)
+
+	set(OMTALK_RAN_LLVM_CMAKE ON CACHE INTERNAL "")
+endif()
 
 message(STATUS "Using CMAKE_MODULE_PATH:       ${CMAKE_MODULE_PATH}")
 find_package(MLIR REQUIRED PATHS "${OMTALK_LLVM_BINARY_DIR}/lib/cmake/mlir" NO_DEFAULT_PATH)
@@ -49,14 +61,6 @@ message(STATUS "Using LLVM_DEFINITIONS:        ${LLVM_DEFINITIONS}")
 ###
 ### LLVM Build Targets
 ###
-
-# TODO: properly import targets from MLIR. mlir-tblgen is not an exported
-# target, and dependencies are not represented. Therefore we have to force a
-# build of LLVM at configure time to make sure tblgen is built.
-# execute_process(
-# 	COMMAND "${CMAKE_COMMAND}" --build .
-# 	WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
-# )
 
 # TODO: I don't think there is any benefit to adding a custom target for llvm
 # add_custom_target(omtalk_llvm_project ALL

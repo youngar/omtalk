@@ -21,16 +21,22 @@ list(APPEND OMTALK_LLVM_OPTIONS
 )
 
 ###
+### Coloured Output
+###
+
+add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fdiagnostics-color>)
+
+###
 ### Sanitizer Support
 ###
 
 if(OMTALK_ASAN)
-	add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=address -fno-omit-frame-pointer>)
 	add_link_options(-fsanitize=address)
 endif()
 
 if(OMTALK_UBSAN)
-	add_compile_options(-fsanitize=undefined)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=undefined>)
 	add_link_options(-fsanitize=undefined)
 endif()
 
@@ -39,7 +45,7 @@ endif()
 ###
 
 if(NOT OMTALK_RTTI)
-	add_compile_options(-fno-rtti)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fno-rtti>)
 	list(APPEND OMTALK_LLVM_OPTIONS -DLLVM_ENABLE_RTTI=off)
 else()
 	list(APPEND OMTALK_LLVM_OPTIONS -DLLVM_ENABLE_RTTI=on)
@@ -62,7 +68,7 @@ endif()
 ###
 
 if(OMTALK_SPLIT_DEBUG)
-	add_compile_options(-gsplit-dwarf)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-gsplit-dwarf>)
 	add_link_options(-Wl,--gdb-index)
 	list(APPEND OMTALK_LLVM_OPTIONS -DLLVM_USE_SPLIT_DWARF=on)
 endif()
