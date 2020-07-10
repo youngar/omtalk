@@ -30,21 +30,24 @@ constexpr size_t UNALIGNED_SIZE_MAX =
 /// True if size is aligned to alignment. No safety checks.
 /// alignment must be a power of two.
 ///
-constexpr bool alignedNoCheck(auto size, size_t alignment) {
+template <typename T>
+constexpr bool alignedNoCheck(T size, size_t alignment) {
   return (size & (alignment - 1)) == 0;
 }
 
 /// True if size is aligned to alignment. No safety checks.
 /// alignment must be a power of two.
 ///
-constexpr bool alignedNoCheck(auto *ptr, size_t alignment) {
+template <typename T>
+constexpr bool alignedNoCheck(T *ptr, size_t alignment) {
   return alignedNoCheck(std::uintptr_t(ptr), alignment);
 }
 
 /// True if size is aligned to alignment.
 /// alignment must be a power of two.
 ///
-inline bool aligned(auto size, size_t alignment) {
+template <typename T>
+inline bool aligned(T size, size_t alignment) {
   assert(isPow2(alignment));
   return alignedNoCheck(size, alignment);
 }
@@ -52,14 +55,16 @@ inline bool aligned(auto size, size_t alignment) {
 /// Round a size up to a multiple of alignment. No safety checks.
 /// alignment must be a power of two.
 ///
-constexpr size_t alignNoCheck(auto size, size_t alignment) {
+template <typename T>
+constexpr size_t alignNoCheck(T size, size_t alignment) {
   return (size + (alignment - 1)) & ~(alignment - 1);
 }
 
 /// Round a pointer up to a multiple of alignment. No safety checks.
 /// alignment must be a power of two.
 ///
-constexpr size_t alignNoCheck(auto *ptr, size_t alignment) {
+template <typename T>
+constexpr size_t alignNoCheck(T *ptr, size_t alignment) {
   return alignNoCheck(std::uintptr_t(ptr), alignment);
 }
 
@@ -70,8 +75,8 @@ constexpr size_t alignNoCheck(auto *ptr, size_t alignment) {
 /// As a conservative measure, users should not align sizes greater than
 /// UNALIGNED_SIZE_MAX.
 ///
-template <typename T>
-T align(T size, auto alignment) {
+template <typename T, typename U>
+T align(T size, U alignment) {
   assert(isPow2(alignment));
   assert(size <=
          std::numeric_limits<T>::max() - alignment + 1); // overflow check
@@ -85,8 +90,8 @@ T align(T size, auto alignment) {
 /// As a conservative measure, users should not align sizes greater than
 /// UNALIGNED_SIZE_MAX.
 ///
-template <typename T>
-T *align(T *ptr, auto alignment) {
+template <typename T, typename U>
+T *align(T *ptr, U alignment) {
   return static_cast<T *>(align(std::uintptr_t(ptr), alignment));
 }
 
