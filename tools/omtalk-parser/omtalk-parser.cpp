@@ -1,8 +1,10 @@
 #include <cstdlib>
 #include <llvm/Support/CommandLine.h>
 #include <mlir/Dialect/Omtalk/IR/OmtalkDialect.h>
+#include <mlir/Dialect/Omtalk/IR/OmtalkOps.h>
 #include <mlir/ExecutionEngine/ExecutionEngine.h>
 #include <mlir/ExecutionEngine/OptUtils.h>
+#include <mlir/IR/AsmState.h>
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/Module.h>
 #include <mlir/IR/Verifier.h>
@@ -14,6 +16,7 @@
 #include <mlir/Transforms/Passes.h>
 #include <omtalk/IRGen/IRGen.h>
 #include <omtalk/Parser/AST.h>
+#include <omtalk/Parser/Debug.h>
 #include <omtalk/Parser/Location.h>
 #include <omtalk/Parser/Parser.h>
 
@@ -41,23 +44,26 @@ static cl::opt<enum Action> emitAction(
 static cl::opt<bool> enableOpt("opt", cl::desc("Enable optimizations"));
 
 int main(int argc, char **argv) {
-  mlir::registerAllDialects();
-  // mlir::registerDialect<mlir::omtalk::OmtalkDialect>();
+
+  mlir::registerAsmPrinterCLOptions();
+  mlir::registerMLIRContextCLOptions();
 
   cl::ParseCommandLineOptions(argc, argv, "Omtalk Parser\n");
 
-  auto classDecl = omtalk::parser::parseClassFile(inputFilename);
-
-  mlir::MLIRContext context;
+  auto ast = omtalk::parser::parseFile(inputFilename);
 
   if (emitAction == Action::DumpAST) {
-    omtalk::parser::dump(*classDecl);
+    std::cout << *ast;
     return EXIT_SUCCESS;
   }
 
-  mlir::OwningModuleRef module = omtalk::irgen::irGen(context, *classDecl);
-
   if (emitAction == Action::DumpMLIR) {
+    // mlir::registerAllDialects();
+    mlir::registerDialect<mlir::omtalk::OmtalkDialect>();
+
+    mlir::MLIRContext context;
+    mlir::OwningModuleRef module = omtalk::irgen::irGen(context, *ast);
+
     module->dump();
     return EXIT_SUCCESS;
   }

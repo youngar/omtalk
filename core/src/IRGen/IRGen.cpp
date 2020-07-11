@@ -1,8 +1,14 @@
-#include <mlir/IR/Verifier.h>
+#include <mlir/Dialect/Omtalk/IR/OmtalkDialect.h>
+#include <mlir/Dialect/Omtalk/IR/OmtalkOps.h>
 #include <mlir/IR/Builders.h>
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/Module.h>
+#include <mlir/IR/Verifier.h>
 #include <omtalk/IRGen/IRGen.h>
+#include <omtalk/Parser/Location.h>
+
+
+#include <iostream>
 
 using namespace omtalk;
 using namespace omtalk::irgen;
@@ -10,32 +16,48 @@ using namespace omtalk::parser;
 
 namespace {
 
-class IRGenImpl {
+class IRGen {
 public:
-  IRGenImpl(mlir::MLIRContext &context) : builder(&context) {}
+  IRGen(mlir::MLIRContext &context) : builder(&context) {}
 
-  mlir::ModuleOp irGen(ClassDecl &classDecl) {
 
-    // create an empty module
-    theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
+  mlir::Location loc(Location loc) {
+    // std::cout << loc;
+    return builder.getFileLineColLoc(builder.getIdentifier(loc.filename),
+                                     loc.start.line, loc.start.line);
+  }
 
-    if (mlir::failed(mlir::verify(theModule))) {
-      theModule.emitError("module verification error");
+  mlir::omtalk::KlassOp irGen(const ClassDecl &classDecl) {
+    auto klassOp = builder.create<mlir::omtalk::KlassOp>(loc(classDecl.loc()),
+                                                         classDecl.getName());
+    return klassOp;
+  }
+
+  mlir::ModuleOp irGen(Module &module) {
+
+    moduleOp = mlir::ModuleOp::create(builder.getUnknownLoc());
+
+    for (const auto &klass : module.getClassDecls()) {
+      moduleOp.push_back(irGen(*klass));
+    }
+
+    if (mlir::failed(mlir::verify(moduleOp))) {
+      moduleOp.emitError("module verification error");
       return nullptr;
     }
 
-    return theModule;
+    return moduleOp;
   }
 
 private:
-  mlir::ModuleOp theModule;
+  mlir::ModuleOp moduleOp;
   mlir::OpBuilder builder;
 };
 } // namespace
 
 mlir::OwningModuleRef omtalk::irgen::irGen(mlir::MLIRContext &context,
-                                           parser::ClassDecl &classDecl) {
+                                           parser::Module &module) {
 
-  IRGenImpl irGen(context);
-  return irGen.irGen(classDecl);
+  IRGen irGen(context);
+  return irGen.irGen(module);
 }

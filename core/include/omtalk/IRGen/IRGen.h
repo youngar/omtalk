@@ -1,18 +1,14 @@
 #ifndef OMTALK_IRGEN_IRGEN_H_
 #define OMTALK_IRGEN_IRGEN_H_
 
+#include <mlir/IR/MLIRContext.h>
+#include <mlir/IR/Module.h>
 #include <omtalk/Parser/AST.h>
-
-namespace mlir {
-class MLIRContext;
-class OwningModuleRef;
-} // namespace mlir
 
 namespace omtalk {
 namespace irgen {
 
-mlir::OwningModuleRef irGen(mlir::MLIRContext &context,
-                            parser::ClassDecl &classDecl);
+mlir::OwningModuleRef irGen(mlir::MLIRContext &context, parser::Module &module);
 
 }
 } // namespace omtalk

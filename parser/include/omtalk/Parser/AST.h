@@ -1,9 +1,9 @@
 #ifndef OMRTALK_PARSER_AST_H_
 #define OMRTALK_PARSER_AST_H_
 
-#include <omtalk/Parser/Location.h>
 #include <cstddef>
 #include <memory>
+#include <omtalk/Parser/Location.h>
 #include <optional>
 #include <string>
 #include <vector>
@@ -16,7 +16,6 @@ public:
   MemberDecl(Location location, std::string name)
       : location(location), name(name) {}
 
-private:
   Location location;
   std::string name;
 };
@@ -26,7 +25,6 @@ public:
   ArgVarDecl(Location location, std::string name)
       : location(location), name(name) {}
 
-private:
   Location location;
   std::string name;
 };
@@ -36,10 +34,6 @@ public:
   MethodDecl(Location location, std::string name)
       : location(location), name(name) {}
 
-  //   bool isStatic() { return this->isStatic; }
-  //   void isStatic(bool isStatic) { this->isStatic = isStatic; }
-
-private:
   Location location;
   std::string name;
   bool isStatic;
@@ -47,15 +41,79 @@ private:
 
 class ClassDecl {
 public:
-  ClassDecl(UnknownLoc location, std::string name)
+  ClassDecl(Location location, std::string name)
       : location(location), name(name) {}
 
-  Location loc() { return location; }
-  std::string getName() { return name; }
+  Location &loc() { return location; }
+
+  const Location &loc() const { return location; }
+
+  std::string &getName() { return name; }
+
+  const std::string &getName() const { return name; }
+
+  std::optional<std::string> &getSuperclass() { return superclass; }
+
+  const std::optional<std::string> &getSuperclass() const { return superclass; }
+
+  std::vector<std::unique_ptr<MemberDecl>> &getStaticMemberDecls() {
+    return staticMemberDecls;
+  }
+
+  const std::vector<std::unique_ptr<MemberDecl>> &getStaticMemberDecls() const {
+    return staticMemberDecls;
+  }
+
+  std::vector<std::unique_ptr<MethodDecl>> &getStaticMethodDecls() {
+    return staticMethodDecls;
+  }
+
+  const std::vector<std::unique_ptr<MethodDecl>> &getStaticMethodDecls() const {
+    return staticMethodDecls;
+  }
+
+  std::vector<std::unique_ptr<MemberDecl>> &getMemberDecls() {
+    return memberDecls;
+  }
+
+  const std::vector<std::unique_ptr<MemberDecl>> &getMemberDecls() const {
+    return memberDecls;
+  }
+
+  std::vector<std::unique_ptr<MethodDecl>> &getMethodDecls() {
+    return methodDecls;
+  }
+
+  const std::vector<std::unique_ptr<MethodDecl>> &getMethodDecls() const {
+    return methodDecls;
+  }
+
+  Location location;
+  std::string name;
+  std::optional<std::string> superclass;
+  std::vector<std::unique_ptr<MemberDecl>> staticMemberDecls;
+  std::vector<std::unique_ptr<MethodDecl>> staticMethodDecls;
+  std::vector<std::unique_ptr<MemberDecl>> memberDecls;
+  std::vector<std::unique_ptr<MethodDecl>> methodDecls;
+};
+
+class Module {
+public:
+  Module(Location location) : location(location) {}
+
+  const Location &loc() const { return location; }
+
+  std::vector<std::unique_ptr<ClassDecl>> &getClassDecls() {
+    return classDecls;
+  }
+
+  const std::vector<std::unique_ptr<ClassDecl>> &getClassDecls() const {
+    return classDecls;
+  }
 
 private:
-  UnknownLoc location;
-  std::string name;
+  Location location;
+  std::vector<std::unique_ptr<ClassDecl>> classDecls;
 };
 
 /// Base AST element type.

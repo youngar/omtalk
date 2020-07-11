@@ -1,0 +1,15 @@
+@ RUN: omtalk-parser -emit=ast %s | FileCheck %s
+
+@ CHECK-LABEL: module {
+
+@ CHECK-LABEL: class EmptyClass
+EmptyClass = (
+@ CHECK: } loc(
+)
+
+@ CHECK-LABEL: class SmallClass
+SmallClass = (
+@ CHECK: } loc(
+)
+
+@ CHECK: } loc(

@@ -55,7 +55,7 @@ class Omtalk_Op<string mnemonic, list<OpTrait> traits = []> :
 // Omtalk Operations
 //===----------------------------------------------------------------------===//
 
-def ConstantRefOp : Omtalk_Op<"constant_ref", [NoSideEffect]> {
+def Omtalk_ConstantRefOp : Omtalk_Op<"constant_ref", [NoSideEffect]> {
   let summary = "constant reference";
   let description = [{
     A constant boxed object reference.
@@ -64,7 +64,7 @@ def ConstantRefOp : Omtalk_Op<"constant_ref", [NoSideEffect]> {
   let results = (outs I64);
 }
 
-def ConstantIntOp : Omtalk_Op<"constant_int", [NoSideEffect]> {
+def Omtalk_ConstantIntOp : Omtalk_Op<"constant_int", [NoSideEffect]> {
   let summary = "constant integer";
   let description = [{
     A constant boxed integer.
@@ -73,7 +73,7 @@ def ConstantIntOp : Omtalk_Op<"constant_int", [NoSideEffect]> {
   let results = (outs I64);
 }
 
-// def SendOp : Omtalk_Op<"send",
+// def Omtalk_SendOp : Omtalk_Op<"send",
 //     [DeclareOpInterfaceMethods<CallOpInterface>]> {
 //   let summary = "Send message to receiver (generic)";
 //   let description = [{
@@ -85,5 +85,22 @@ def ConstantIntOp : Omtalk_Op<"constant_int", [NoSideEffect]> {
 //   let results = (outs Omtalk_Type);
 //   let hasCanonicalizer = 1;
 // }
+
+//===----------------------------------------------------------------------===//
+// Omtalk Definitions
+//===----------------------------------------------------------------------===//
+
+def Omtalk_KlassOp : Omtalk_Op<"klass", [NoSideEffect]> {
+  let summary = "Define a klass";
+  let description = [{
+    Define a class.
+  }];
+
+  let arguments = (ins FlatSymbolRefAttr:$name);
+
+  let regions = (region AnyRegion:$definitions);
+}
+
+// def Omtalk_MethodOp : Omtalk_Op<"method", [NoSideEffect]> {};
 
 #endif // OMTALK_OPS
