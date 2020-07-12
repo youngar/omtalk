@@ -27,9 +27,9 @@ public:
                                      loc.start.line, loc.start.line);
   }
 
-  mlir::omtalk::KlassOp irGen(const ClassDecl &classDecl) {
-    auto klassOp = builder.create<mlir::omtalk::KlassOp>(loc(classDecl.loc()),
-                                                         classDecl.getName());
+  mlir::omtalk::KlassOp irGen(const KlassDecl &klassDecl) {
+    auto klassOp = builder.create<mlir::omtalk::KlassOp>(loc(klassDecl.location),
+                                                         klassDecl.name);
     return klassOp;
   }
 
@@ -37,7 +37,7 @@ public:
 
     moduleOp = mlir::ModuleOp::create(builder.getUnknownLoc());
 
-    for (const auto &klass : module.getClassDecls()) {
+    for (const auto &klass : module.klassDecls) {
       moduleOp.push_back(irGen(*klass));
     }
 

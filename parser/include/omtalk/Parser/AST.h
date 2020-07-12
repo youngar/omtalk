@@ -11,6 +11,34 @@
 namespace omtalk {
 namespace parser {
 
+enum class ExprKind {
+  LitInteger,
+  LitFloat,
+  LitString,
+  Variable,
+  Send,
+  Array
+};
+
+/// Base AST element type.
+class Expr {
+public:
+  Expr(ExprKind k, Location l) : kind(k), location(l) {}
+
+  virtual ~Expr() = default;
+
+  constexpr ExprKind getKind() const noexcept { return kind; }
+
+  constexpr const Location &loc() const noexcept { return location; }
+
+private:
+  const ExprKind kind;
+  const Location location;
+};
+
+using ExprPtr = std::unique_ptr<Expr>;
+using ExprList = std::vector<std::unique_ptr<Expr>>;
+
 class MemberDecl {
 public:
   MemberDecl(Location location, std::string name)
@@ -39,54 +67,10 @@ public:
   bool isStatic;
 };
 
-class ClassDecl {
+class KlassDecl {
 public:
-  ClassDecl(Location location, std::string name)
+  KlassDecl(Location location, std::string name)
       : location(location), name(name) {}
-
-  Location &loc() { return location; }
-
-  const Location &loc() const { return location; }
-
-  std::string &getName() { return name; }
-
-  const std::string &getName() const { return name; }
-
-  std::optional<std::string> &getSuperclass() { return superclass; }
-
-  const std::optional<std::string> &getSuperclass() const { return superclass; }
-
-  std::vector<std::unique_ptr<MemberDecl>> &getStaticMemberDecls() {
-    return staticMemberDecls;
-  }
-
-  const std::vector<std::unique_ptr<MemberDecl>> &getStaticMemberDecls() const {
-    return staticMemberDecls;
-  }
-
-  std::vector<std::unique_ptr<MethodDecl>> &getStaticMethodDecls() {
-    return staticMethodDecls;
-  }
-
-  const std::vector<std::unique_ptr<MethodDecl>> &getStaticMethodDecls() const {
-    return staticMethodDecls;
-  }
-
-  std::vector<std::unique_ptr<MemberDecl>> &getMemberDecls() {
-    return memberDecls;
-  }
-
-  const std::vector<std::unique_ptr<MemberDecl>> &getMemberDecls() const {
-    return memberDecls;
-  }
-
-  std::vector<std::unique_ptr<MethodDecl>> &getMethodDecls() {
-    return methodDecls;
-  }
-
-  const std::vector<std::unique_ptr<MethodDecl>> &getMethodDecls() const {
-    return methodDecls;
-  }
 
   Location location;
   std::string name;
@@ -101,45 +85,10 @@ class Module {
 public:
   Module(Location location) : location(location) {}
 
-  const Location &loc() const { return location; }
-
-  std::vector<std::unique_ptr<ClassDecl>> &getClassDecls() {
-    return classDecls;
-  }
-
-  const std::vector<std::unique_ptr<ClassDecl>> &getClassDecls() const {
-    return classDecls;
-  }
-
-private:
   Location location;
-  std::vector<std::unique_ptr<ClassDecl>> classDecls;
+  std::vector<std::unique_ptr<KlassDecl>> klassDecls;
 };
 
-/// Base AST element type.
-class Expr {
-public:
-  enum ExprKind {
-    Expr_LitInteger,
-    Expr_LitFloat,
-    Expr_LitString,
-    Expr_Variable,
-    Expr_Send,
-    Expr_Array
-  };
-
-  Expr(ExprKind k, Location l) : _kind(k), _location(l) {}
-  virtual ~Expr() = default;
-  constexpr ExprKind getKind() const noexcept { return _kind; }
-  constexpr const Location &loc() const noexcept { return _location; }
-
-private:
-  const ExprKind _kind;
-  const Location _location;
-};
-
-using ExprPtr = std::unique_ptr<Expr>;
-using ExprList = std::vector<std::unique_ptr<Expr>>;
 
 // template <typename T>
 // T *expr_cast(Node *node) {

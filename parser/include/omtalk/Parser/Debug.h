@@ -25,19 +25,19 @@ std::ostream &operator<<(std::ostream &os, const Location &loc) {
   return os;
 }
 
-std::ostream &operator<<(std::ostream &os, const ClassDecl &classDecl) {
-  os << "class " << classDecl.getName() << " {";
+std::ostream &operator<<(std::ostream &os, const KlassDecl &klassDecl) {
+  os << "class " << klassDecl.name << " {";
 
-  os << "} " << classDecl.loc();
+  os << "} " << klassDecl.location;
   return os;
 }
 
 std::ostream &operator<<(std::ostream &os, const Module &module) {
   os << "module {" << std::endl;
-  for (const auto &classDecl : module.getClassDecls()) {
-        os << *classDecl << std::endl;
+  for (const auto &klassDecl : module.klassDecls) {
+        os << *klassDecl << std::endl;
     }
-  os << "} " << module.loc();
+  os << "} " << module.location;
   return os;
 }
 

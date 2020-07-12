@@ -164,13 +164,13 @@ std::string parseSymbol(ParseCursor &cursor) {
 // Class
 //===----------------------------------------------------------------------===//
 
-std::unique_ptr<ClassDecl> parseClass(ParseCursor &cursor) {
+std::unique_ptr<KlassDecl> parseKlass(ParseCursor &cursor) {
 
-  std::cerr << " Parsing Class " << std::endl;
+  std::cerr << " Parsing Klass " << std::endl;
 
   Location location = cursor.loc();
   std::string name = parseSymbol(cursor);
-  auto classDecl = std::make_unique<ClassDecl>(cursor.loc(), name);
+  auto klassDecl = std::make_unique<KlassDecl>(cursor.loc(), name);
 
   skip(cursor);
   expectNext(cursor, '=');
@@ -184,7 +184,7 @@ std::unique_ptr<ClassDecl> parseClass(ParseCursor &cursor) {
   // Parse members
 
   expectNext(cursor, ')');
-  return classDecl;
+  return klassDecl;
 }
 
 //===----------------------------------------------------------------------===//
@@ -198,7 +198,7 @@ std::unique_ptr<Module> parseModule(ParseCursor &cursor) {
 
   skip(cursor);
   while (cursor.more()) {
-    module->getClassDecls().push_back(parseClass(cursor));
+    module->klassDecls.push_back(parseKlass(cursor));
     skip(cursor);
   }
 
