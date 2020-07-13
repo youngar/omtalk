@@ -149,6 +149,7 @@ def Omtalk_KlassEndOp : Omtalk_Op<"klass_end", [
 def Omtalk_FieldOp : Omtalk_Op<"field", [Symbol, HasParent<"KlassOp">]> {
   let summary = "Define an instance variable, aka field";
   let arguments = (ins StrAttr:$sym_name);
+  // let assemblyFormat = "$sym_name attr-dict";
 }
 
 def Omtalk_MethodOp : Omtalk_Op<"method", [

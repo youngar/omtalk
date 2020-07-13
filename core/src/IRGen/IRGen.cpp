@@ -25,7 +25,6 @@ public:
   }
 
   mlir::omtalk::KlassOp irGen(const KlassDecl &klassDecl) {
-
     std::string super = "Object";
     if (klassDecl.super) {
       super = klassDecl.super->value;

@@ -1,0 +1,35 @@
+@ RUN: omtalk-parser -emit=ast %s | FileCheck %s -check-prefix=AST
+@ RUN: omtalk-parser -emit=mlir %s | FileCheck %s -check-prefix=MLIR
+
+@ MLIR: module {
+@ AST: module {
+
+@ AST: class EmptyClass
+@ MLIR: omtalk.klass @EmptyClass : @Object
+EmptyClass = ()
+@ } loc(
+
+@ AST: class ClassWithSuper : TheSuper
+@ MLIR: omtalk.klass @ClassWithSuper : @TheSuper
+ClassWithSuper = TheSuper (
+)
+
+@ AST: class SmallClass
+@ MLIR: omtalk.klass @SmallClass : @Object
+SmallClass = (
+    @ AST:   fields { A B C }
+    @ MLIR: "omtalk.field"() {sym_name = "A"} : () -> ()
+    @ MLIR: "omtalk.field"() {sym_name = "B"} : () -> ()
+    @ MLIR: "omtalk.field"() {sym_name = "C"} : () -> ()
+    | A B C |
+)
+
+"TODO: Static Fields:
+SmallClassWithStaticFields = (
+    | a b c |
+    ---
+)
+"
+
+@ MLIR: }
+@ AST: }

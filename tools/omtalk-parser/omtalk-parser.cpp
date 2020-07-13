@@ -60,8 +60,8 @@ int main(int argc, char **argv) {
     mlir::registerDialect<mlir::omtalk::OmtalkDialect>();
     mlir::MLIRContext context;
     mlir::OwningModuleRef module = omtalk::irgen::irGen(context, *ast);
-    module->dump();
-    std::cout << std::endl;
+    module->print(llvm::outs());
+    llvm::outs() << "\n";
     return EXIT_SUCCESS;
   }
 
