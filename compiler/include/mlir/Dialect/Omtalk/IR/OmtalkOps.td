@@ -102,19 +102,12 @@ def Omtalk_KlassOp : Omtalk_Op<"klass", [
   let arguments = (ins StrAttr:$sym_name, StrAttr:$super);
   let regions = (region SizedRegion<1>:$body);
 
-//  let builders = [
-//    OpBuilder<
-//      "OpBuilder &builder, OperationState &result, "
-//      "StringRef name">
-//  ];
-
   let parser = [{
     StringAttr nameAttr;
     if (parser.parseSymbolName(nameAttr, "sym_name", result.attributes)) {
       return failure();
     }
 
-    // TODO: does this work at all???????
     StringAttr superAttr;
     if (succeeded(parser.parseOptionalColon())) {
       if (parser.parseSymbolName(superAttr, "super", result.attributes)) {
@@ -153,13 +146,13 @@ def Omtalk_KlassEndOp : Omtalk_Op<"klass_end", [
   let summary = "Psuedo instruction terminating the body of a class";
 }
 
-def Omtalk_VarOp : Omtalk_Op<"var", [Symbol]> {
-  let summary = "Define an instance variable";
+def Omtalk_FieldOp : Omtalk_Op<"field", [Symbol, HasParent<"KlassOp">]> {
+  let summary = "Define an instance variable, aka field";
   let arguments = (ins StrAttr:$sym_name);
 }
 
 def Omtalk_MethodOp : Omtalk_Op<"method", [
-    IsolatedFromAbove, Symbol
+    IsolatedFromAbove, Symbol, HasParent<"KlassOp">
   ]> {
   let summary = "Define a method on an instance";
   let arguments = (ins StrAttr:$sym_name);
@@ -175,20 +168,20 @@ def Omtalk_SelfOp : Omtalk_Op<"self", [NoSideEffect]> {
   let results = (outs Omtalk_Type);
 }
 
-def Omtalk_LoadClassOp : Omtalk_Op<"load_class", [NoSideEffect]> {
+def Omtalk_GetClassOp : Omtalk_Op<"get_class", [NoSideEffect]> {
   let summary = "Load a reference to a named class";
   let arguments = (ins SymbolRefAttr:$name);
   let results = (outs Omtalk_Type);
 }
 
-def Omtalk_LoadVarOp : Omtalk_Op<"load_var", [NoSideEffect]> {
-  let summary = "Load a reference to a named variable";
+def Omtalk_GetFieldOp : Omtalk_Op<"get_field", [NoSideEffect]> {
+  let summary = "Load from an instance variable, aka field";
   let arguments = (ins SymbolRefAttr:$name);
   let results = (outs Omtalk_Type);
 }
 
-def Omtalk_StoreVarOp : Omtalk_Op<"store_var", [NoSideEffect]> {
-  let summary = "Load a reference to a named variable";
+def Omtalk_SetFieldOp : Omtalk_Op<"set_field", []> {
+  let summary = "Store to an instance variable, aka field";
   let arguments = (ins SymbolRefAttr:$name, Omtalk_Type:$value);
 }
 

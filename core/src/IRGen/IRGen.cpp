@@ -15,13 +15,6 @@ using namespace omtalk::parser;
 
 namespace {
 
-// void GPUModuleOp::build(OpBuilder &builder, OperationState &result,
-//                         StringRef name) {
-//   ensureTerminator(*result.addRegion(), builder, result.location);
-//   result.attributes.push_back(builder.getNamedAttr(
-//       ::mlir::SymbolTable::getSymbolAttrName(), builder.getStringAttr(name)));
-// }
-
 class IRGen {
 public:
   IRGen(mlir::MLIRContext &context) : builder(&context) {}
@@ -32,7 +25,7 @@ public:
   }
 
   mlir::omtalk::KlassOp irGen(const KlassDecl &klassDecl) {
-    
+
     std::string super = "Object";
     if (klassDecl.super) {
       super = klassDecl.super->value;
@@ -41,12 +34,21 @@ public:
     auto klassOp = builder.create<mlir::omtalk::KlassOp>(
         loc(klassDecl.location), klassDecl.name.value, super);
 
-    mlir::omtalk::KlassOp::ensureTerminator(klassOp.body(), builder, loc(klassDecl.location));
-    auto endOp =
-        builder.create<mlir::omtalk::KlassEndOp>(loc(klassDecl.location));
+    {
+      mlir::OpBuilder::InsertionGuard guard(builder);
 
-    // klassOp.body().getOperations().push_back(endOp);
+      auto region = &klassOp.body();
+      auto block = builder.createBlock(region);
 
+      builder.setInsertionPointToStart(block);
+
+      for (const auto &field : klassDecl.fields.elements) {
+        builder.create<mlir::omtalk::FieldOp>(loc(field.location), field.value);
+      }
+
+      builder.create<mlir::omtalk::KlassEndOp>(loc(klassDecl.location));
+    }
+  
     return klassOp;
   }
 

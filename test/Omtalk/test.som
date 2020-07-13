@@ -18,10 +18,11 @@ ClassWithSuper = TheSuper (
 SmallClass = (
     | A B C |
 )
+@ CHECK: ast: } loc(
 
+"TODO: Static Fields:
 SmallClassWithStaticFields = (
     | a b c |
     ---
 )
-
-@ CHECK: ast: } loc(
+"
