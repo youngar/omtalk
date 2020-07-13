@@ -28,8 +28,27 @@ SmallClass = (
 SmallClassWithStaticFields = (
     | a b c |
     ---
+    | d e f |
 )
 "
+
+@ AST: class ClassWithMethods
+ClassWithMethods = (
+    @ AST: method something {}
+    something = (
+
+    )
+    
+    @ AST: method +
+    + = (
+
+    )
+    
+    @ AST method #thisIs:aKeyword:method:
+    thisIs: x aKeyword: y method: z = (
+
+    )
+)
 
 @ MLIR: }
 @ AST: }

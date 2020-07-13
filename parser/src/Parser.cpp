@@ -1,6 +1,7 @@
 #include "ParseCursor.h"
 #include <cassert>
 #include <cctype>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -14,7 +15,7 @@ using namespace omtalk::parser;
 namespace {
 
 //===----------------------------------------------------------------------===//
-//
+// Diagnostics
 //===----------------------------------------------------------------------===//
 
 std::string slurp(const std::string &filename) {
@@ -24,11 +25,18 @@ std::string slurp(const std::string &filename) {
   return buffer.str();
 }
 
-void diag(const std::string& filename, const Position &position, const std::string &message) {
-  std::cerr << filename << ':' << position.line << ':' << position.col << ": " << message << "\n";
+Location mkloc(Position start, const ParseCursor &cursor) {
+  return {cursor.getFilename(), start, cursor.pos()};
 }
 
-void diag(const std::string& filename, const Position &start, const Position& end, const std::string &message) {
+void diag(const std::string &filename, const Position &position,
+          const std::string &message) {
+  std::cerr << filename << ':' << position.line << ':' << position.col << ": "
+            << message << "\n";
+}
+
+void diag(const std::string &filename, const Position &start,
+          const Position &end, const std::string &message) {
   // todo: emit a diagnostic that reports a range.
   diag(filename, start, message);
 }
@@ -59,15 +67,107 @@ void abort(const ParseCursor &cursor, const std::string &message) {
 // Generic Parsing
 //===----------------------------------------------------------------------===//
 
-void skipWhitespace(ParseCursor &cursor) {
-  while (cursor.more() && std::isspace(*cursor)) {
+void discardUntil(ParseCursor &cursor, char c) {
+  while (*cursor != c) {
     ++cursor;
   }
 }
 
+bool match(ParseCursor &cursor, bool (*pred)(char)) {
+  if (cursor.more() && pred(*cursor)) {
+    ++cursor;
+    return true;
+  }
+  return false;
+}
+
+bool match(ParseCursor &cursor, char pattern) {
+  if (cursor.more() && *cursor == pattern) {
+    ++cursor;
+    return true;
+  }
+  return false;
+}
+
+bool match(ParseCursor &cursor, const char *pattern,
+           std::size_t pattern_length) {
+  auto c = cursor;
+  for (std::size_t i = 0; i < pattern_length; ++i) {
+    if (!match(c, pattern[i])) {
+      return false;
+    }
+  }
+  cursor = c;
+  return true;
+}
+
+bool match(ParseCursor &cursor, const char *pattern) {
+  return match(cursor, pattern, strlen(pattern));
+}
+
+bool match(ParseCursor &cursor, const std::string &pattern) {
+  return match(cursor, pattern.c_str(), pattern.length());
+}
+
+/// Match any character that is not the pattern.
+template <typename P>
+bool match_not(ParseCursor &cursor, char pattern) {
+  if (cursor.more() && *cursor != pattern) {
+    ++cursor;
+    return true;
+  }
+  return false;
+}
+
+template <typename P>
+void expect(ParseCursor &cursor, const P &pattern) {
+  if (!match(cursor, pattern)) {
+    abort(cursor, "expected:" + pattern);
+  }
+}
+
+/// match pattern N times exactly.
+template <typename P>
+bool n_times(ParseCursor &cursor, int count, const P &pattern) {
+  auto c = cursor;
+  for (std::size_t i = 0; i < count; ++i) {
+    if (!match(c, pattern)) {
+      return false;
+    }
+  }
+  cursor = c;
+  return true;
+}
+
+/// match C n or more times.
+template <typename P>
+bool n_plus(ParseCursor &cursor, int count, const P &pattern) {
+  if (!n_times(cursor, count, pattern)) {
+    return false;
+  }
+  do {
+  } while (match(cursor, pattern));
+  return true;
+}
+
+template <typename P>
+bool one_plus(ParseCursor &cursor, const P &pattern) {
+  return n_plus(cursor, 1, pattern);
+}
+
+template <typename P>
+bool zero_plus(ParseCursor &cursor, const P &pattern) {
+  return n_plus(cursor, 0, pattern);
+}
+
 //===----------------------------------------------------------------------===//
-// Omtalk Parsing
+// Comments and Whitespace
 //===----------------------------------------------------------------------===//
+
+void skipWhitespace(ParseCursor &cursor) {
+  // zero_plus(cursor, static_cast<bool(*)(char)>(std::isspace));
+  zero_plus(cursor, [](char c) -> bool { return std::isspace(c); });
+}
 
 /// Returns if the symbol is a smalltalk operator
 constexpr bool isOperator(char c) {
@@ -136,37 +236,21 @@ inline void skip(ParseCursor &cursor) {
   }
 }
 
-void expect(ParseCursor &cursor, char c) {
-  if (*cursor != c)
-    abort(cursor, "expected character" + c);
-  ++cursor;
-}
-
-void expectNext(ParseCursor &cursor, char c) {
+template <typename P>
+void expectNext(ParseCursor &cursor, const P &pattern) {
   skip(cursor);
-  expect(cursor, c);
+  expect(cursor, pattern);
 }
 
-void expect(ParseCursor &cursor, const std::string &s) {
-  for (auto x : s) {
-    if (*cursor == x) {
-      ++cursor;
-    } else {
-      abort(cursor, "expected string" + s);
-    }
-  }
-}
-
-void expectNext(ParseCursor &cursor, std::string s) {
+template <typename P>
+bool matchNext(ParseCursor &cursor, const P &pattern) {
   skip(cursor);
-  expect(cursor, s);
+  return match(cursor, pattern);
 }
 
-void discardUntil(ParseCursor &cursor, char c) {
-  while (*cursor != c) {
-    ++cursor;
-  }
-}
+//===----------------------------------------------------------------------===//
+// Literals
+//===----------------------------------------------------------------------===//
 
 std::string parseSymbol(ParseCursor &cursor) {
   auto start = cursor.getOffset();
@@ -190,18 +274,10 @@ std::string parseSymbol(ParseCursor &cursor) {
   return cursor.subStringFrom(start);
 }
 
-//===----------------------------------------------------------------------===//
-// Literals
-//===----------------------------------------------------------------------===//
-
-Location mkloc(Position start, const ParseCursor &cursor) {
-  return {cursor.getFilename(), start, cursor.pos()};
-}
-
 Identifier parseIdentifier(ParseCursor &cursor) {
   auto start = cursor.pos();
   auto value = parseSymbol(cursor);
-  return {mkloc(start, cursor), value};
+  return {mkloc(start, cursor), std::move(value)};
 }
 
 LitInteger parseInteger(ParseCursor &cursor) {
@@ -251,30 +327,22 @@ VarList parseVarList(ParseCursor &cursor) {
 }
 
 std::unique_ptr<KlassDecl> parseKlass(ParseCursor &cursor) {
-  // class name
-
   auto klassDecl = std::make_unique<KlassDecl>();
   auto start = cursor.pos();
 
-  /// ClassName
-
+  // ClassName
   klassDecl->name = parseIdentifier(cursor);
 
   // =
-  
-  skip(cursor);
   expectNext(cursor, '=');
-  skip(cursor);
 
   // superklass?
-
+  skip(cursor);
   if (std::isalpha(*cursor)) {
     klassDecl->super = parseIdentifier(cursor);
-    skip(cursor);
   }
 
   // (
-
   expectNext(cursor, '(');
 
   // Parse members
@@ -285,22 +353,30 @@ std::unique_ptr<KlassDecl> parseKlass(ParseCursor &cursor) {
       abort(cursor, "Unexpected end of class" + klassDecl->name.value);
     } else if (*cursor == '|') {
       if (klassDecl->fields.elements.size()) {
-        abort(cursor, "Class " + klassDecl->name.value + " has two instance variable lists");
+        abort(cursor, "Class " + klassDecl->name.value +
+                          " has two instance variable lists");
       }
       klassDecl->fields = parseVarList(cursor);
     } else if (*cursor == ')') {
       break;
     } else {
+      abort(cursor, "Found somethinG???");
       // clazz.methods().push_back(
       //     std::make_shared<ast::Method>(parse_method(cursor)));
     }
   }
 
+  // )
   expectNext(cursor, ')');
 
   klassDecl->location = mkloc(start, cursor);
   return klassDecl;
 }
+
+/// three or more dashes, separating class-fields and class-methods from
+/// instance-fields and instance-methods.
+///
+bool separator(ParseCursor &cursor) { return n_plus(cursor, 3, '-'); }
 
 //===----------------------------------------------------------------------===//
 // Module
