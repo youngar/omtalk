@@ -1,15 +1,27 @@
-@ RUN: omtalk-parser -emit=ast %s | FileCheck %s
+@ RUN: omtalk-parser -emit=ast %s | FileCheck %s -check-prefix=ast
+@ RUN: omtalk-parser -emit=mlir %s | FileCheck %s -check-prefix=ast
 
-@ CHECK-LABEL: module {
+@ CHECK-LABEL: ast: module {
 
-@ CHECK-LABEL: class EmptyClass
-EmptyClass = (
+@ CHECK-LABEL: ast: class EmptyClass
+@ CHECK-LABEL: mlir: omtalk.klass @EmptyClass : @Object
+EmptyClass = ()
 @ CHECK: } loc(
+
+@ CHECK-LABEL: ast: class ClassWithSuper : TheSuper
+@ CHECK-LABEL: mlir: omtalk.klass @ClassWithSuper : @TheSuper
+ClassWithSuper = TheSuper (
 )
 
-@ CHECK-LABEL: class SmallClass
+@ CHECK-LABEL: ast: class SmallClass
+@ CHECK-LABEL: mlir: omtalk.klass @SmallClass : @Object
 SmallClass = (
-@ CHECK: } loc(
+    | A B C |
 )
 
-@ CHECK: } loc(
+SmallClassWithStaticFields = (
+    | a b c |
+    ---
+)
+
+@ CHECK: ast: } loc(

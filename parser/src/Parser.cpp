@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <omtalk/Parser/Debug.h>
 #include <omtalk/Parser/Parser.h>
 #include <sstream>
 
@@ -21,6 +22,37 @@ std::string slurp(const std::string &filename) {
   std::stringstream buffer;
   buffer << in.rdbuf();
   return buffer.str();
+}
+
+void diag(const std::string& filename, const Position &position, const std::string &message) {
+  std::cerr << filename << ':' << position.line << ':' << position.col << ": " << message << "\n";
+}
+
+void diag(const std::string& filename, const Position &start, const Position& end, const std::string &message) {
+  // todo: emit a diagnostic that reports a range.
+  diag(filename, start, message);
+}
+
+void diag(const Location &loc, const std::string &message) {
+  if (loc.start == loc.end) {
+    diag(loc.filename, loc.start, message);
+  } else {
+    diag(loc.filename, loc.start, loc.end, message);
+  }
+}
+
+void diag(const ParseCursor &cursor, const std::string &message) {
+  diag(cursor.loc(), message);
+}
+
+void abort(const Location &loc, const std::string &message) {
+  diag(loc, "error: " + message);
+  std::abort();
+}
+
+void abort(const ParseCursor &cursor, const std::string &message) {
+  diag(cursor, "error: " + message);
+  std::abort();
 }
 
 //===----------------------------------------------------------------------===//
@@ -62,20 +94,19 @@ constexpr bool isOperator(char c) {
 
 inline void parseComment(ParseCursor &cursor) {
   assert(cursor.get() == '"');
-
-  std::cerr << " Skipping Comment" << std::endl;
+  auto loc = cursor.loc();
 
   do {
     ++cursor;
     if (cursor.atEnd()) {
-      throw std::exception();
+      abort(loc, "un-closed comment");
     } else if (*cursor == '\"') {
       ++cursor;
       break;
     } else if (*cursor == '\\') {
       ++cursor;
       if (cursor.atEnd()) {
-        throw std::exception();
+        abort(loc, "un-closed comment on escape character");
       }
     }
   } while (true);
@@ -107,7 +138,7 @@ inline void skip(ParseCursor &cursor) {
 
 void expect(ParseCursor &cursor, char c) {
   if (*cursor != c)
-    throw false;
+    abort(cursor, "expected character" + c);
   ++cursor;
 }
 
@@ -121,8 +152,7 @@ void expect(ParseCursor &cursor, const std::string &s) {
     if (*cursor == x) {
       ++cursor;
     } else {
-      // TODO how to handle errors
-      throw false;
+      abort(cursor, "expected string" + s);
     }
   }
 }
@@ -141,7 +171,7 @@ void discardUntil(ParseCursor &cursor, char c) {
 std::string parseSymbol(ParseCursor &cursor) {
   auto start = cursor.getOffset();
   if (cursor.atEnd()) {
-    throw std::exception();
+    abort(cursor, "Error expected symbol found EOF");
   }
   if (isOperator(*cursor)) {
     ++cursor;
@@ -161,29 +191,114 @@ std::string parseSymbol(ParseCursor &cursor) {
 }
 
 //===----------------------------------------------------------------------===//
+// Literals
+//===----------------------------------------------------------------------===//
+
+Location mkloc(Position start, const ParseCursor &cursor) {
+  return {cursor.getFilename(), start, cursor.pos()};
+}
+
+Identifier parseIdentifier(ParseCursor &cursor) {
+  auto start = cursor.pos();
+  auto value = parseSymbol(cursor);
+  return {mkloc(start, cursor), value};
+}
+
+LitInteger parseInteger(ParseCursor &cursor) {
+  assert(std::isdigit(cursor.get()));
+  auto start = cursor.getOffset();
+  auto loc = cursor.loc();
+
+  while (cursor.more() && std::isdigit(cursor.get())) {
+    ++cursor;
+  }
+
+  return LitInteger(loc, std::stoi(cursor.subStringFrom(start)));
+}
+
+//===----------------------------------------------------------------------===//
 // Class
 //===----------------------------------------------------------------------===//
 
+VarList parseVarList(ParseCursor &cursor) {
+  VarList list;
+  auto start = cursor.pos();
+
+  expect(cursor, '|');
+
+  while (true) {
+    skip(cursor);
+
+    if (cursor.atEnd()) {
+      abort(cursor, "Unexpected end of variable list");
+    }
+
+    if (*cursor == '|') {
+      ++cursor;
+      list.location.end = cursor.pos();
+      break;
+    }
+
+    if (std::isalpha(*cursor)) {
+      list.elements.push_back(parseIdentifier(cursor));
+    } else {
+      abort(cursor, "Invalid character in variable list");
+    }
+  }
+
+  list.location = mkloc(start, cursor);
+  return list;
+}
+
 std::unique_ptr<KlassDecl> parseKlass(ParseCursor &cursor) {
+  // class name
 
-  std::cerr << " Parsing Klass " << std::endl;
+  auto klassDecl = std::make_unique<KlassDecl>();
+  auto start = cursor.pos();
 
-  Location location = cursor.loc();
-  std::string name = parseSymbol(cursor);
-  auto klassDecl = std::make_unique<KlassDecl>(cursor.loc(), name);
+  /// ClassName
 
+  klassDecl->name = parseIdentifier(cursor);
+
+  // =
+  
   skip(cursor);
   expectNext(cursor, '=');
   skip(cursor);
 
-  // Attempt to parse super class
-  // TODO!
+  // superklass?
+
+  if (std::isalpha(*cursor)) {
+    klassDecl->super = parseIdentifier(cursor);
+    skip(cursor);
+  }
+
+  // (
 
   expectNext(cursor, '(');
 
   // Parse members
 
+  for (bool cont = true; cont;) {
+    skip(cursor);
+    if (cursor.atEnd()) {
+      abort(cursor, "Unexpected end of class" + klassDecl->name.value);
+    } else if (*cursor == '|') {
+      if (klassDecl->fields.elements.size()) {
+        abort(cursor, "Class " + klassDecl->name.value + " has two instance variable lists");
+      }
+      klassDecl->fields = parseVarList(cursor);
+    } else if (*cursor == ')') {
+      break;
+    } else {
+      // clazz.methods().push_back(
+      //     std::make_shared<ast::Method>(parse_method(cursor)));
+    }
+  }
+
   expectNext(cursor, ')');
+
+  klassDecl->location = mkloc(start, cursor);
   return klassDecl;
 }
 
@@ -193,8 +308,7 @@ std::unique_ptr<KlassDecl> parseKlass(ParseCursor &cursor) {
 
 std::unique_ptr<Module> parseModule(ParseCursor &cursor) {
   auto module = std::make_unique<Module>(cursor.loc());
-
-  std::cerr << " Parsing Module " << std::endl;
+  auto start = cursor.pos();
 
   skip(cursor);
   while (cursor.more()) {
@@ -202,6 +316,7 @@ std::unique_ptr<Module> parseModule(ParseCursor &cursor) {
     skip(cursor);
   }
 
+  module->location = mkloc(start, cursor);
   return module;
 }
 

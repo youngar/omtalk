@@ -7,7 +7,6 @@
 #include <omtalk/IRGen/IRGen.h>
 #include <omtalk/Parser/Location.h>
 
-
 #include <iostream>
 
 using namespace omtalk;
@@ -16,20 +15,38 @@ using namespace omtalk::parser;
 
 namespace {
 
+// void GPUModuleOp::build(OpBuilder &builder, OperationState &result,
+//                         StringRef name) {
+//   ensureTerminator(*result.addRegion(), builder, result.location);
+//   result.attributes.push_back(builder.getNamedAttr(
+//       ::mlir::SymbolTable::getSymbolAttrName(), builder.getStringAttr(name)));
+// }
+
 class IRGen {
 public:
   IRGen(mlir::MLIRContext &context) : builder(&context) {}
 
-
   mlir::Location loc(Location loc) {
-    // std::cout << loc;
     return builder.getFileLineColLoc(builder.getIdentifier(loc.filename),
                                      loc.start.line, loc.start.line);
   }
 
   mlir::omtalk::KlassOp irGen(const KlassDecl &klassDecl) {
-    auto klassOp = builder.create<mlir::omtalk::KlassOp>(loc(klassDecl.location),
-                                                         klassDecl.name);
+    
+    std::string super = "Object";
+    if (klassDecl.super) {
+      super = klassDecl.super->value;
+    }
+
+    auto klassOp = builder.create<mlir::omtalk::KlassOp>(
+        loc(klassDecl.location), klassDecl.name.value, super);
+
+    mlir::omtalk::KlassOp::ensureTerminator(klassOp.body(), builder, loc(klassDecl.location));
+    auto endOp =
+        builder.create<mlir::omtalk::KlassEndOp>(loc(klassDecl.location));
+
+    // klassOp.body().getOperations().push_back(endOp);
+
     return klassOp;
   }
 
@@ -53,6 +70,7 @@ private:
   mlir::ModuleOp moduleOp;
   mlir::OpBuilder builder;
 };
+
 } // namespace
 
 mlir::OwningModuleRef omtalk::irgen::irGen(mlir::MLIRContext &context,

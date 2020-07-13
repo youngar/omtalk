@@ -8,7 +8,6 @@
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/Module.h>
 #include <mlir/IR/Verifier.h>
-#include <mlir/InitAllDialects.h>
 #include <mlir/Parser.h>
 #include <mlir/Pass/Pass.h>
 #include <mlir/Pass/PassManager.h>
@@ -53,18 +52,16 @@ int main(int argc, char **argv) {
   auto ast = omtalk::parser::parseFile(inputFilename);
 
   if (emitAction == Action::DumpAST) {
-    std::cout << *ast;
+    std::cout << *ast << std::endl;
     return EXIT_SUCCESS;
   }
 
   if (emitAction == Action::DumpMLIR) {
-    // mlir::registerAllDialects();
     mlir::registerDialect<mlir::omtalk::OmtalkDialect>();
-
     mlir::MLIRContext context;
     mlir::OwningModuleRef module = omtalk::irgen::irGen(context, *ast);
-
     module->dump();
+    std::cout << std::endl;
     return EXIT_SUCCESS;
   }
 

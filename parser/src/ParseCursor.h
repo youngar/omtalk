@@ -2,6 +2,7 @@
 #define OMTALK_PARSECURSOR_H_
 
 #include <cstdint>
+#include <omtalk/Parser/Debug.h>
 #include <omtalk/Parser/Location.h>
 #include <string>
 #include <string_view>
@@ -37,7 +38,7 @@ public:
     char c = get();
     offset += 1;
     if (c == '\n') {
-      position.col = 0;
+      position.col = 1;
       position.line += 1;
     } else {
       position.col++;

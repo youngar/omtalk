@@ -11,14 +11,7 @@
 namespace omtalk {
 namespace parser {
 
-enum class ExprKind {
-  LitInteger,
-  LitFloat,
-  LitString,
-  Variable,
-  Send,
-  Array
-};
+enum class ExprKind { LitInteger, LitFloat, LitString, Variable, Send, Array };
 
 /// Base AST element type.
 class Expr {
@@ -39,13 +32,21 @@ private:
 using ExprPtr = std::unique_ptr<Expr>;
 using ExprList = std::vector<std::unique_ptr<Expr>>;
 
-class MemberDecl {
+struct Identifier {
+  Location location;
+  std::string value;
+};
+
+using IdentifierVec = std::vector<Identifier>;
+using IdentifierPtr = std::unique_ptr<Identifier>;
+using IdentifierPtrVec = std::vector<IdentifierPtr>;
+
+class LitInteger {
 public:
-  MemberDecl(Location location, std::string name)
-      : location(location), name(name) {}
+  LitInteger(Location location, int value) : location(location), value(value) {}
 
   Location location;
-  std::string name;
+  int value;
 };
 
 class ArgVarDecl {
@@ -59,26 +60,31 @@ public:
 
 class MethodDecl {
 public:
-  MethodDecl(Location location, std::string name)
-      : location(location), name(name) {}
-
   Location location;
   std::string name;
-  bool isStatic;
 };
 
+/// List of variables of the form: | x y z |
+struct VarList {
+  Location location;
+  IdentifierVec elements;
+};
+
+/// Top level class declaration of the form MyClass = Super ()
 class KlassDecl {
 public:
-  KlassDecl(Location location, std::string name)
+  KlassDecl() = default;
+
+  KlassDecl(Location location, Identifier name)
       : location(location), name(name) {}
 
   Location location;
-  std::string name;
-  std::optional<std::string> superclass;
-  std::vector<std::unique_ptr<MemberDecl>> staticMemberDecls;
-  std::vector<std::unique_ptr<MethodDecl>> staticMethodDecls;
-  std::vector<std::unique_ptr<MemberDecl>> memberDecls;
-  std::vector<std::unique_ptr<MethodDecl>> methodDecls;
+  Identifier name;
+  std::optional<Identifier> super;
+  VarList staticFields;
+  std::vector<std::unique_ptr<MethodDecl>> staticMethods;
+  VarList fields;
+  std::vector<std::unique_ptr<MethodDecl>> methods;
 };
 
 class Module {
@@ -88,7 +94,6 @@ public:
   Location location;
   std::vector<std::unique_ptr<KlassDecl>> klassDecls;
 };
-
 
 // template <typename T>
 // T *expr_cast(Node *node) {

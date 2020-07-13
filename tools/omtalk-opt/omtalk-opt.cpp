@@ -18,8 +18,8 @@
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
+
 #include "mlir/Dialect/Omtalk/IR/OmtalkDialect.h"
-#include "mlir/Dialect/Omtalk/IR/OmtalkOps.h"
 
 static llvm::cl::opt<std::string> inputFilename(llvm::cl::Positional,
                                                 llvm::cl::desc("<input file>"),
@@ -61,7 +61,6 @@ int main(int argc, char **argv) {
   mlir::registerAllPasses();
 
   mlir::registerDialect<mlir::omtalk::OmtalkDialect>();
-  // TODO: Register standalone passes here.
 
   llvm::InitLLVM y(argc, argv);
 
@@ -73,8 +72,8 @@ int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv,
                                     "MLIR modular optimizer driver\n");
 
-  mlir::MLIRContext context;
   if (showDialects) {
+    mlir::MLIRContext context;
     llvm::outs() << "Registered Dialects:\n";
     for (mlir::Dialect *dialect : context.getRegisteredDialects()) {
       llvm::outs() << dialect->getNamespace() << "\n";
