@@ -80,10 +80,18 @@ public:
     return in[offset + off];
   }
 
+  std::size_t remaining() const {
+    return in.length() - offset;
+  }
+
   const std::string &getFilename() const { return filename; }
 
   std::string subStringFrom(std::size_t start) const {
     return std::string(in.begin() + start, in.begin() + offset);
+  }
+
+  std::string subStringFrom(const ParseCursor &start) const {
+    return subStringFrom(start.getOffset());
   }
 
 private:

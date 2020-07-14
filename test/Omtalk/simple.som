@@ -1,0 +1,7 @@
+Simple = (
+    add-numbers: n = (
+        ^ n <= 1
+            ifTrue:  1
+            ifFalse: [ self fib: (n - 1) + (self fib: (n - 2)) ]
+    )
+)

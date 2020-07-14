@@ -27,6 +27,20 @@ list(APPEND OMTALK_LLVM_OPTIONS
 add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fdiagnostics-color>)
 
 ###
+###
+###
+
+if(OMTALK_WARNINGS)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-Werror>)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wall>)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wextra>)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-parameter>)
+	set(LLVM_ENABLE_WARNINGS true)
+	set(LLVM_ENABLE_PEDANTIC true)
+	set(LLVM_ENABLE_WERROR true)
+endif()
+
+###
 ### Sanitizer Support
 ###
 

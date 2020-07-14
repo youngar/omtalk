@@ -1,26 +1,11 @@
-@ RUN: omtalk-parser -emit=ast %s | FileCheck %s -check-prefix=AST
-@ RUN: omtalk-parser -emit=mlir %s | FileCheck %s -check-prefix=MLIR
+@ RUN: omtalk-parser -emit=ast %s | FileCheck %s
 
-@ MLIR: module {
-@ AST: module {
-
-@ AST: class EmptyClass
-@ MLIR: omtalk.klass @EmptyClass : @Object
 EmptyClass = ()
-@ } loc(
 
-@ AST: class ClassWithSuper : TheSuper
-@ MLIR: omtalk.klass @ClassWithSuper : @TheSuper
 ClassWithSuper = TheSuper (
 )
 
-@ AST: class SmallClass
-@ MLIR: omtalk.klass @SmallClass : @Object
 SmallClass = (
-    @ AST:   fields { A B C }
-    @ MLIR: "omtalk.field"() {sym_name = "A"} : () -> ()
-    @ MLIR: "omtalk.field"() {sym_name = "B"} : () -> ()
-    @ MLIR: "omtalk.field"() {sym_name = "C"} : () -> ()
     | A B C |
 )
 
@@ -32,23 +17,97 @@ SmallClassWithStaticFields = (
 )
 "
 
-@ AST: class ClassWithMethods
 ClassWithMethods = (
-    @ AST: method something {}
     something = (
 
     )
     
-    @ AST: method +
-    + = (
+    + other = (
 
     )
     
-    @ AST method #thisIs:aKeyword:method:
     thisIs: x aKeyword: y method: z = (
 
     )
-)
 
-@ MLIR: }
-@ AST: }
+    primitiveMethod = primitive
+
+    methodWithLocals = (
+        | LocalA localb |
+    )
+
+    methordWithUnary = (
+        self something
+    )
+
+    methodWithBinary = (
+        self + 2
+    )
+
+
+    methodWithKeyword = (
+        self thisIs: 1 aKeyword: 2 method: 3
+    )
+
+    allthree = (
+        self get + 1 hello: rob
+    )
+
+    allthreeAgain = (
+        self get + 1 hello: rob stinks * 2
+    )
+
+    methodWithAssignment = (
+        | local |
+        local := 1234
+    )
+
+    methodWithAssignment = (
+        | local other |
+        local := other := 4567
+    )
+
+    multipleStatements = (
+        self something.
+        self alsoSomething
+    )
+
+    returnStatement = (
+        ^self something
+    )
+
+    blockstatement: pred = (
+        pred ifTrue: [
+            1234
+        ]
+    )
+
+    blockWithParam: pred = (
+        pred ifTrue: [ :a |
+            1234
+        ]
+    )
+
+    blockWithParam: pred = (
+        pred ifTrue: [ | a |
+            1234
+        ]
+    )
+
+    blockWithParam: pred = (
+        pred ifTrue: [ :a :b | | c d |
+            1234
+        ]
+    )
+
+" TODO::: VVV from here down VVV
+
+    methodWithMultipleExpressiosn = (
+
+    )
+
+    methodWithAReturn = (
+        ^4
+    )
+"
+)

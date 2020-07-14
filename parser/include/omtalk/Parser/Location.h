@@ -8,6 +8,7 @@
 namespace omtalk {
 namespace parser {
 
+/// A point in the input text. Beware that lines and columns are 1-indexed.
 struct Position {
   constexpr Position(int line, int col) : line(line), col(col) {}
 
@@ -23,8 +24,14 @@ struct Position {
   int col;
 };
 
+/// The default position.
 constexpr Position InvalidPosition(-1, -1);
 
+/// A range in the input text.
+/// Beware:
+///  - The specified range includes both the start and end position.
+///  - The specified range is at least one character (when start == end).
+///  - Lines and columns are 1-indexed.
 struct Location {
   Location() : Location("<unknown>") {}
 
