@@ -311,7 +311,7 @@ inline void print(AstPrinter &p, const Klass &klass) {
 inline void print(AstPrinter &p, const Module &module) {
   p.enter("Module");
   p.field("location", module.location);
-  p.field("klasses", module.klassDecls);
+  p.field("klasses", module.klasses);
   p.leave();
 }
 

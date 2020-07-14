@@ -1045,7 +1045,7 @@ bool separator(ParseCursor &cursor) { return n_plus(cursor, 3, '-'); }
 
 std::unique_ptr<Klass> parseKlass(ParseCursor &cursor) {
 
-  auto klassDecl = std::make_unique<Klass>();
+  auto klass = std::make_unique<Klass>();
   auto start = cursor.pos();
 
   // ClassName
@@ -1053,7 +1053,7 @@ std::unique_ptr<Klass> parseKlass(ParseCursor &cursor) {
   if (!id) {
     abort(cursor, "Invalid class name");
   }
-  klassDecl->name = *id;
+  klass->name = *id;
 
   // =
   expectNext(cursor, '=');
@@ -1061,7 +1061,7 @@ std::unique_ptr<Klass> parseKlass(ParseCursor &cursor) {
   // superklass?
   auto super = parseIdentifier(cursor);
   if (super) {
-    klassDecl->super = *super;
+    klass->super = *super;
   }
 
   // (
@@ -1075,16 +1075,16 @@ std::unique_ptr<Klass> parseKlass(ParseCursor &cursor) {
 
     // | A B C |
     if (auto fields = parseVarList(cursor); fields) {
-      if (klassDecl->fields) {
+      if (klass->fields) {
         abort(cursor,
-              "Class " + klassDecl->name.value + " has two field declarations");
+              "Class " + klass->name.value + " has two field declarations");
       }
-      klassDecl->fields = *fields;
+      klass->fields = *fields;
     }
 
     // Methods
     if (auto method = parseMethod(cursor); method) {
-      klassDecl->methods.push_back(std::move(*method));
+      klass->methods.push_back(std::move(*method));
     }
 
     // )
@@ -1094,12 +1094,12 @@ std::unique_ptr<Klass> parseKlass(ParseCursor &cursor) {
 
     // EOF
     if (cursor.atEnd()) {
-      abort(cursor, "Unexpected end of class" + klassDecl->name.value);
+      abort(cursor, "Unexpected end of class" + klass->name.value);
     }
   }
 
-  klassDecl->location = mkloc(start, cursor);
-  return klassDecl;
+  klass->location = mkloc(start, cursor);
+  return klass;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1112,7 +1112,7 @@ std::unique_ptr<Module> parseModule(ParseCursor &cursor) {
 
   skip(cursor);
   while (cursor.more()) {
-    module->klassDecls.push_back(parseKlass(cursor));
+    module->klasses.push_back(parseKlass(cursor));
     skip(cursor);
   }
 

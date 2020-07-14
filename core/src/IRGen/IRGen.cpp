@@ -24,14 +24,14 @@ public:
                                      loc.start.line, loc.start.line);
   }
 
-  mlir::omtalk::KlassOp irGen(const Klass &klassDecl) {
+  mlir::omtalk::KlassOp irGen(const Klass &klass) {
     std::string super = "Object";
-    if (klassDecl.super) {
-      super = klassDecl.super->value;
+    if (klass.super) {
+      super = klass.super->value;
     }
 
     auto klassOp = builder.create<mlir::omtalk::KlassOp>(
-        loc(klassDecl.location), klassDecl.name.value, super);
+        loc(klass.location), klass.name.value, super);
 
     {
       mlir::OpBuilder::InsertionGuard guard(builder);
@@ -41,14 +41,14 @@ public:
 
       builder.setInsertionPointToStart(block);
 
-      if (klassDecl.fields) {
-        for (const auto &field : (*klassDecl.fields).elements) {
+      if (klass.fields) {
+        for (const auto &field : (*klass.fields).elements) {
           builder.create<mlir::omtalk::FieldOp>(loc(field.location),
                                                 field.value);
         }
       }
 
-      builder.create<mlir::omtalk::KlassEndOp>(loc(klassDecl.location));
+      builder.create<mlir::omtalk::KlassEndOp>(loc(klass.location));
     }
 
     return klassOp;
@@ -58,7 +58,7 @@ public:
 
     moduleOp = mlir::ModuleOp::create(builder.getUnknownLoc());
 
-    for (const auto &klass : module.klassDecls) {
+    for (const auto &klass : module.klasses) {
       moduleOp.push_back(irGen(*klass));
     }
 

@@ -337,7 +337,7 @@ public:
   Module(Location location) : location(location) {}
 
   Location location;
-  KlassPtrList klassDecls;
+  KlassPtrList klasses;
 };
 
 } // namespace parser
