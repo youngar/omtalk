@@ -9,10 +9,11 @@
 #ifndef MLIR_DIALECT_OMTALK_OMTALKOPS_H
 #define MLIR_DIALECT_OMTALK_OMTALKOPS_H
 
-#include "mlir/IR/Dialect.h"
-#include "mlir/IR/OpDefinition.h"
-#include "mlir/IR/SymbolTable.h"
-#include "mlir/Interfaces/SideEffectInterfaces.h"
+#include <mlir/IR/Dialect.h>
+#include <mlir/IR/FunctionSupport.h>
+#include <mlir/IR/OpDefinition.h>
+#include <mlir/IR/SymbolTable.h>
+#include <mlir/Interfaces/SideEffectInterfaces.h>
 
 namespace mlir {
 namespace omtalk {

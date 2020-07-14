@@ -22,47 +22,47 @@ OmtalkDialect::OmtalkDialect(MLIRContext *context)
 #define GET_OP_LIST
 #include "mlir/Dialect/Omtalk/IR/OmtalkOps.cpp.inc"
       >();
-  // addTypes<BoxType, BoxIntType, BoxRefType>();
+  addTypes<BoxUnkType, BoxIntType, BoxRefType>();
 }
 
 //===----------------------------------------------------------------------===//
 // Omtalk types.
 //===----------------------------------------------------------------------===//
 
-// mlir::Type OmtalkDialect::parseType(mlir::DialectAsmParser &parser) const {
-//   if (parser.parseKeyword("box") || parser.parseLess())
-//     return mlir::Type();
+mlir::Type OmtalkDialect::parseType(mlir::DialectAsmParser &parser) const {
+  if (parser.parseKeyword("box") || parser.parseLess())
+    return mlir::Type();
 
-//   if (parser.parseKeyword("int") || parser.parseGreater())
-//     return BoxIntType::get(getContext());
+  if (parser.parseKeyword("int") || parser.parseGreater())
+    return BoxIntType::get(getContext());
 
-//   if (parser.parseKeyword("ref") || parser.parseGreater())
-//     return BoxRefType::get(getContext());
+  if (parser.parseKeyword("ref") || parser.parseGreater())
+    return BoxRefType::get(getContext());
 
-//   if (parser.parseOptionalQuestion() || parser.parseGreater())
-//     return BoxType::get(getContext());
+  if (parser.parseOptionalQuestion() || parser.parseGreater())
+    return BoxUnkType::get(getContext());
 
-//   return mlir::Type();
-// }
+  return mlir::Type();
+}
 
-// void OmtalkDialect::printType(mlir::Type type,
-//                               mlir::DialectAsmPrinter &printer) const {
-//   // BoxType boxType = type.cast<BoxType>();
-//   switch (type.getKind()) {
-//   default:
-//     llvm_unreachable("Unhandled Linalg type");
-//     break;
-//   case OmtalkTypes::Box:
-//     printer << "box<?>";
-//     break;
-//   case OmtalkTypes::BoxInt:
-//     printer << "box<int>";
-//     break;
-//   case OmtalkTypes::BoxRef:
-//     printer << "box<ref>";
-//     break;
-//   }
-// }
+void OmtalkDialect::printType(mlir::Type type,
+                              mlir::DialectAsmPrinter &printer) const {
+  // BoxType boxType = type.cast<BoxType>();
+  switch (type.getKind()) {
+  default:
+    llvm_unreachable("Unhandled Linalg type");
+    break;
+  case OmtalkTypes::BoxUnk:
+    printer << "box<?>";
+    break;
+  case OmtalkTypes::BoxInt:
+    printer << "box<int>";
+    break;
+  case OmtalkTypes::BoxRef:
+    printer << "box<ref>";
+    break;
+  }
+}
 
 } // namespace omtalk
 } // namespace mlir

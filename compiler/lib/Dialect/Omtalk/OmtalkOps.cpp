@@ -1,4 +1,4 @@
-//===- StandaloneOps.cpp - Standalone dialect ops ---------------*- C++ -*-===//
+//===- OmtalkOps.cpp - Omtalk dialect ops ---------------*- C++ -*-===//
 //
 // This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -13,56 +13,27 @@
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/Transforms/InliningUtils.h"
+#include <mlir/IR/FunctionSupport.h>
 
 namespace mlir {
 namespace omtalk {
 
-//===----------------------------------------------------------------------===//
-// SendOp
-//===----------------------------------------------------------------------===//
+static FunctionType createMethodType(OpBuilder &builder, unsigned args) {
+  auto ty = BoxUnkType::get(builder.getContext());
+  llvm::SmallVector<mlir::Type, 6> inputs(args, ty);
+  llvm::SmallVector<mlir::Type, 1> results(1, ty);
+  return builder.getFunctionType(inputs, results);
+}
 
-// mlir::CallInterfaceCallable SendOp::getCallableForCallee() {
-//   return getAttrOfType<SymbolRefAttr>("message");
-// }
+void MethodOp::build(OpBuilder &builder, OperationState &result, StringRef name,
+                     unsigned argCount) {
 
-// mlir::Operation::operand_range SendOp::getArgOperands() { return inputs(); }
-
-//===----------------------------------------------------------------------===//
-// SendIntAddOp
-//===----------------------------------------------------------------------===//
-
-// mlir::CallInterfaceCallable SendIntAddOp::getCallableForCallee() {
-//   return getAttrOfType<SymbolRefAttr>("message");
-// }
-
-// mlir::Operation::operand_range SendIntAddOp::getArgOperands() {
-//   return inputs();
-// }
-
-// OpFoldResult SendIntAddOp::fold(ArrayRef<Attribute> operands) {
-/// addi(x, 0) -> x
-// return {};
-//   if (matchPattern(rhs(), m_Zero())) return lhs();
-
-//   return constFoldBinaryOp<IntegerAttr>(operands,
-//                                         [](APInt a, APInt b) { return a + b;
-//                                         });
-// }
-
-//===----------------------------------------------------------------------===//
-// SendRef
-//===----------------------------------------------------------------------===//
-
-// mlir::CallInterfaceCallable SendRefOp::getCallableForCallee() {
-//   return getAttrOfType<SymbolRefAttr>("message");
-// }
-
-// mlir::Operation::operand_range SendRefOp::getArgOperands() { return inputs();
-// }
-
-//===----------------------------------------------------------------------===//
-// ODS Ops
-//===----------------------------------------------------------------------===//
+  result.addAttribute(SymbolTable::getSymbolAttrName(),
+                      builder.getStringAttr(name));
+  result.addAttribute(getTypeAttrName(),
+                      TypeAttr::get(createMethodType(builder, argCount)));
+  result.addRegion();
+}
 
 #define GET_OP_CLASSES
 #include "mlir/Dialect/Omtalk/IR/OmtalkOps.cpp.inc"

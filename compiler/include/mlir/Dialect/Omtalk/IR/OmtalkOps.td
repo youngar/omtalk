@@ -14,6 +14,10 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/OpBase.td"
 include "mlir/IR/SymbolInterfaces.td"
 
+include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
+
 //===----------------------------------------------------------------------===//
 // Omtalk dialect definition.
 //===----------------------------------------------------------------------===//
@@ -26,6 +30,15 @@ def Omtalk_Dialect : Dialect {
       coupled to the omtalk virtual machine.
   }];
   let cppNamespace = "omtalk";
+
+  let extraClassDeclaration = [{
+
+    mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
+
+     void printType(mlir::Type type,
+                 mlir::DialectAsmPrinter &printer) const override;
+  }];
+
 }
 
 //===----------------------------------------------------------------------===//
@@ -39,26 +52,26 @@ class Omtalk_Op<string mnemonic, list<OpTrait> traits = []> :
 // Omtalk Types
 //===----------------------------------------------------------------------===//
 
-// def Omtalk_BoxUnkType :
-//     Type<CPred<"$_self.isa<::omtalk::BoxType>()">, "Omtalk Boxed Type">;
+def Omtalk_BoxUnkType :
+    Type<CPred<"$_self.isa<::mlir::omtalk::BoxUnkType>()">, "Omtalk Boxed Type containing a value with an unknown type">;
 
-// def Omtalk_BoxIntType :
-//     Type<CPred<"$_self.isa<::omtalk::BoxIntType>()">, "Omtalk Boxed Primitive Integer Type">;
+def Omtalk_BoxIntType :
+    Type<CPred<"$_self.isa<::mlir::omtalk::BoxIntType>()">, "Omtalk Boxed Type containing a tagged primitive integer">;
 
-// def Omtalk_BoxRefType :
-//     Type<CPred<"$_self.isa<::omtalk::BoxRefType>()">, "Omtalk Boxed Reference Type">;
+def Omtalk_BoxRefType :
+    Type<CPred<"$_self.isa<::mlir::omtalk::BoxRefType>()">, "Omtalk Boxed Type containing a GC reference">;
 
-// def Omtalk_AnyBoxType : AnyTypeOf<[Omtalk_BoxUnkType, Omtalk_BoxIntType, Omtalk_BoxRefType]>;
+def Omtalk_AnyBoxType : AnyTypeOf<[Omtalk_BoxUnkType, Omtalk_BoxIntType, Omtalk_BoxRefType]>;
 
-// def Omtalk_Type : AnyTypeOf<[Omtalk_AnyBoxType]>;
-
-def Omtalk_Type : AnyTypeOf<[I64]>;
+def Omtalk_Type : AnyTypeOf<[Omtalk_AnyBoxType]>;
 
 //===----------------------------------------------------------------------===//
 // Omtalk Operations
 //===----------------------------------------------------------------------===//
 
-def Omtalk_ConstantRefOp : Omtalk_Op<"constant_ref", [NoSideEffect]> {
+def Omtalk_ConstantRefOp : Omtalk_Op<"constant_ref", [
+    ConstantLike, NoSideEffect
+  ]> {
   let summary = "constant reference";
   let description = [{
     A constant boxed object reference.
@@ -67,7 +80,9 @@ def Omtalk_ConstantRefOp : Omtalk_Op<"constant_ref", [NoSideEffect]> {
   let results = (outs I64);
 }
 
-def Omtalk_ConstantIntOp : Omtalk_Op<"constant_int", [NoSideEffect]> {
+def Omtalk_ConstantIntOp : Omtalk_Op<"constant_int", [
+    ConstantLike, NoSideEffect
+  ]> {
   let summary = "constant integer";
   let description = [{
     A constant boxed integer.
@@ -141,23 +156,58 @@ def Omtalk_KlassOp : Omtalk_Op<"klass", [
 }
 
 def Omtalk_KlassEndOp : Omtalk_Op<"klass_end", [
-   Terminator, HasParent<"KlassOp">
+   HasParent<"KlassOp">,
+   Terminator 
   ]> {
   let summary = "Psuedo instruction terminating the body of a class";
 }
 
-def Omtalk_FieldOp : Omtalk_Op<"field", [Symbol, HasParent<"KlassOp">]> {
+def Omtalk_FieldOp : Omtalk_Op<"field", [
+     HasParent<"KlassOp">,
+     Symbol
+    ]> {
   let summary = "Define an instance variable, aka field";
   let arguments = (ins StrAttr:$sym_name);
-  // let assemblyFormat = "$sym_name attr-dict";
 }
 
 def Omtalk_MethodOp : Omtalk_Op<"method", [
-    IsolatedFromAbove, Symbol, HasParent<"KlassOp">
+    HasParent<"KlassOp">,
+    AutomaticAllocationScope,
+    FunctionLike,
+    IsolatedFromAbove,
+    Symbol
   ]> {
+
   let summary = "Define a method on an instance";
-  let arguments = (ins StrAttr:$sym_name);
-  // let regions = (region SizedRegion<1>:$body);
+
+  let arguments = (ins
+    StrAttr:$sym_name
+  );
+
+  let results = (outs);
+
+  let regions = (region AnyRegion:$body);
+
+  let skipDefaultBuilders = 1;
+  let builders = [
+    OpBuilder<
+      "OpBuilder &builder, "
+      "OperationState &result, "
+      "StringRef name, "
+      "unsigned argCount = 0">
+  ];
+
+  let extraClassDeclaration = [{
+    unsigned getNumFuncArguments() {
+      return getType().getNumInputs();
+    }
+
+    unsigned getNumFuncResults() {
+      return getType().getNumResults();
+    }
+
+    LogicalResult verifyType() const { return success(); }
+  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -184,6 +234,11 @@ def Omtalk_GetFieldOp : Omtalk_Op<"get_field", [NoSideEffect]> {
 def Omtalk_SetFieldOp : Omtalk_Op<"set_field", []> {
   let summary = "Store to an instance variable, aka field";
   let arguments = (ins SymbolRefAttr:$name, Omtalk_Type:$value);
+}
+
+def Omtalk_ReturnOp : Omtalk_Op<"return", [Terminator]> {
+  let summary = "Return a value from a method or block.";
+  let arguments = (ins Omtalk_Type:$value);
 }
 
 #endif // OMTALK_OPS

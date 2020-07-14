@@ -23,54 +23,54 @@ namespace omtalk {
 ///
 
 // mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
+
 // void printType(mlir::Type type,
 //                mlir::DialectAsmPrinter &printer) const override;
-
 
 ///
 /// Omtalk Types
 ///
 
 namespace OmtalkTypes {
-enum Types {
-  Box = mlir::Type::FIRST_PRIVATE_EXPERIMENTAL_0_TYPE,
+enum Kinds {
+  BoxUnk = mlir::Type::FIRST_PRIVATE_EXPERIMENTAL_2_TYPE,
   BoxInt,
   BoxRef,
 };
 } // namespace OmtalkTypes
 
-// class BoxType : public mlir::Type::TypeBase<BoxType, mlir::Type> {
-// public:
-//   using Base::Base;
+class BoxUnkType : public mlir::Type::TypeBase<BoxUnkType, mlir::Type, mlir::TypeStorage> {
+public:
+  using Base::Base;
 
-//   static bool kindof(unsigned kind) { return kind == OmtalkTypes::Box; }
+  static bool kindof(unsigned kind) { return kind == OmtalkTypes::BoxUnk; }
 
-//   static BoxType get(mlir::MLIRContext *context) {
-//     return Base::get(context, OmtalkTypes::Box);
-//   }
-// };
+  static BoxUnkType get(mlir::MLIRContext *context) {
+    return Base::get(context, OmtalkTypes::BoxUnk);
+  }
+};
 
-// class BoxIntType : public mlir::Type::TypeBase<BoxIntType, mlir::Type> {
-// public:
-//   using Base::Base;
+class BoxIntType : public mlir::Type::TypeBase<BoxIntType, mlir::Type, mlir::TypeStorage> {
+public:
+  using Base::Base;
 
-//   static bool kindof(unsigned kind) { return kind == OmtalkTypes::BoxInt; }
+  static bool kindof(unsigned kind) { return kind == OmtalkTypes::BoxInt; }
 
-//   static BoxIntType get(mlir::MLIRContext *context) {
-//     return Base::get(context, OmtalkTypes::BoxInt);
-//   }
-// };
+  static BoxIntType get(mlir::MLIRContext *context) {
+    return Base::get(context, OmtalkTypes::BoxInt);
+  }
+};
 
-// class BoxRefType : public mlir::Type::TypeBase<BoxRefType, mlir::Type> {
-// public:
-//   using Base::Base;
+class BoxRefType : public mlir::Type::TypeBase<BoxRefType, mlir::Type, mlir::TypeStorage> {
+public:
+  using Base::Base;
 
-//   static bool kindof(unsigned kind) { return kind == OmtalkTypes::BoxRef; }
+  static bool kindof(unsigned kind) { return kind == OmtalkTypes::BoxRef; }
 
-//   static BoxRefType get(mlir::MLIRContext *context) {
-//     return Base::get(context, OmtalkTypes::BoxRef);
-//   }
-// };
+  static BoxRefType get(mlir::MLIRContext *context) {
+    return Base::get(context, OmtalkTypes::BoxRef);
+  }
+};
 
 } // namespace omtalk
 } // namespace mlir
