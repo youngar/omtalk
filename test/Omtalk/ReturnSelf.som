@@ -1,0 +1,3 @@
+ReturnSelf = (
+	run = ( ^self. )
+)

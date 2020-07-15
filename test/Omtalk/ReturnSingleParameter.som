@@ -1,0 +1,3 @@
+ReturnSingleParameter = (
+    one: n = ( ^n. )
+)

@@ -1,0 +1,5 @@
+NPlusNTimesTwo = (
+    run: n = (
+        ^ n + (n * 2)
+    )
+)

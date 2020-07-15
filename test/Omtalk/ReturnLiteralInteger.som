@@ -1,0 +1,3 @@
+ReturnLiteralInteger = (
+	run = ( ^1234. )
+)
