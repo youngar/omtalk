@@ -1,7 +1,9 @@
 Simple = (
-    add-numbers: n = (
-        ^ n <= 1
-            ifTrue:  1
-            ifFalse: [ self fib: (n - 1) + (self fib: (n - 2)) ]
+    width: x height: y = (
+        ^ x * y
+    )
+
+    run = (
+        (self width: 4 height: 5) println.
     )
 )

@@ -53,56 +53,17 @@ class Omtalk_Op<string mnemonic, list<OpTrait> traits = []> :
 //===----------------------------------------------------------------------===//
 
 def Omtalk_BoxUnkType :
-    Type<CPred<"$_self.isa<::mlir::omtalk::BoxUnkType>()">, "Omtalk Boxed Type containing a value with an unknown type">;
+    Type<CPred<"$_self.isa<::mlir::omtalk::BoxUnkType>()">, "!omtalk.box<?>">;
 
 def Omtalk_BoxIntType :
-    Type<CPred<"$_self.isa<::mlir::omtalk::BoxIntType>()">, "Omtalk Boxed Type containing a tagged primitive integer">;
+    Type<CPred<"$_self.isa<::mlir::omtalk::BoxIntType>()">, "!omtalk.box<int>">;
 
 def Omtalk_BoxRefType :
-    Type<CPred<"$_self.isa<::mlir::omtalk::BoxRefType>()">, "Omtalk Boxed Type containing a GC reference">;
+    Type<CPred<"$_self.isa<::mlir::omtalk::BoxRefType>()">, "!omtalk.box<ref>">;
 
 def Omtalk_AnyBoxType : AnyTypeOf<[Omtalk_BoxUnkType, Omtalk_BoxIntType, Omtalk_BoxRefType]>;
 
 def Omtalk_Type : AnyTypeOf<[Omtalk_AnyBoxType]>;
-
-//===----------------------------------------------------------------------===//
-// Omtalk Operations
-//===----------------------------------------------------------------------===//
-
-def Omtalk_ConstantRefOp : Omtalk_Op<"constant_ref", [
-    ConstantLike, NoSideEffect
-  ]> {
-  let summary = "constant reference";
-  let description = [{
-    A constant boxed object reference.
-  }];
-  let arguments = (ins I64Attr:$value);
-  let results = (outs I64);
-}
-
-def Omtalk_ConstantIntOp : Omtalk_Op<"constant_int", [
-    ConstantLike, NoSideEffect
-  ]> {
-  let summary = "constant integer";
-  let description = [{
-    A constant boxed integer.
-  }];
-  let arguments = (ins I64Attr:$value);
-  let results = (outs I64);
-}
-
-// def Omtalk_SendOp : Omtalk_Op<"send",
-//     [DeclareOpInterfaceMethods<CallOpInterface>]> {
-//   let summary = "Send message to receiver (generic)";
-//   let description = [{
-//     A generic send operation, where the receiver parameter may be a boxed integer or boxed reference.
-//     This operation is lowered to the more specific send_int and send_ref operations. 
-//   }];
-
-//   let arguments = (ins Omtalk_Type:$recv, FlatSymbolRefAttr:$message, Variadic<Omtalk_Type>:$inputs);
-//   let results = (outs Omtalk_Type);
-//   let hasCanonicalizer = 1;
-// }
 
 //===----------------------------------------------------------------------===//
 // Omtalk Definitions
@@ -157,7 +118,7 @@ def Omtalk_KlassOp : Omtalk_Op<"klass", [
 
 def Omtalk_KlassEndOp : Omtalk_Op<"klass_end", [
    HasParent<"KlassOp">,
-   Terminator 
+   Terminator
   ]> {
   let summary = "Psuedo instruction terminating the body of a class";
 }
@@ -181,6 +142,7 @@ def Omtalk_MethodOp : Omtalk_Op<"method", [
   let summary = "Define a method on an instance";
 
   let arguments = (ins
+    TypeAttr:$type,
     StrAttr:$sym_name
   );
 
@@ -214,21 +176,67 @@ def Omtalk_MethodOp : Omtalk_Op<"method", [
 // Omtalk Operations
 //===----------------------------------------------------------------------===//
 
+def Omtalk_ConstantRefOp : Omtalk_Op<"constant_ref", [
+    ConstantLike, NoSideEffect
+  ]> {
+  let summary = "constant reference";
+  let description = [{
+    A constant boxed object reference.
+  }];
+  let arguments = (ins I64Attr:$value);
+  let results = (outs Omtalk_BoxIntType);
+}
+
+def Omtalk_ConstantIntOp : Omtalk_Op<"constant_int", [
+    ConstantLike, NoSideEffect
+  ]> {
+  let summary = "constant integer";
+  let description = [{
+    A constant boxed integer.
+  }];
+  let arguments = (ins I64Attr:$value);
+  let results = (outs Omtalk_BoxIntType);
+}
+
+def Omtalk_SendOp : Omtalk_Op<"send", []> {
+  let summary = "Send message to receiver (generic)";
+  let description = [{
+    A generic send operation, where the receiver parameter may be a boxed integer or boxed reference.
+    This operation is lowered to the more specific send_int and send_ref operations. 
+  }];
+
+  let arguments = (ins Omtalk_AnyBoxType:$recv, FlatSymbolRefAttr:$message, Variadic<Omtalk_AnyBoxType>:$inputs);
+  let results = (outs Omtalk_AnyBoxType);
+}
+
+def Omtalk_SuperSendOp : Omtalk_Op<"super_send", []> {
+  let summary = "TODO: Send message to self, but using parent lookup table";
+  let arguments = (ins Omtalk_AnyBoxType:$recv, FlatSymbolRefAttr:$message, Variadic<Omtalk_AnyBoxType>:$inputs);
+  let results = (outs Omtalk_AnyBoxType);
+}
+
+def Omtalk_BlockOp : Omtalk_Op<"block", []> {
+  let summary = "An inline block";
+  let arguments = (ins TypeAttr:$type);
+  let results = (outs Omtalk_AnyBoxType);
+  let regions = (region AnyRegion:$body);
+}
+
 def Omtalk_SelfOp : Omtalk_Op<"self", [NoSideEffect]> {
   let summary = "Get a pointer to the current receiver";
-  let results = (outs Omtalk_Type);
+  let results = (outs Omtalk_AnyBoxType);
 }
 
 def Omtalk_GetClassOp : Omtalk_Op<"get_class", [NoSideEffect]> {
   let summary = "Load a reference to a named class";
   let arguments = (ins SymbolRefAttr:$name);
-  let results = (outs Omtalk_Type);
+  let results = (outs Omtalk_BoxRefType);
 }
 
 def Omtalk_GetFieldOp : Omtalk_Op<"get_field", [NoSideEffect]> {
   let summary = "Load from an instance variable, aka field";
   let arguments = (ins SymbolRefAttr:$name);
-  let results = (outs Omtalk_Type);
+  let results = (outs Omtalk_AnyBoxType);
 }
 
 def Omtalk_SetFieldOp : Omtalk_Op<"set_field", []> {
@@ -236,9 +244,19 @@ def Omtalk_SetFieldOp : Omtalk_Op<"set_field", []> {
   let arguments = (ins SymbolRefAttr:$name, Omtalk_Type:$value);
 }
 
-def Omtalk_ReturnOp : Omtalk_Op<"return", [Terminator]> {
+def Omtalk_ReturnOp : Omtalk_Op<"return", [
+  Terminator, NoSideEffect]> {
   let summary = "Return a value from a method or block.";
-  let arguments = (ins Omtalk_Type:$value);
+  let arguments = (ins Variadic<Omtalk_AnyBoxType>:$value);
+
+  let builders = [OpBuilder<
+    "OpBuilder &b, OperationState &state", [{ build(b, state, llvm::None); }]
+  >];
+
+  let extraClassDeclaration = [{
+    bool hasOperand() { return getNumOperands() != 0; }
+  }];
+  
 }
 
 #endif // OMTALK_OPS

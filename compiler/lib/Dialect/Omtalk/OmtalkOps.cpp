@@ -18,9 +18,9 @@
 namespace mlir {
 namespace omtalk {
 
-static FunctionType createMethodType(OpBuilder &builder, unsigned args) {
+static FunctionType createMethodType(OpBuilder &builder, unsigned nargs) {
   auto ty = BoxUnkType::get(builder.getContext());
-  llvm::SmallVector<mlir::Type, 6> inputs(args, ty);
+  llvm::SmallVector<mlir::Type, 6> inputs(nargs, ty);
   llvm::SmallVector<mlir::Type, 1> results(1, ty);
   return builder.getFunctionType(inputs, results);
 }
