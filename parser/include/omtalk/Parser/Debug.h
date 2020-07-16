@@ -169,36 +169,36 @@ inline void print(AstPrinter &p, const VarList &list) {
   p.leave();
 }
 
-inline void print(AstPrinter &p, const LitIntegerExpr &expr) {
-  p.enter("LitIntegerExpr");
+inline void print(AstPrinter &p, const IntegerExpr &expr) {
+  p.enter("IntegerExpr");
   p.field("location", expr.location);
   p.field("value", expr.value);
   p.leave();
 }
 
-inline void print(AstPrinter &p, const LitFloatExpr &expr) {
-  p.enter("LitFloatExpr");
+inline void print(AstPrinter &p, const FloatExpr &expr) {
+  p.enter("FloatExpr");
   p.field("location", expr.location);
   p.field("value", expr.value);
   p.leave();
 }
 
-inline void print(AstPrinter &p, const LitStringExpr &expr) {
-  p.enter("LitStringExpr");
+inline void print(AstPrinter &p, const StringExpr &expr) {
+  p.enter("StringExpr");
   p.field("location", expr.location);
   p.field("value", expr.value);
   p.leave();
 }
 
-inline void print(AstPrinter &p, const LitSymbolExpr &expr) {
-  p.enter("LitSymbolExpr");
+inline void print(AstPrinter &p, const SymbolExpr &expr) {
+  p.enter("SymbolExpr");
   p.field("location", expr.location);
   p.field("value", expr.value);
   p.leave();
 }
 
-inline void print(AstPrinter &p, const LitArrayExpr &expr) {
-  p.enter("LitArrayExpr");
+inline void print(AstPrinter &p, const ArrayExpr &expr) {
+  p.enter("ArrayExpr");
   p.field("location", expr.location);
   p.field("elements", expr.elements);
   p.leave();
@@ -252,20 +252,20 @@ inline void print(AstPrinter &p, const NonlocalReturnExpr &expr) {
 
 inline void print(AstPrinter &p, const Expr &expr) {
   switch (expr.kind) {
-  case ExprKind::LitIntegerExpr:
-    print(p, expr.cast<LitIntegerExpr>());
+  case ExprKind::Integer:
+    print(p, expr.cast<IntegerExpr>());
     break;
-  case ExprKind::LitFloatExpr:
-    print(p, expr.cast<LitFloatExpr>());
+  case ExprKind::Float:
+    print(p, expr.cast<FloatExpr>());
     break;
-  case ExprKind::LitStringExpr:
-    print(p, expr.cast<LitStringExpr>());
+  case ExprKind::String:
+    print(p, expr.cast<StringExpr>());
     break;
-  case ExprKind::LitSymbolExpr:
-    print(p, expr.cast<LitSymbolExpr>());
+  case ExprKind::Symbol:
+    print(p, expr.cast<SymbolExpr>());
     break;
-  case ExprKind::LitArrayExpr:
-    print(p, expr.cast<LitArrayExpr>());
+  case ExprKind::Array:
+    print(p, expr.cast<ArrayExpr>());
     break;
   case ExprKind::Identifier:
     print(p, expr.cast<IdentifierExpr>());

@@ -416,20 +416,20 @@ ExprPtr parseLitNumberExpr(ParseCursor &cursor) {
     if (match(cursor, '.') && one_plus(cursor, isDigit)) {
       auto location = mkloc(start, cursor);
       auto value = std::stof(cursor.subStringFrom(start));
-      return std::make_unique<LitFloatExpr>(location, value);
+      return std::make_unique<FloatExpr>(location, value);
     }
     // Do not eat a matched decimal point `.` if it is an integer
     cursor = tryfloat;
     auto location = mkloc(start, cursor);
     auto value = std::stoi(cursor.subStringFrom(start));
-    return std::make_unique<LitIntegerExpr>(location, value);
+    return std::make_unique<IntegerExpr>(location, value);
   }
 
   cursor = start;
   return nullptr;
 }
 
-LitIntegerExprPtr parseLitIntegerExpr(ParseCursor &cursor) {
+IntegerExprPtr parseIntegerExpr(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
@@ -438,14 +438,14 @@ LitIntegerExprPtr parseLitIntegerExpr(ParseCursor &cursor) {
   if (one_plus(cursor, isDigit)) {
     auto location = mkloc(start, cursor);
     auto value = std::stoi(cursor.subStringFrom(start));
-    return std::make_unique<LitIntegerExpr>(location, value);
+    return std::make_unique<IntegerExpr>(location, value);
   }
 
   cursor = start;
   return nullptr;
 }
 
-LitFloatExprPtr parseLitFloatExpr(ParseCursor &cursor) {
+FloatExprPtr parseFloatExpr(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
@@ -468,10 +468,10 @@ LitFloatExprPtr parseLitFloatExpr(ParseCursor &cursor) {
 
   auto location = mkloc(start, cursor);
   auto value = std::stof(cursor.subStringFrom(start));
-  return std::make_unique<LitFloatExpr>(location, value);
+  return std::make_unique<FloatExpr>(location, value);
 }
 
-LitStringExprPtr parseLitStringExpr(ParseCursor &cursor) {
+StringExprPtr parseStringExpr(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
@@ -485,7 +485,7 @@ LitStringExprPtr parseLitStringExpr(ParseCursor &cursor) {
         ++cursor;
         auto location = mkloc(start, cursor);
         auto value = cursor.subStringFrom(start);
-        return std::make_unique<LitStringExpr>(location, value);
+        return std::make_unique<StringExpr>(location, value);
       } else if (*cursor == '\\') {
         ++cursor;
         if (cursor.atEnd()) {
@@ -499,18 +499,18 @@ LitStringExprPtr parseLitStringExpr(ParseCursor &cursor) {
   return nullptr;
 }
 
-LitSymbolExprPtr parseLitSymbolExpr(ParseCursor &cursor) {
+SymbolExprPtr parseSymbolExpr(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
   if (match(cursor, '#')) {
-    LitSymbolExprPtr litSymbol;
+    SymbolExprPtr litSymbol;
     auto symbol = parseSymbol(cursor);
     if (!symbol) {
       abort(cursor, "Error parsing literal symbol");
     }
     auto location = mkloc(start, cursor);
-    return std::make_unique<LitSymbolExpr>(location, symbol->value);
+    return std::make_unique<SymbolExpr>(location, symbol->value);
   }
 
   cursor = start;
@@ -519,7 +519,7 @@ LitSymbolExprPtr parseLitSymbolExpr(ParseCursor &cursor) {
 
 /// <lit-array> ::= '#(' <literal>* ')'
 /// note: literal arrays may only hold other literals.
-LitArrayExprPtr parseLitArrayExpr(ParseCursor &cursor) {
+ArrayExprPtr parseArrayExpr(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
@@ -528,7 +528,7 @@ LitArrayExprPtr parseLitArrayExpr(ParseCursor &cursor) {
     return nullptr;
   }
 
-  LitArrayExprPtr litArray = std::make_unique<LitArrayExpr>();
+  ArrayExprPtr litArray = std::make_unique<ArrayExpr>();
 
   while (true) {
     skip(cursor);
@@ -551,11 +551,11 @@ ExprPtr parseLitExpr(ParseCursor &cursor) {
 
   ExprPtr expr = nullptr;
 
-  expr = parseLitArrayExpr(cursor);
+  expr = parseArrayExpr(cursor);
   if (expr)
     return expr;
 
-  expr = parseLitStringExpr(cursor);
+  expr = parseStringExpr(cursor);
   if (expr)
     return expr;
 
@@ -563,7 +563,7 @@ ExprPtr parseLitExpr(ParseCursor &cursor) {
   if (expr)
     return expr;
 
-  expr = parseLitSymbolExpr(cursor);
+  expr = parseSymbolExpr(cursor);
   if (expr)
     return expr;
 

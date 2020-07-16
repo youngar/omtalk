@@ -39,21 +39,21 @@ public:
   // Literals
   //===--------------------------------------------------------------------===//
 
-  mlir::omtalk::ConstantIntOp irGen(const LitIntegerExpr &expr) {
+  mlir::omtalk::ConstantIntOp irGen(const IntegerExpr &expr) {
     auto location = loc(expr.location);
     auto value = builder.getIntegerAttr(builder.getIntegerType(64), expr.value);
     return builder.create<mlir::omtalk::ConstantIntOp>(
         location, mlir::omtalk::BoxIntType::get(builder.getContext()), value);
   }
 
-  mlir::omtalk::ConstantFloatOp irGen(const LitFloatExpr &expr) {
+  mlir::omtalk::ConstantFloatOp irGen(const FloatExpr &expr) {
     auto location = loc(expr.location);
     auto value = builder.getFloatAttr(builder.getF64Type(), expr.value);
     return builder.create<mlir::omtalk::ConstantFloatOp>(
         location, mlir::omtalk::BoxRefType::get(builder.getContext()), value);
   }
 
-  mlir::omtalk::ConstantSymbolOp irGen(const LitSymbolExpr &expr) {
+  mlir::omtalk::ConstantSymbolOp irGen(const SymbolExpr &expr) {
     auto location = loc(expr.location);
     auto value = builder.getStringAttr(expr.value);
     return builder.create<mlir::omtalk::ConstantSymbolOp>(
@@ -109,16 +109,16 @@ public:
 
   mlir::Value irGenExpr(const Expr &expr) {
     switch (expr.kind) {
-    case ExprKind::LitIntegerExpr:
-      return irGen(expr.cast<LitIntegerExpr>());
-    case ExprKind::LitFloatExpr:
-      return irGen(expr.cast<LitFloatExpr>());
-    case ExprKind::LitStringExpr:
-      assert(false && "LitStringExpr");
-    case ExprKind::LitSymbolExpr:
-      assert(false && "LitSymbolExpr");
-    case ExprKind::LitArrayExpr:
-      assert(false && "LitArrayExpr");
+    case ExprKind::Integer:
+      return irGen(expr.cast<IntegerExpr>());
+    case ExprKind::Float:
+      return irGen(expr.cast<FloatExpr>());
+    case ExprKind::String:
+      assert(false && "StringExpr");
+    case ExprKind::Symbol:
+      assert(false && "SymbolExpr");
+    case ExprKind::Array:
+      assert(false && "ArrayExpr");
     case ExprKind::Identifier:
       return irGen(expr.cast<IdentifierExpr>());
     case ExprKind::Send:

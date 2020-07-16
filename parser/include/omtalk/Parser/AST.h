@@ -51,11 +51,11 @@ using OptVarList = std::optional<VarList>;
 //===----------------------------------------------------------------------===//
 
 enum class ExprKind {
-  LitIntegerExpr,
-  LitFloatExpr,
-  LitStringExpr,
-  LitSymbolExpr,
-  LitArrayExpr,
+  Integer,
+  Float,
+  String,
+  Symbol,
+  Array,
   Identifier,
   Send,
   Block,
@@ -97,84 +97,84 @@ using ExprPtrList = std::vector<ExprPtr>;
 //===----------------------------------------------------------------------===//
 
 /// Integer Literal. eg: 1234
-struct LitIntegerExpr final : public Expr {
-  static constexpr ExprKind Kind = ExprKind::LitIntegerExpr;
+struct IntegerExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Integer;
 
-  LitIntegerExpr() : Expr(Kind) {}
+  IntegerExpr() : Expr(Kind) {}
 
-  LitIntegerExpr(Location location, int value)
+  IntegerExpr(Location location, int value)
       : Expr(location, Kind), value(value) {}
 
-  virtual ~LitIntegerExpr() override = default;
+  virtual ~IntegerExpr() override = default;
 
   int value;
 };
 
-using LitIntegerExprPtr = std::unique_ptr<LitIntegerExpr>;
+using IntegerExprPtr = std::unique_ptr<IntegerExpr>;
 
 /// Float Literal. eg: 1234.567890
-struct LitFloatExpr final : public Expr {
-  static constexpr ExprKind Kind = ExprKind::LitFloatExpr;
+struct FloatExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Float;
 
-  LitFloatExpr() : Expr(ExprKind::LitFloatExpr) {}
+  FloatExpr() : Expr(Kind) {}
 
-  LitFloatExpr(Location location, double value)
+  FloatExpr(Location location, double value)
       : Expr(location, Kind), value(value) {}
 
-  virtual ~LitFloatExpr() override = default;
+  virtual ~FloatExpr() override = default;
 
   double value;
 };
 
-using LitFloatExprPtr = std::unique_ptr<LitFloatExpr>;
+using FloatExprPtr = std::unique_ptr<FloatExpr>;
 
 /// String Literal, e.g. 'Hello world'
-struct LitStringExpr final : public Expr {
-  static constexpr ExprKind Kind = ExprKind::LitStringExpr;
+struct StringExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::String;
 
-  LitStringExpr() : Expr(Kind) {}
+  StringExpr() : Expr(Kind) {}
 
-  LitStringExpr(Location location, std::string value)
+  StringExpr(Location location, std::string value)
       : Expr(location, Kind), value(value) {}
 
-  virtual ~LitStringExpr() override = default;
+  virtual ~StringExpr() override = default;
 
   std::string value;
 };
 
-using LitStringExprPtr = std::unique_ptr<LitStringExpr>;
+using StringExprPtr = std::unique_ptr<StringExpr>;
 
 /// Symbol Literal, e.g. #hello #+
-struct LitSymbolExpr final : public Expr {
-  static constexpr ExprKind Kind = ExprKind::LitSymbolExpr;
+struct SymbolExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Symbol;
 
-  LitSymbolExpr() : Expr(Kind) {}
+  SymbolExpr() : Expr(Kind) {}
 
-  LitSymbolExpr(Location location, std::string value)
+  SymbolExpr(Location location, std::string value)
       : Expr(location, Kind), value(value) {}
 
-  virtual ~LitSymbolExpr() override = default;
+  virtual ~SymbolExpr() override = default;
 
   std::string value;
 };
 
-using LitSymbolExprPtr = std::unique_ptr<LitSymbolExpr>;
+using SymbolExprPtr = std::unique_ptr<SymbolExpr>;
 
 /// Array literal expression. eg: #(1 2 3 4)
-struct LitArrayExpr final : public Expr {
-  static constexpr ExprKind Kind = ExprKind::LitArrayExpr;
+struct ArrayExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Array;
 
-  LitArrayExpr() : Expr(Kind) {}
+  ArrayExpr() : Expr(Kind) {}
 
-  LitArrayExpr(Location location, ExprPtrList elements)
+  ArrayExpr(Location location, ExprPtrList elements)
       : Expr(location, Kind), elements(std::move(elements)) {}
 
-  virtual ~LitArrayExpr() override = default;
+  virtual ~ArrayExpr() override = default;
 
   ExprPtrList elements;
 };
 
-using LitArrayExprPtr = std::unique_ptr<LitArrayExpr>;
+using ArrayExprPtr = std::unique_ptr<ArrayExpr>;
 
 //===----------------------------------------------------------------------===//
 // Expression Kinds
