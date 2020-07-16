@@ -14,3 +14,7 @@
 	path = external/Catch2
 	url = https://github.com/catchorg/Catch2.git
 	branch = master
+[submodule "external/SOM"]
+	path = external/SOM
+	url = https://github.com/SOM-st/SOM.git
+	branch = master
