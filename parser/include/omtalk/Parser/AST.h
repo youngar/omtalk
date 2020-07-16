@@ -60,15 +60,13 @@ enum class ExprKind {
   Send,
   Block,
   Assignment,
-  Return
+  Return,
+  NonlocalReturn,
 };
 
 /// Base AST element type.
 struct Expr {
   virtual ~Expr() = default;
-
-  Location location;
-  const ExprKind kind;
 
   template <typename T>
   T &cast() {
@@ -81,6 +79,9 @@ struct Expr {
     assert(T::Kind == kind);
     return static_cast<const T &>(*this);
   }
+
+  Location location;
+  const ExprKind kind;
 
 protected:
   explicit Expr(ExprKind k) : kind(k) {}
@@ -208,44 +209,6 @@ struct IdentifierExpr final : public Expr {
 
 using IdentifierExprPtr = std::unique_ptr<IdentifierExpr>;
 
-/// An assignment. eg x := y := 1234.
-struct AssignmentExpr final : public Expr {
-  static constexpr ExprKind Kind = ExprKind::Assignment;
-
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
-
-  AssignmentExpr() : Expr(Kind) {}
-
-  AssignmentExpr(Location location, IdentifierList identifiers, ExprPtr value)
-      : Expr(location, Kind), identifiers(std::move(identifiers)),
-        value(std::move(value)) {}
-
-  virtual ~AssignmentExpr() override = default;
-
-  IdentifierList identifiers;
-  ExprPtr value;
-};
-
-using AssignmentExprPtr = std::unique_ptr<AssignmentExpr>;
-
-/// A subexpression grouped by parenthesis.
-struct ReturnExpr final : public Expr {
-  static constexpr ExprKind Kind = ExprKind::Return;
-
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
-
-  ReturnExpr() : Expr(Kind) {}
-
-  ReturnExpr(Location location, ExprPtr value)
-      : Expr(location, Kind), value(std::move(value)) {}
-
-  virtual ~ReturnExpr() override = default;
-
-  ExprPtr value;
-};
-
-using ReturnExprPtr = std::unique_ptr<ReturnExpr>;
-
 struct SendExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::Send;
 
@@ -267,6 +230,66 @@ struct SendExpr final : public Expr {
 };
 
 using SendExprPtr = std::unique_ptr<SendExpr>;
+
+//===----------------------------------------------------------------------===//
+// Statements
+//===----------------------------------------------------------------------===//
+
+/// A subexpression grouped by parenthesis.
+struct ReturnExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Return;
+
+  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
+
+  ReturnExpr() : Expr(Kind) {}
+
+  ReturnExpr(Location location, ExprPtr value)
+      : Expr(location, Kind), value(std::move(value)) {}
+
+  virtual ~ReturnExpr() override = default;
+
+  ExprPtr value;
+};
+
+using ReturnExprPtr = std::unique_ptr<ReturnExpr>;
+
+/// A subexpression grouped by parenthesis.
+struct NonlocalReturnExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::NonlocalReturn;
+
+  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
+
+  NonlocalReturnExpr() : Expr(Kind) {}
+
+  NonlocalReturnExpr(Location location, ExprPtr value)
+      : Expr(location, Kind), value(std::move(value)) {}
+
+  virtual ~NonlocalReturnExpr() override = default;
+
+  ExprPtr value;
+};
+
+using NonlocalReturnExprPtr = std::unique_ptr<NonlocalReturnExpr>;
+
+/// An assignment. eg x := y := 1234.
+struct AssignmentExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Assignment;
+
+  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
+
+  AssignmentExpr() : Expr(Kind) {}
+
+  AssignmentExpr(Location location, IdentifierList identifiers, ExprPtr value)
+      : Expr(location, Kind), identifiers(std::move(identifiers)),
+        value(std::move(value)) {}
+
+  virtual ~AssignmentExpr() override = default;
+
+  IdentifierList identifiers;
+  ExprPtr value;
+};
+
+using AssignmentExprPtr = std::unique_ptr<AssignmentExpr>;
 
 //===----------------------------------------------------------------------===//
 // Blocks
@@ -314,8 +337,7 @@ class Klass {
 public:
   Klass() = default;
 
-  Klass(Location location, Identifier name)
-      : location(location), name(name) {}
+  Klass(Location location, Identifier name) : location(location), name(name) {}
 
   Location location;
 

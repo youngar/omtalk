@@ -27,13 +27,17 @@ public:
 
   /// convert an identifier list into a single composite selector name.
   /// eg val: val: val: => val:val:val:
-  std::string selector(IdentifierList selector) {
+  std::string getSelectorString(IdentifierList selector) {
     std::string name = "";
     for (const auto &id : selector) {
       name += id.value;
     }
     return name;
   }
+
+  //===----------------------------------------------------------------------===//
+  // Literals
+  //===----------------------------------------------------------------------===//
 
   mlir::omtalk::ConstantIntOp irGen(const LitIntegerExpr &expr) {
     auto location = loc(expr.location);
@@ -42,15 +46,43 @@ public:
         location, mlir::omtalk::BoxIntType::get(builder.getContext()), value);
   }
 
+  mlir::omtalk::ConstantFloatOp irGen(const LitFloatExpr &expr) {
+    auto location = loc(expr.location);
+    auto value = builder.getFloatAttr(builder.getF64Type(), expr.value);
+    return builder.create<mlir::omtalk::ConstantFloatOp>(
+        location, mlir::omtalk::BoxRefType::get(builder.getContext()), value);
+  }
+
+  mlir::omtalk::ConstantSymbolOp irGen(const LitSymbolExpr &expr) {
+    auto location = loc(expr.location);
+    auto value = builder.getStringAttr(expr.value);
+    return builder.create<mlir::omtalk::ConstantSymbolOp>(
+        location, mlir::omtalk::BoxRefType::get(builder.getContext()), value);
+  }
+
+  //===----------------------------------------------------------------------===//
+  // Expressions
+  //===----------------------------------------------------------------------===//
+
   mlir::Value irGenSelfExpr(const IdentifierExpr &expr) {
     auto location = loc(expr.location);
     return builder.create<mlir::omtalk::SelfOp>(
         location, mlir::omtalk::BoxRefType::get(builder.getContext()));
   }
 
+  mlir::Value irGenNil(const IdentifierExpr &expr) {
+    auto location = loc(expr.location);
+    auto value = builder.getIntegerAttr(builder.getIntegerType(64), 0);
+    return builder.create<mlir::omtalk::ConstantRefOp>(
+        location, mlir::omtalk::BoxRefType::get(builder.getContext()), value);
+  }
+
   mlir::Value irGen(const IdentifierExpr &expr) {
     if (expr.name == "self") {
       return irGenSelfExpr(expr);
+    }
+    if (expr.name == "nil") {
+      return irGenNil(expr);
     }
     return symbolTable.lookup(expr.name);
   }
@@ -58,7 +90,7 @@ public:
   mlir::omtalk::SendOp irGen(const SendExpr &expr) {
     auto ty = mlir::omtalk::BoxUnkType::get(builder.getContext());
     auto recv = irGenExpr(*(expr.parameters[0]));
-    auto message = selector(expr.selector);
+    auto message = getSelectorString(expr.selector);
     auto location = loc(expr.location);
 
     llvm::SmallVector<mlir::Value, 4> operands;
@@ -70,6 +102,57 @@ public:
                                                        message, operands);
 
     return sendOp;
+  }
+
+  mlir::omtalk::ReturnOp irGen(const ReturnExpr &expr) {
+    auto value = irGenExpr(*expr.value);
+    auto location = loc(expr.location);
+    return builder.create<mlir::omtalk::ReturnOp>(location, value);
+  }
+
+  mlir::omtalk::NonlocalReturnOp irGen(const NonlocalReturnExpr &expr) {
+    auto value = irGenExpr(*expr.value);
+    auto location = loc(expr.location);
+    return builder.create<mlir::omtalk::NonlocalReturnOp>(location, value);
+  }
+
+  mlir::Value irGenExpr(const Expr &expr) {
+    switch (expr.kind) {
+    case ExprKind::LitIntegerExpr:
+      return irGen(expr.cast<LitIntegerExpr>());
+    case ExprKind::LitFloatExpr:
+      return irGen(expr.cast<LitFloatExpr>());
+    case ExprKind::LitStringExpr:
+      assert(false && "LitStringExpr");
+    case ExprKind::LitSymbolExpr:
+      assert(false && "LitSymbolExpr");
+    case ExprKind::LitArrayExpr:
+      assert(false && "LitArrayExpr");
+    case ExprKind::Identifier:
+      return irGen(expr.cast<IdentifierExpr>());
+    case ExprKind::Send:
+      return irGen(expr.cast<SendExpr>());
+    case ExprKind::Block:
+      return irGen(expr.cast<BlockExpr>());
+    default:
+      llvm::outs() << static_cast<int>(expr.kind) << "\n";
+      assert(false && "Unhandled expression type");
+      break;
+    }
+  }
+
+  std::optional<mlir::Value> irGenStatement(const Expr &expr) {
+    switch (expr.kind) {
+    case ExprKind::Return:
+      irGen(expr.cast<ReturnExpr>());
+      break;
+    case ExprKind::NonlocalReturn:
+      irGen(expr.cast<NonlocalReturnExpr>());
+      break;
+    default:
+      return irGenExpr(expr);
+    }
+    return std::nullopt;
   }
 
   mlir::omtalk::BlockOp irGen(const BlockExpr &expr) {
@@ -91,69 +174,22 @@ public:
     llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value> var_scope(
         symbolTable);
     for (const auto &param : expr.parameters) {
-      symbolTable.insert(param.value, block->addArgument(ty));
+      auto arg = block->addArgument(ty);
+      symbolTable.insert(param.value, arg);
     }
 
-    std::optional<mlir::Value> returnValue;
+    builder.setInsertionPointToStart(block);
+
     for (const auto &expr : expr.body) {
-      returnValue = irGenStatement(*expr);
+      irGenStatement(*expr);
     }
 
-    // Implicitly return if no return was emitted
-
-    mlir::omtalk::ReturnOp returnOp;
-    if (!block->empty()) {
-      returnOp = llvm::dyn_cast<mlir::omtalk::ReturnOp>(block->back());
-    }
-
-    if (!returnOp) {
-      if (returnValue) {
-        builder.create<mlir::omtalk::ReturnOp>(builder.getUnknownLoc(),
-                                               *returnValue);
-      } else {
-        builder.create<mlir::omtalk::ReturnOp>(builder.getUnknownLoc());
-      }
-    }
     return blockOp;
-  }
-
-  mlir::omtalk::ReturnOp irGen(const ReturnExpr &expr) {
-    auto value = irGenExpr(*expr.value);
-    auto location = loc(expr.location);
-    return builder.create<mlir::omtalk::ReturnOp>(location, value);
-  }
-
-  mlir::Value irGenExpr(const Expr &expr) {
-    switch (expr.kind) {
-    case ExprKind::LitIntegerExpr:
-      return irGen(expr.cast<LitIntegerExpr>());
-    case ExprKind::Identifier:
-      return irGen(expr.cast<IdentifierExpr>());
-    case ExprKind::Send:
-      return irGen(expr.cast<SendExpr>());
-    case ExprKind::Block:
-      return irGen(expr.cast<BlockExpr>());
-    default:
-      llvm::outs() << static_cast<int>(expr.kind) << "\n";
-      assert(false && "Unhandled expression type");
-      break;
-    }
-  }
-
-  std::optional<mlir::Value> irGenStatement(const Expr &expr) {
-    switch (expr.kind) {
-    case ExprKind::Return:
-      irGen(expr.cast<ReturnExpr>());
-      break;
-    default:
-      return irGenExpr(expr);
-    }
-    return std::nullopt;
   }
 
   mlir::omtalk::MethodOp irGen(const Method &method) {
     auto location = loc(method.location);
-    auto sym_name = selector(method.selector);
+    auto sym_name = getSelectorString(method.selector);
     auto methodOp = builder.create<mlir::omtalk::MethodOp>(
         location, sym_name, method.parameters.size());
 
@@ -171,25 +207,8 @@ public:
 
     builder.setInsertionPointToStart(block);
 
-    std::optional<mlir::Value> returnValue;
     for (const auto &expr : method.body) {
-      returnValue = irGenStatement(*expr);
-    }
-
-    // Implicitly return if no return was emitted
-
-    mlir::omtalk::ReturnOp returnOp;
-    if (!block->empty()) {
-      returnOp = llvm::dyn_cast<mlir::omtalk::ReturnOp>(block->back());
-    }
-
-    if (!returnOp) {
-      if (returnValue) {
-        builder.create<mlir::omtalk::ReturnOp>(builder.getUnknownLoc(),
-                                               *returnValue);
-      } else {
-        builder.create<mlir::omtalk::ReturnOp>(builder.getUnknownLoc());
-      }
+      irGenStatement(*expr);
     }
   }
 

@@ -198,14 +198,14 @@ inline void print(AstPrinter &p, const LitSymbolExpr &expr) {
 }
 
 inline void print(AstPrinter &p, const LitArrayExpr &expr) {
-  p.enter("LitSymbolExpr");
+  p.enter("LitArrayExpr");
   p.field("location", expr.location);
   p.field("elements", expr.elements);
   p.leave();
 }
 
 inline void print(AstPrinter &p, const IdentifierExpr &expr) {
-  p.enter("LitSymbolExpr");
+  p.enter("IdentifierExpr");
   p.field("location", expr.location);
   p.field("name", expr.name);
   p.leave();
@@ -243,6 +243,12 @@ inline void print(AstPrinter &p, const ReturnExpr &expr) {
   p.leave();
 }
 
+inline void print(AstPrinter &p, const NonlocalReturnExpr &expr) {
+  p.enter("NonlocalReturnExpr");
+  p.field("location", expr.location);
+  p.field("value", expr.value);
+  p.leave();
+}
 
 inline void print(AstPrinter &p, const Expr &expr) {
   switch (expr.kind) {
@@ -276,9 +282,12 @@ inline void print(AstPrinter &p, const Expr &expr) {
   case ExprKind::Return:
     print(p, expr.cast<ReturnExpr>());
     break;
+  case ExprKind::NonlocalReturn:
+    print(p, expr.cast<NonlocalReturnExpr>());
+    break;
 
   default:
-    p.enter("expression");
+    p.enter("unknown expression");
     p.field("location", expr.location);
     p.field("kind", static_cast<unsigned>(expr.kind));
     p.leave();

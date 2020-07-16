@@ -71,6 +71,7 @@ def Omtalk_Type : AnyTypeOf<[Omtalk_AnyBoxType]>;
 
 def Omtalk_KlassOp : Omtalk_Op<"klass", [
     IsolatedFromAbove, Symbol, SymbolTable,
+    NoRegionArguments,
     SingleBlockImplicitTerminator<"KlassEndOp">
   ]> {
 
@@ -117,26 +118,21 @@ def Omtalk_KlassOp : Omtalk_Op<"klass", [
 }
 
 def Omtalk_KlassEndOp : Omtalk_Op<"klass_end", [
-   HasParent<"KlassOp">,
-   Terminator
+   HasParent<"KlassOp">, Terminator
   ]> {
   let summary = "Psuedo instruction terminating the body of a class";
 }
 
 def Omtalk_FieldOp : Omtalk_Op<"field", [
-     HasParent<"KlassOp">,
-     Symbol
+     HasParent<"KlassOp">, Symbol
     ]> {
   let summary = "Define an instance variable, aka field";
   let arguments = (ins StrAttr:$sym_name);
 }
 
 def Omtalk_MethodOp : Omtalk_Op<"method", [
-    HasParent<"KlassOp">,
-    AutomaticAllocationScope,
-    FunctionLike,
-    IsolatedFromAbove,
-    Symbol
+    HasParent<"KlassOp">, AutomaticAllocationScope, FunctionLike,
+    IsolatedFromAbove, Symbol
   ]> {
 
   let summary = "Define a method on an instance";
@@ -173,7 +169,7 @@ def Omtalk_MethodOp : Omtalk_Op<"method", [
 }
 
 //===----------------------------------------------------------------------===//
-// Omtalk Operations
+// Omtalk Literals and Constants
 //===----------------------------------------------------------------------===//
 
 def Omtalk_ConstantRefOp : Omtalk_Op<"constant_ref", [
@@ -184,7 +180,7 @@ def Omtalk_ConstantRefOp : Omtalk_Op<"constant_ref", [
     A constant boxed object reference.
   }];
   let arguments = (ins I64Attr:$value);
-  let results = (outs Omtalk_BoxIntType);
+  let results = (outs Omtalk_BoxRefType);
 }
 
 def Omtalk_ConstantIntOp : Omtalk_Op<"constant_int", [
@@ -198,6 +194,27 @@ def Omtalk_ConstantIntOp : Omtalk_Op<"constant_int", [
   let results = (outs Omtalk_BoxIntType);
 }
 
+def Omtalk_ConstantFloatOp : Omtalk_Op<"constant_float", [
+    ConstantLike, NoSideEffect
+  ]> {
+  let summary = "constant float";
+  let arguments = (ins F64Attr:$value);
+  let results = (outs Omtalk_BoxRefType);
+}
+
+
+def Omtalk_ConstantSymbolOp : Omtalk_Op<"constant_symbol", [
+    ConstantLike, NoSideEffect
+  ]> {
+  let summary = "constant symbol";
+  let arguments = (ins StrAttr:$value);
+  let results = (outs Omtalk_BoxRefType);
+}
+
+//===----------------------------------------------------------------------===//
+// Omtalk Operations
+//===----------------------------------------------------------------------===//
+
 def Omtalk_SendOp : Omtalk_Op<"send", []> {
   let summary = "Send message to receiver (generic)";
   let description = [{
@@ -210,7 +227,7 @@ def Omtalk_SendOp : Omtalk_Op<"send", []> {
 }
 
 def Omtalk_SuperSendOp : Omtalk_Op<"super_send", []> {
-  let summary = "TODO: Send message to self, but using parent lookup table";
+  let summary = "Statically send a method to the super class";
   let arguments = (ins Omtalk_AnyBoxType:$recv, FlatSymbolRefAttr:$message, Variadic<Omtalk_AnyBoxType>:$inputs);
   let results = (outs Omtalk_AnyBoxType);
 }
@@ -244,19 +261,20 @@ def Omtalk_SetFieldOp : Omtalk_Op<"set_field", []> {
   let arguments = (ins SymbolRefAttr:$name, Omtalk_Type:$value);
 }
 
-def Omtalk_ReturnOp : Omtalk_Op<"return", [
-  Terminator, NoSideEffect]> {
+def Omtalk_ReturnOp : Omtalk_Op<"return", [Terminator]> {
   let summary = "Return a value from a method or block.";
-  let arguments = (ins Variadic<Omtalk_AnyBoxType>:$value);
+  let arguments = (ins Omtalk_AnyBoxType:$value);
+}
 
-  let builders = [OpBuilder<
-    "OpBuilder &b, OperationState &state", [{ build(b, state, llvm::None); }]
-  >];
+def Omtalk_NonlocalReturnOp : Omtalk_Op<"nonlocal_return", [Terminator]> {
+  let summary = "Return from the home frame of a block.";
 
-  let extraClassDeclaration = [{
-    bool hasOperand() { return getNumOperands() != 0; }
+  let description = [{
+    This op is only valid within a block. A block has a parent "home" frame,
+    which is the method it was constructed in. When an 
   }];
-  
+
+  let arguments = (ins Omtalk_AnyBoxType:$value);
 }
 
 #endif // OMTALK_OPS

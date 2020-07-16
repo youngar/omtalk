@@ -19,13 +19,6 @@ namespace {
 // Diagnostics
 //===----------------------------------------------------------------------===//
 
-std::string slurp(const std::string &filename) {
-  std::ifstream in(filename, std::ios::in);
-  std::stringstream buffer;
-  buffer << in.rdbuf();
-  return buffer.str();
-}
-
 Location mkloc(Position start, const ParseCursor &cursor) {
   return {cursor.getFilename(), start, cursor.pos()};
 }
@@ -42,7 +35,6 @@ void diag(const std::string &filename, const Position &position,
 
 void diag(const std::string &filename, const Position &start,
           const Position &end, const std::string &message) {
-  // todo: emit a diagnostic that reports a range.
   diag(filename, start, message);
 }
 
@@ -103,19 +95,6 @@ constexpr bool isOperator(char c) {
   }
 }
 
-// TODO are we parsing Binary vs Unary operators correctly?
-// Symbol singleOpSyms[] = { Not, And, Or, Star, Div, Mod, Plus, Equal, More,
-// Less,
-//         Comma, At, Per, NONE };
-
-// Symbol binaryOpSyms[] = { Or, Comma, Minus, Equal, Not, And, Or, Star, Div,
-// Mod,
-//         Plus, Equal, More, Less, Comma, At, Per, NONE };
-
-// binarySelector:
-//     Or | Comma | Minus | Equal | Not | And | Star | Div | Mod | Plus | More |
-//     Less | At | Per | OperatorSequence;
-
 constexpr bool isUnaryOperator(char c) {
   switch (c) {
   case '!': // not
@@ -151,7 +130,7 @@ constexpr bool isBinaryOperator(char c) {
 // Generic Parsing
 //===----------------------------------------------------------------------===//
 
-/// scan forwards for the character c.
+/// Scan forwards for the character c.
 bool next(ParseCursor &cursor, char pattern, std::size_t offset = 1) {
   if (offset > cursor.remaining()) {
     return false;
@@ -159,16 +138,7 @@ bool next(ParseCursor &cursor, char pattern, std::size_t offset = 1) {
   return cursor.get(offset) == pattern;
 }
 
-// bool next(ParseCursor &cursor, const char *pattern, std::size_t offset = 1) {
-//   return next(cursor, pattern, strlen(pattern), offset);
-// }
-
-void discardUntil(ParseCursor &cursor, char c) {
-  while (*cursor != c) {
-    ++cursor;
-  }
-}
-
+/// Scan forwards as long as the predicate matches.
 bool match(ParseCursor &cursor, bool (*pred)(char)) {
   if (cursor.more() && pred(*cursor)) {
     ++cursor;
@@ -177,6 +147,7 @@ bool match(ParseCursor &cursor, bool (*pred)(char)) {
   return false;
 }
 
+/// Scan forwards for the character c.
 bool match(ParseCursor &cursor, char pattern) {
   if (cursor.more() && *cursor == pattern) {
     ++cursor;
@@ -185,6 +156,7 @@ bool match(ParseCursor &cursor, char pattern) {
   return false;
 }
 
+/// Scan forwards for a string `pattern`.
 bool match(ParseCursor &cursor, const char *pattern,
            std::size_t pattern_length) {
   auto c = cursor;
@@ -197,24 +169,24 @@ bool match(ParseCursor &cursor, const char *pattern,
   return true;
 }
 
+/// Scan forwards for a string `pattern`.
 bool match(ParseCursor &cursor, const char *pattern) {
   return match(cursor, pattern, strlen(pattern));
 }
 
+/// Scan forwards for a string `pattern`.
 bool match(ParseCursor &cursor, const std::string &pattern) {
   return match(cursor, pattern.c_str(), pattern.length());
 }
 
 /// Match any character that is not the pattern.
 template <typename P>
-bool match_not(ParseCursor &cursor, char pattern) {
-  if (cursor.more() && *cursor != pattern) {
-    ++cursor;
-    return true;
-  }
-  return false;
+bool match_not(ParseCursor &cursor, P pattern) {
+  auto copy = cursor;
+  return !match(copy, pattern);
 }
 
+/// Matches the pattern.  If it does not match, aborts.
 template <typename P>
 void expect(ParseCursor &cursor, const P &pattern) {
   using namespace std::string_literals;
@@ -223,20 +195,20 @@ void expect(ParseCursor &cursor, const P &pattern) {
   }
 }
 
-/// match pattern N times exactly.
+/// Match pattern N times exactly.
 template <typename P>
 bool n_times(ParseCursor &cursor, int count, const P &pattern) {
-  auto c = cursor;
-  for (std::size_t i = 0; i < count; ++i) {
-    if (!match(c, pattern)) {
+  auto start = cursor;
+  for (unsigned i = 0; i < count; ++i) {
+    if (!match(cursor, pattern)) {
+      cursor = start;
       return false;
     }
   }
-  cursor = c;
   return true;
 }
 
-/// match C n or more times.
+/// Match pattern n or more times.
 template <typename P>
 bool n_plus(ParseCursor &cursor, int count, const P &pattern) {
   if (!n_times(cursor, count, pattern)) {
@@ -247,14 +219,16 @@ bool n_plus(ParseCursor &cursor, int count, const P &pattern) {
   return true;
 }
 
-template <typename P>
-bool one_plus(ParseCursor &cursor, const P &pattern) {
-  return n_plus(cursor, 1, pattern);
-}
-
+/// Match pattern zero or more times.
 template <typename P>
 bool zero_plus(ParseCursor &cursor, const P &pattern) {
   return n_plus(cursor, 0, pattern);
+}
+
+/// Match  pattern one or more times.
+template <typename P>
+bool one_plus(ParseCursor &cursor, const P &pattern) {
+  return n_plus(cursor, 1, pattern);
 }
 
 //===----------------------------------------------------------------------===//
@@ -263,36 +237,43 @@ bool zero_plus(ParseCursor &cursor, const P &pattern) {
 
 void skipWhitespace(ParseCursor &cursor) { zero_plus(cursor, isSpace); }
 
-inline void parseComment(ParseCursor &cursor) {
-  assert(cursor.get() == '"');
-  auto loc = cursor.loc();
+bool parseComment(ParseCursor &cursor) {
+  skipWhitespace(cursor);
+  if (!match(cursor, '"')) {
+    return false;
+  }
 
   do {
     ++cursor;
     if (cursor.atEnd()) {
-      abort(loc, "un-closed comment");
+      abort(cursor, "un-closed comment");
     } else if (*cursor == '\"') {
       ++cursor;
       break;
     } else if (*cursor == '\\') {
       ++cursor;
       if (cursor.atEnd()) {
-        abort(loc, "un-closed comment on escape character");
+        abort(cursor, "un-closed comment on escape character");
       }
     }
   } while (true);
 }
 
-inline void parseDirective(ParseCursor &cursor) {
-  assert(cursor.get() == '@');
+bool parseDirective(ParseCursor &cursor) {
+  skipWhitespace(cursor);
+  if (!match(cursor, '@')) {
+    return false;
+  }
+
   do {
     ++cursor;
   } while (cursor.more() && cursor.get() != '\n');
 }
 
-inline void skip(ParseCursor &cursor) {
+void skip(ParseCursor &cursor) {
   bool cont = true;
   while (true) {
+    skipWhitespace(cursor);
     if (cursor.atEnd()) {
       break;
     } else if (*cursor == '\"') {
@@ -307,12 +288,15 @@ inline void skip(ParseCursor &cursor) {
   }
 }
 
+/// Skip white space and then expect the pattern.  Aborts process if the pattern
+/// does not match.
 template <typename P>
 void expectNext(ParseCursor &cursor, const P &pattern) {
   skip(cursor);
   expect(cursor, pattern);
 }
 
+/// Skip white space and then match the pattern.
 template <typename P>
 bool matchNext(ParseCursor &cursor, const P &pattern) {
   skip(cursor);
@@ -323,7 +307,26 @@ bool matchNext(ParseCursor &cursor, const P &pattern) {
 // Symbols
 //===----------------------------------------------------------------------===//
 
-// Parse a Smalltalk Name symbol.  I.e. (Alpha AlNum+). E.g. Fry32
+/// Checks if a string is a binary selector, e.g. `+`.
+bool isBinarySelector(const std::string &str) {
+  if (str.size()) {
+    // Binary selectors start with operators
+    return isOperator(str[0]);
+  }
+  return false;
+}
+
+/// Checks if a string is a keyword selector, e.g. `mykeyword:`.
+bool isKeywordSelector(const std::string &str) {
+  return (str.length() != 0) && (str[str.length() - 1] == ':');
+}
+
+/// Checks if a string is a unary selector.u
+bool isUnarySelector(const std::string &str) {
+  return !isBinarySelector(str) && !isKeywordSelector(str);
+}
+
+/// Parse a Smalltalk Name symbol.  I.e. (Alpha AlNum+). E.g. Fry32
 OptIdentifier parseNameSym(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
@@ -334,16 +337,6 @@ OptIdentifier parseNameSym(ParseCursor &cursor) {
 
   cursor = start;
   return std::nullopt;
-}
-
-bool isBinarySelector(const std::string &str) { return isOperator(str[0]); }
-
-bool isKeywordSelector(const std::string &str) {
-  return (str.length() != 0) && (str[str.length() - 1] == ':');
-}
-
-bool isUnarySelector(const std::string &str) {
-  return !isBinarySelector(str) && !isKeywordSelector(str);
 }
 
 OptIdentifier parseUnarySym(ParseCursor &cursor) {
@@ -510,9 +503,8 @@ LitSymbolExprPtr parseLitSymbolExpr(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
-  LitSymbolExprPtr litSymbol;
-
   if (match(cursor, '#')) {
+    LitSymbolExprPtr litSymbol;
     auto symbol = parseSymbol(cursor);
     if (!symbol) {
       abort(cursor, "Error parsing literal symbol");
@@ -796,7 +788,7 @@ OptIdentifier parseAssign(ParseCursor &cursor) {
 }
 
 /// <assignment> ::= ( <identifer> ':=' )+ <statement>
-AssignmentExprPtr parseAssignmentStatement(ParseCursor &cursor) {
+AssignmentExprPtr parseAssignmentExpr(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
@@ -827,7 +819,7 @@ AssignmentExprPtr parseAssignmentStatement(ParseCursor &cursor) {
   return expr;
 }
 
-ReturnExprPtr parseReturnStatement(ParseCursor &cursor) {
+ReturnExprPtr parseReturnExpr(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
@@ -836,21 +828,57 @@ ReturnExprPtr parseReturnStatement(ParseCursor &cursor) {
   }
 
   auto expression = parseExpr(cursor);
-  matchNext(cursor, '.');
   auto location = mkloc(start, cursor);
   return std::make_unique<ReturnExpr>(location, std::move(expression));
 }
 
-/// <statement> ::= ( <assignment> | <expr>  | <return> )
-ExprPtr parseStatement(ParseCursor &cursor) {
+NonlocalReturnExprPtr parseNonlocalReturnExpr(ParseCursor &cursor) {
+  skip(cursor);
+  auto start = cursor;
+
+  if (!match(cursor, '^')) {
+    return nullptr;
+  }
+
+  auto expression = parseExpr(cursor);
+  auto location = mkloc(start, cursor);
+  return std::make_unique<NonlocalReturnExpr>(location, std::move(expression));
+}
+
+//===----------------------------------------------------------------------===//
+// Blocks Expressions
+//===----------------------------------------------------------------------===//
+
+/// Parse the parameters to a block
+/// Valid forms, parameters followed by locals
+IdentifierList parseBlockParameters(ParseCursor &cursor) {
+  skip(cursor);
+  IdentifierList parameters;
+  if (match(cursor, ':')) {
+    while (true) {
+      auto sym = parseIdentifier(cursor);
+      if (!sym) {
+        abort(cursor, "Error parsing block argument, colon but no symbol");
+      }
+      parameters.push_back(*sym);
+      if (matchNext(cursor, '|')) {
+        break;
+      }
+      expectNext(cursor, ':');
+    }
+  }
+  return parameters;
+}
+
+ExprPtr parseBlockStatement(ParseCursor &cursor) {
   ExprPtr expr = nullptr;
 
-  expr = parseAssignmentStatement(cursor);
+  expr = parseAssignmentExpr(cursor);
   if (expr) {
     return expr;
   }
 
-  expr = parseReturnStatement(cursor);
+  expr = parseNonlocalReturnExpr(cursor);
   if (expr) {
     return expr;
   }
@@ -863,45 +891,42 @@ ExprPtr parseStatement(ParseCursor &cursor) {
   return nullptr;
 }
 
-/// <statement-list> ::= <statement>*
-ExprPtrList parseStatementList(ParseCursor &cursor) {
+/// Parse the body of a block. A block differs from a method body in three ways:
+/// 1. Return statements inside of blocks are non-local returns.  This is
+/// similar to exception handling
+/// 2. Blocks implicity return the value of the last statement, while methods
+/// implicitly return self.
+/// 3. An empty block implicitly returns nil
+ExprPtrList parseBlockBody(ParseCursor &cursor) {
   ExprPtrList list;
   while (true) {
-    auto expr = parseStatement(cursor);
+    auto expr = parseBlockStatement(cursor);
     if (!expr)
       break;
     list.push_back(std::move(expr));
     match(cursor, ".");
   }
+  // emit an implicit return if needed
+  if (list.size() == 0) {
+    auto nilExpr = std::make_unique<IdentifierExpr>(Location(), "nil");
+    auto returnExpr =
+        std::make_unique<ReturnExpr>(Location(), std::move(nilExpr));
+    list.push_back(std::move(returnExpr));
+  } else if (!NonlocalReturnExpr::kindof(*list.back())) {
+    auto expr = std::move(list.back());
+    list.pop_back();
+    auto returnExpr = std::make_unique<ReturnExpr>(Location(), std::move(expr));
+    list.push_back(std::move(returnExpr));
+  }
   return list;
 }
 
-//===----------------------------------------------------------------------===//
-// Blocks Expressions
-//===----------------------------------------------------------------------===//
-
-/// block arguments
-OptVarList parseOptionalBlockArguments(ParseCursor &cursor) {
-  skip(cursor);
-
-  auto c = cursor;
-  if (!match(c, ':')) {
-    return std::nullopt;
-  }
-
-  VarList varList;
-
-  OptIdentifier id;
-  while (id = parseIdentifier(cursor)) {
-    varList.elements.push_back(*id);
-  }
-
-  expectNext(c, '|');
-
-  cursor = c;
-  return varList;
-}
-
+/// Parse a literal block expression
+/// Valid block formats:
+/// [ a + b ]a
+/// [ :a | a + b ]
+/// [ | b | a + b ]
+/// [ :a | | b | a + b ]
 BlockExprPtr parseBlockExpr(ParseCursor &cursor) {
 
   skip(cursor);
@@ -912,58 +937,13 @@ BlockExprPtr parseBlockExpr(ParseCursor &cursor) {
   }
 
   auto block = std::make_unique<BlockExpr>();
-
-  // Valid forms, arguments followed by locals
-  // [ a + b ]
-  // [ :a | a + b ]
-  // [ | b | a + b ]
-  // [ :a | | b | a + b ]
-
-  skip(cursor);
-
-  // if (cursor.more() && *cursor == ':') {
-  //   do {
-  //     ++cursor;
-  //     auto sym = parseIdentifier(cursor);
-  //     if (!sym) {
-  //       abort(cursor, "Error parsing block argument, colon but no symbol");
-  //     }
-  //     block->parameters.push_back(*sym);
-  //     skip(cursor);
-  //   } while (cursor.more() && *cursor == ':');
-
-  //   skip(cursor);
-
-  //   if (*cursor != '|') {
-  //     abort(cursor, "Unterminated block argument sequence");
-  //   }
-  //   ++cursor;
-  // }
-
-  if (match(cursor, ':')) {
-    while (true) {
-      auto sym = parseIdentifier(cursor);
-      if (!sym) {
-        abort(cursor, "Error parsing block argument, colon but no symbol");
-      }
-      block->parameters.push_back(*sym);
-      if (matchNext(cursor, '|')) {
-        break;
-      }
-      expectNext(cursor, ':');
-    }
-  }
-
-  // Block locals
+  block->parameters = parseBlockParameters(cursor);
   block->locals = parseVarList(cursor);
-
-  // Block body
-  block->body = parseStatementList(cursor);
+  block->body = parseBlockBody(cursor);
 
   expectNext(cursor, ']');
 
   block->location = mkloc(start, cursor);
-
   return block;
 }
 
@@ -971,15 +951,51 @@ BlockExprPtr parseBlockExpr(ParseCursor &cursor) {
 // Method
 //===----------------------------------------------------------------------===//
 
+ExprPtr parseMethodStatement(ParseCursor &cursor) {
+  ExprPtr expr = nullptr;
+
+  expr = parseAssignmentExpr(cursor);
+  if (expr) {
+    return expr;
+  }
+
+  expr = parseReturnExpr(cursor);
+  if (expr) {
+    return expr;
+  }
+
+  expr = parseExpr(cursor);
+  if (expr) {
+    return expr;
+  }
+
+  return nullptr;
+}
+
+ExprPtrList parseMethodBody(ParseCursor &cursor) {
+  ExprPtrList list;
+  while (true) {
+    auto expr = parseMethodStatement(cursor);
+    if (!expr)
+      break;
+    list.push_back(std::move(expr));
+    match(cursor, ".");
+  }
+  // emit an implicit return if needed
+  if ((list.size() == 0) || !ReturnExpr::kindof(*list.back())) {
+    auto selfExpr = std::make_unique<IdentifierExpr>(Location(), "self");
+    auto returnExpr =
+        std::make_unique<ReturnExpr>(Location(), std::move(selfExpr));
+    list.push_back(std::move(returnExpr));
+  }
+  return list;
+}
+
 std::optional<std::unique_ptr<Method>> parseMethod(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
   auto method = std::make_unique<Method>();
-
-  //
-  // Signature
-  //
 
   OptIdentifier id = std::nullopt;
   if (id = parseKeywordSym(cursor)) {
@@ -1024,7 +1040,7 @@ std::optional<std::unique_ptr<Method>> parseMethod(ParseCursor &cursor) {
   method->locals = parseVarList(cursor);
 
   // Body parsing
-  method->body = parseStatementList(cursor);
+  method->body = parseMethodBody(cursor);
 
   // )
   expectNext(cursor, ')');
@@ -1055,7 +1071,6 @@ std::unique_ptr<Klass> parseKlass(ParseCursor &cursor) {
   }
   klass->name = *id;
 
-  // =
   expectNext(cursor, '=');
 
   // superklass?
@@ -1064,7 +1079,6 @@ std::unique_ptr<Klass> parseKlass(ParseCursor &cursor) {
     klass->super = *super;
   }
 
-  // (
   expectNext(cursor, '(');
 
   // Parse members
@@ -1125,6 +1139,15 @@ std::unique_ptr<Module> parseModule(ParseCursor &cursor) {
 //===----------------------------------------------------------------------===//
 // Parsing Files
 //===----------------------------------------------------------------------===//
+
+namespace {
+std::string slurp(const std::string &filename) {
+  std::ifstream in(filename, std::ios::in);
+  std::stringstream buffer;
+  buffer << in.rdbuf();
+  return buffer.str();
+}
+} // namespace
 
 std::unique_ptr<Module> omtalk::parser::parseFile(std::string filename) {
   auto contents = slurp(filename);

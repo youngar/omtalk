@@ -1,1 +1,5 @@
-EmptyMethod = ( run = ())
+@ RUN: omtalk-parser -emit=ast %s | FileCheck %s
+
+EmptyMethod = (
+    run = ()
+)

@@ -66,14 +66,6 @@ public:
 
   const std::size_t getOffset() const { return offset; }
 
-  // const std::string_view &in() const { return in; }
-
-  // std::size_t in_length() const { return in().length(); }
-
-  // std::string_view::const_iterator in_iter() const {
-  //   return in().substr(offset).begin();
-  // }
-
   char get(std::size_t off = 0) const {
     if (atEnd())
       throw std::exception();
