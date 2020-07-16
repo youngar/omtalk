@@ -202,7 +202,6 @@ def Omtalk_ConstantFloatOp : Omtalk_Op<"constant_float", [
   let results = (outs Omtalk_BoxRefType);
 }
 
-
 def Omtalk_ConstantSymbolOp : Omtalk_Op<"constant_symbol", [
     ConstantLike, NoSideEffect
   ]> {
@@ -237,11 +236,6 @@ def Omtalk_BlockOp : Omtalk_Op<"block", []> {
   let arguments = (ins TypeAttr:$type);
   let results = (outs Omtalk_AnyBoxType);
   let regions = (region AnyRegion:$body);
-}
-
-def Omtalk_SelfOp : Omtalk_Op<"self", [NoSideEffect]> {
-  let summary = "Get a pointer to the current receiver";
-  let results = (outs Omtalk_AnyBoxType);
 }
 
 def Omtalk_GetClassOp : Omtalk_Op<"get_class", [NoSideEffect]> {

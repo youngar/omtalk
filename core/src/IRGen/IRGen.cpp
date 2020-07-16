@@ -35,9 +35,9 @@ public:
     return name;
   }
 
-  //===----------------------------------------------------------------------===//
+  //===--------------------------------------------------------------------===//
   // Literals
-  //===----------------------------------------------------------------------===//
+  //===--------------------------------------------------------------------===//
 
   mlir::omtalk::ConstantIntOp irGen(const LitIntegerExpr &expr) {
     auto location = loc(expr.location);
@@ -60,15 +60,9 @@ public:
         location, mlir::omtalk::BoxRefType::get(builder.getContext()), value);
   }
 
-  //===----------------------------------------------------------------------===//
+  //===--------------------------------------------------------------------===//
   // Expressions
-  //===----------------------------------------------------------------------===//
-
-  mlir::Value irGenSelfExpr(const IdentifierExpr &expr) {
-    auto location = loc(expr.location);
-    return builder.create<mlir::omtalk::SelfOp>(
-        location, mlir::omtalk::BoxRefType::get(builder.getContext()));
-  }
+  //===--------------------------------------------------------------------===//
 
   mlir::Value irGenNil(const IdentifierExpr &expr) {
     auto location = loc(expr.location);
@@ -78,9 +72,6 @@ public:
   }
 
   mlir::Value irGen(const IdentifierExpr &expr) {
-    if (expr.name == "self") {
-      return irGenSelfExpr(expr);
-    }
     if (expr.name == "nil") {
       return irGenNil(expr);
     }
@@ -191,7 +182,7 @@ public:
     auto location = loc(method.location);
     auto sym_name = getSelectorString(method.selector);
     auto methodOp = builder.create<mlir::omtalk::MethodOp>(
-        location, sym_name, method.parameters.size());
+        location, sym_name, 1 + method.parameters.size());
 
     mlir::OpBuilder::InsertionGuard guard(builder);
 
@@ -201,6 +192,7 @@ public:
     llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value> var_scope(
         symbolTable);
     auto ty = mlir::omtalk::BoxUnkType::get(builder.getContext());
+    symbolTable.insert("self", block->addArgument(ty));
     for (const auto &param : method.parameters) {
       symbolTable.insert(param.value, block->addArgument(ty));
     }
