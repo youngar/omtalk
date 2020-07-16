@@ -912,7 +912,7 @@ ExprPtrList parseBlockBody(ParseCursor &cursor) {
     auto returnExpr =
         std::make_unique<ReturnExpr>(Location(), std::move(nilExpr));
     list.push_back(std::move(returnExpr));
-  } else if (!NonlocalReturnExpr::kindof(*list.back())) {
+  } else if (list.back()->kind != ExprKind::NonlocalReturn) {
     auto expr = std::move(list.back());
     list.pop_back();
     auto returnExpr = std::make_unique<ReturnExpr>(Location(), std::move(expr));
@@ -982,7 +982,7 @@ ExprPtrList parseMethodBody(ParseCursor &cursor) {
     match(cursor, ".");
   }
   // emit an implicit return if needed
-  if ((list.size() == 0) || !ReturnExpr::kindof(*list.back())) {
+  if ((list.size() == 0) || (list.back()->kind != ExprKind::Return)) {
     auto selfExpr = std::make_unique<IdentifierExpr>(Location(), "self");
     auto returnExpr =
         std::make_unique<ReturnExpr>(Location(), std::move(selfExpr));

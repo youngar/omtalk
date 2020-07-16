@@ -100,8 +100,6 @@ using ExprPtrList = std::vector<ExprPtr>;
 struct LitIntegerExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::LitIntegerExpr;
 
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
-
   LitIntegerExpr() : Expr(Kind) {}
 
   LitIntegerExpr(Location location, int value)
@@ -117,8 +115,6 @@ using LitIntegerExprPtr = std::unique_ptr<LitIntegerExpr>;
 /// Float Literal. eg: 1234.567890
 struct LitFloatExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::LitFloatExpr;
-
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
 
   LitFloatExpr() : Expr(ExprKind::LitFloatExpr) {}
 
@@ -136,8 +132,6 @@ using LitFloatExprPtr = std::unique_ptr<LitFloatExpr>;
 struct LitStringExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::LitStringExpr;
 
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
-
   LitStringExpr() : Expr(Kind) {}
 
   LitStringExpr(Location location, std::string value)
@@ -154,8 +148,6 @@ using LitStringExprPtr = std::unique_ptr<LitStringExpr>;
 struct LitSymbolExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::LitSymbolExpr;
 
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
-
   LitSymbolExpr() : Expr(Kind) {}
 
   LitSymbolExpr(Location location, std::string value)
@@ -171,8 +163,6 @@ using LitSymbolExprPtr = std::unique_ptr<LitSymbolExpr>;
 /// Array literal expression. eg: #(1 2 3 4)
 struct LitArrayExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::LitArrayExpr;
-
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
 
   LitArrayExpr() : Expr(Kind) {}
 
@@ -195,8 +185,6 @@ using LitArrayExprPtr = std::unique_ptr<LitArrayExpr>;
 struct IdentifierExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::Identifier;
 
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
-
   IdentifierExpr() : Expr(Kind) {}
 
   IdentifierExpr(Location location, std::string name)
@@ -211,8 +199,6 @@ using IdentifierExprPtr = std::unique_ptr<IdentifierExpr>;
 
 struct SendExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::Send;
-
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
 
   SendExpr() : Expr(Kind) {}
 
@@ -239,8 +225,6 @@ using SendExprPtr = std::unique_ptr<SendExpr>;
 struct ReturnExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::Return;
 
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
-
   ReturnExpr() : Expr(Kind) {}
 
   ReturnExpr(Location location, ExprPtr value)
@@ -257,8 +241,6 @@ using ReturnExprPtr = std::unique_ptr<ReturnExpr>;
 struct NonlocalReturnExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::NonlocalReturn;
 
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
-
   NonlocalReturnExpr() : Expr(Kind) {}
 
   NonlocalReturnExpr(Location location, ExprPtr value)
@@ -274,8 +256,6 @@ using NonlocalReturnExprPtr = std::unique_ptr<NonlocalReturnExpr>;
 /// An assignment. eg x := y := 1234.
 struct AssignmentExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::Assignment;
-
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
 
   AssignmentExpr() : Expr(Kind) {}
 
@@ -298,8 +278,6 @@ using AssignmentExprPtr = std::unique_ptr<AssignmentExpr>;
 // A block literal. eg: [:x | y z | x do thing]
 struct BlockExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::Block;
-
-  static constexpr bool kindof(const Expr &expr) { return expr.kind == Kind; }
 
   BlockExpr() : Expr(Kind) {}
 
