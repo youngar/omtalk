@@ -43,6 +43,8 @@ option(OMTALK_SPLIT_DEBUG "Split debug information for faster link times")
 option(OMTALK_UBSAN "Build with clang undefined behaviour sanitizer.")
 option(OMTALK_WARNINGS "Build with extra warning enabled")
 
+set(OMTALK_PATH ${omtalk_SOURCE_DIR}/external/SOM/Smalltalk CACHE STRING "The core library class path")
+
 include(HandleOmtalkOptions)
 
 ###

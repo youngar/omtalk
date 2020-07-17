@@ -42,6 +42,12 @@ static cl::opt<enum Action> emitAction(
 
 static cl::opt<bool> enableOpt("opt", cl::desc("Enable optimizations"));
 
+static cl::opt<bool> enableKlassResolution("res",
+                                           cl::desc("Enable class loading"),
+                                           cl::init(true));
+
+cl::opt<std::string> klassPath("path", cl::desc("Append to the class path"), cl::value_desc("directory"));
+
 int main(int argc, char **argv) {
 
   mlir::registerAsmPrinterCLOptions();
@@ -52,7 +58,6 @@ int main(int argc, char **argv) {
   auto ast = omtalk::parser::parseFile(inputFilename);
 
   if (emitAction == Action::DumpAST) {
-    // std::cout << *ast << std::endl;
     omtalk::parser::print(std::cout, *ast);
     return EXIT_SUCCESS;
   }

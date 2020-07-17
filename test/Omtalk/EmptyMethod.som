@@ -1,5 +1,7 @@
-@ RUN: omtalk-parser -emit=ast %s | FileCheck %s
+@ RUN: omtalk-parser --path %OMTALK_PATH% -emit=ast %s | FileCheck %s
 
+@ CHECK @EmptyMethod : @Object
 EmptyMethod = (
+    @ CHECK method @"run"
     run = ()
 )

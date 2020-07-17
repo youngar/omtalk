@@ -215,25 +215,22 @@ public:
 
     auto klassOp = builder.create<mlir::omtalk::KlassOp>(location, name, super);
 
-    {
-      mlir::OpBuilder::InsertionGuard guard(builder);
-      auto region = &klassOp.body();
-      auto block = builder.createBlock(region);
-      builder.setInsertionPointToStart(block);
+    mlir::OpBuilder::InsertionGuard guard(builder);
+    auto region = &klassOp.body();
+    auto block = builder.createBlock(region);
+    builder.setInsertionPointToStart(block);
 
-      if (klass.fields) {
-        for (const auto &field : (*klass.fields).elements) {
-          builder.create<mlir::omtalk::FieldOp>(loc(field.location),
-                                                field.value);
-        }
+    if (klass.fields) {
+      for (const auto &field : (*klass.fields).elements) {
+        builder.create<mlir::omtalk::FieldOp>(loc(field.location), field.value);
       }
-
-      for (const auto &method : klass.methods) {
-        auto methodOp = irGen(*method);
-      }
-
-      builder.create<mlir::omtalk::KlassEndOp>(loc(klass.location));
     }
+
+    for (const auto &method : klass.methods) {
+      auto methodOp = irGen(*method);
+    }
+
+    builder.create<mlir::omtalk::KlassEndOp>(loc(klass.location));
 
     return klassOp;
   }
