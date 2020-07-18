@@ -11,7 +11,11 @@ target_include_directories(omtalk-util
 if(OMTALK_WARNINGS)
 target_compile_options(omtalk-util
     PRIVATE
-        -Werror -Wall -Wextra -Wno-unused-parameter
+        -Werror
+        -Wall
+        # -Wextra
+        -Wno-unused-parameter
+        -Wno-unused-function
 )
 endif()
 
@@ -30,7 +34,11 @@ target_link_libraries(omtalk-util-test
 if(OMTALK_WARNINGS)
 target_compile_options(omtalk-util-test
     PRIVATE
-        -Werror -Wall -Wextra -Wno-unused-parameter
+        -Werror
+        -Wall
+        # -Wextra
+        -Wno-unused-parameter
+        -Wno-unused-function
 )
 endif()
 

@@ -31,14 +31,17 @@ add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fdiagnostics-color>)
 ###
 
 if(OMTALK_WARNINGS)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-Werror>)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wall>)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wextra>)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-parameter>)
-	set(LLVM_ENABLE_WARNINGS true)
-	set(LLVM_ENABLE_PEDANTIC true)
-	set(LLVM_ENABLE_WERROR true)
+	add_compile_options(
+		$<$<COMPILE_LANGUAGE:CXX,C>:-Werror>
+		$<$<COMPILE_LANGUAGE:CXX,C>:-Wall>
+		$<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-parameter>
+		$<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-functions>
+	)
 endif()
+
+set(LLVM_ENABLE_WARNINGS off)
+set(LLVM_ENABLE_PEDANTIC off)
+set(LLVM_ENABLE_WERROR off)
 
 ###
 ### Sanitizer Support
