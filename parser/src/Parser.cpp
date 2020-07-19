@@ -281,7 +281,9 @@ OptIdentifier parseNameSym(ParseCursor &cursor) {
   skip(cursor);
   auto start = cursor;
 
-  if (match(cursor, isAlpha) && zero_plus(cursor, isAlnum)) {
+  if (match(cursor, isAlpha) && zero_plus(cursor, [](const char c) {
+        return isAlnum(c) || (c == '_');
+      })) {
     return {{mkloc(start, cursor), cursor.subStringFrom(start)}};
   }
 
@@ -326,7 +328,6 @@ OptIdentifier parseKeywordSym(ParseCursor &cursor) {
 
 /// Parse any type of symbol
 OptIdentifier parseSymbol(ParseCursor &cursor) {
-
   OptIdentifier sym = std::nullopt;
 
   sym = parseKeywordSym(cursor);
@@ -524,7 +525,6 @@ ArrayExprPtr parseArrayExpr(ParseCursor &cursor) {
 
 /// Parse any literal type.
 ExprPtr parseLitExpr(ParseCursor &cursor) {
-
   ExprPtr expr = nullptr;
 
   expr = parseArrayExpr(cursor);
@@ -595,6 +595,8 @@ ExprPtr parseStatement(ParseCursor &cursor);
 ExprPtr parseExpr(ParseCursor &cursor);
 
 BlockExprPtr parseBlockExpr(ParseCursor &cursor);
+
+AssignmentExprPtr parseAssignmentExpr(ParseCursor &cursor);
 
 IdentifierExprPtr parseIdentifierExpr(ParseCursor &cursor) {
   auto id = parseIdentifier(cursor);
@@ -729,7 +731,6 @@ ExprPtr parsePrimary(ParseCursor &cursor) {
 
 /// <expr> ::= <primary>? | <primary>?
 ExprPtr parseExpr(ParseCursor &cursor) {
-
   skip(cursor);
 
   if (!cursor.more()) {
@@ -746,7 +747,14 @@ ExprPtr parseExpr(ParseCursor &cursor) {
     return nullptr;
   }
 
-  auto expr = parseSendExpr(cursor);
+  ExprPtr expr;
+
+  expr = parseAssignmentExpr(cursor);
+  if (expr) {
+    return expr;
+  }
+
+  expr = parseSendExpr(cursor);
   if (expr) {
     return expr;
   }
@@ -782,22 +790,15 @@ AssignmentExprPtr parseAssignmentExpr(ParseCursor &cursor) {
 
   auto expr = makeAssignmentExpr();
 
-  expr->identifiers.push_back(*id);
-
-  while (true) {
-    auto id = parseAssign(cursor);
-    if (!id)
-      break;
-    expr->identifiers.push_back(*id);
-  }
+  expr->identifier = std::move(*id);
 
   auto value = parseExpr(cursor);
-
   if (!value) {
     abort(cursor, "expected expression following := operator");
   }
 
   expr->value = std::move(value);
+  expr->location = mkloc(start, cursor);
   return expr;
 }
 
@@ -855,11 +856,6 @@ IdentifierList parseBlockParameters(ParseCursor &cursor) {
 ExprPtr parseBlockStatement(ParseCursor &cursor) {
   ExprPtr expr = nullptr;
 
-  expr = parseAssignmentExpr(cursor);
-  if (expr) {
-    return expr;
-  }
-
   expr = parseNonlocalReturnExpr(cursor);
   if (expr) {
     return expr;
@@ -910,7 +906,6 @@ ExprPtrList parseBlockBody(ParseCursor &cursor) {
 /// [ | b | a + b ]
 /// [ :a | | b | a + b ]
 BlockExprPtr parseBlockExpr(ParseCursor &cursor) {
-
   skip(cursor);
   auto start = cursor;
 
@@ -1046,7 +1041,6 @@ bool matchSeparator(ParseCursor &cursor) {
 }
 
 KlassPtr parseKlass(ParseCursor &cursor) {
-
   auto klass = makeKlass();
   auto start = cursor.pos();
 

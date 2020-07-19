@@ -264,6 +264,7 @@ private:
       if (!require("Block3")) {
         return false;
       }
+      break;
     default:
       assert(0 && "Too many parameters to block");
       break;

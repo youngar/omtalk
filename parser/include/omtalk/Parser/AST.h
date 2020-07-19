@@ -7,8 +7,8 @@
 #include <omtalk/Parser/Location.h>
 #include <optional>
 #include <string>
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 namespace omtalk {
 namespace parser {
@@ -415,13 +415,13 @@ struct AssignmentExpr final : public Expr {
 
   AssignmentExpr() : Expr(Kind) {}
 
-  AssignmentExpr(Location location, IdentifierList identifiers, ExprPtr value)
-      : Expr(location, Kind), identifiers(std::move(identifiers)),
+  AssignmentExpr(Location location, Identifier identifier, ExprPtr &&value)
+      : Expr(location, Kind), identifier(std::move(identifier)),
         value(std::move(value)) {}
 
   virtual ~AssignmentExpr() override = default;
 
-  IdentifierList identifiers;
+  Identifier identifier;
   ExprPtr value;
 };
 
@@ -429,13 +429,6 @@ using AssignmentExprPtr = std::unique_ptr<AssignmentExpr>;
 
 inline AssignmentExprPtr makeAssignmentExpr() {
   return std::make_unique<AssignmentExpr>();
-}
-
-inline AssignmentExprPtr makeAssignmentExpr(Location location,
-                                            IdentifierList identifiers,
-                                            ExprPtr value) {
-  return std::make_unique<AssignmentExpr>(location, std::move(identifiers),
-                                          std::move(value));
 }
 
 //===----------------------------------------------------------------------===//

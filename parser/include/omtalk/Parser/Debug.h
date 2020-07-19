@@ -292,7 +292,7 @@ inline void print(AstPrinter &p, const BlockExpr &expr) {
 inline void print(AstPrinter &p, const AssignmentExpr &expr) {
   p.enter("AssignmentExpr");
   p.field("location", expr.location);
-  p.field("identifiers", expr.identifiers);
+  p.field("identifier", expr.identifier);
   p.field("value", expr.value);
   p.leave();
 }
