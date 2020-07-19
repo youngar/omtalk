@@ -1,0 +1,12 @@
+UseNil = nil (
+	| x |
+
+	test1 = ( ^nil )
+
+	test2 = ( x := nil )
+
+	test3 = ( nil )
+
+----
+	statictest = (nil)
+)

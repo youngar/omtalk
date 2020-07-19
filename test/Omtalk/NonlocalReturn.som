@@ -1,0 +1,28 @@
+@ RUN: omtalk-parser --path %OMTALK_PATH% --emit=mlir -- %s | FileCheck %s
+
+@ CHECK: klass @NonLocalReturn
+NonLocalReturn = nil (
+
+    implicitReturnEmpty = (
+    )
+
+    implicitReturn = (
+        123
+    )
+
+    explicitReturn = (
+        ^123
+    )
+
+    emptyBlock = (
+        ^[] value
+    )
+
+    implicitReturnBlock = (
+        ^[123] value
+    )
+
+    nonLocalReturnBlock = (
+        ^[^123] value
+    )
+)

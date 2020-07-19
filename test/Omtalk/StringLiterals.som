@@ -1,0 +1,6 @@
+StringLiterals = nil (
+	test1 = ('abc')
+	test2 = ('')
+	test3 = (''.)
+	test4 = ( ^ '' . )
+)
