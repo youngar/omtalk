@@ -242,7 +242,7 @@ private:
   RegionMap markMap;
 
   // trailing data must be last
-  alignas(OBJECT_ALIGNMENT) std::byte data[0];
+  alignas(OBJECT_ALIGNMENT) std::byte data[];
 };
 
 class RegionChecks {

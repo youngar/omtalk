@@ -107,7 +107,7 @@ struct TestStructObject {
 
   TestObjectKind kind;
   std::size_t length;
-  TestValue slots[0];
+  TestValue slots[];
 };
 
 std::ostream &operator<<(std::ostream &out, const TestStructObject &obj) {
