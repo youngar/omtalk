@@ -1,0 +1,6 @@
+AssignAsExpr = nil (
+	test1 = (
+		| x |
+		^(x := 1)
+	)
+)
