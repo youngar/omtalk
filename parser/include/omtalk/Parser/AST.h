@@ -8,6 +8,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <type_traits>
 
 namespace omtalk {
 namespace parser {
@@ -51,11 +52,21 @@ using OptVarList = std::optional<VarList>;
 //===----------------------------------------------------------------------===//
 
 enum class ExprKind {
+  // Special Reserved Words
+  Nil,
+  Bool,
+  Self,
+  Super,
+  System,
+
+  // Literals
   Integer,
   Float,
   String,
   Symbol,
   Array,
+
+  // Expressions
   Identifier,
   Send,
   Block,
@@ -70,12 +81,14 @@ struct Expr {
 
   template <typename T>
   T &cast() {
+    static_assert(std::is_base_of_v<Expr, T>, "May only cast to an Expr type");
     assert(T::Kind == kind);
     return static_cast<T &>(*this);
   }
 
   template <typename T>
   const T &cast() const {
+    static_assert(std::is_base_of_v<Expr, T>, "May only cast to an Expr type");
     assert(T::Kind == kind);
     return static_cast<const T &>(*this);
   }
@@ -93,6 +106,98 @@ using ExprPtr = std::unique_ptr<Expr>;
 using ExprPtrList = std::vector<ExprPtr>;
 
 //===----------------------------------------------------------------------===//
+// Special Expressions
+//===----------------------------------------------------------------------===//
+
+/// The reserved word 'nil'. TODO: Is this a literal?
+struct NilExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Nil;
+
+  NilExpr() : Expr(Kind) {}
+
+  NilExpr(Location location) : Expr(location, Kind) {}
+
+  virtual ~NilExpr() override = default;
+};
+
+using NilExprPtr = std::unique_ptr<NilExpr>;
+
+inline NilExprPtr makeNilExpr(Location location) {
+  return std::make_unique<NilExpr>(location);
+}
+
+/// The reserved words 'true' or 'false'. TODO: Is this a literal?
+struct BoolExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Bool;
+
+  BoolExpr() : Expr(Kind) {}
+
+  BoolExpr(Location location, bool value)
+      : Expr(location, Kind), value(value) {}
+
+  virtual ~BoolExpr() override = default;
+
+  bool value;
+};
+
+using BoolExprPtr = std::unique_ptr<BoolExpr>;
+
+inline BoolExprPtr makeBoolExpr(Location location, bool value) {
+  return std::make_unique<BoolExpr>(location, value);
+}
+
+/// The reserved word 'self'.
+struct SelfExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Self;
+
+  SelfExpr() : Expr(Kind) {}
+
+  SelfExpr(Location location) : Expr(location, Kind) {}
+
+  virtual ~SelfExpr() override = default;
+};
+
+using SelfExprPtr = std::unique_ptr<SelfExpr>;
+
+inline SelfExprPtr makeSelfExpr(Location location) {
+  return std::make_unique<SelfExpr>(location);
+}
+
+/// The reserved word 'super'.
+struct SuperExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::Super;
+
+  SuperExpr() : Expr(Kind) {}
+
+  SuperExpr(Location location) : Expr(location, Kind) {}
+
+  virtual ~SuperExpr() override = default;
+};
+
+using SuperExprPtr = std::unique_ptr<SuperExpr>;
+
+inline SuperExprPtr makeSuperExpr(Location location) {
+  return std::make_unique<SuperExpr>(location);
+}
+
+/// The reserved word and special object 'system'.
+struct SystemExpr final : public Expr {
+  static constexpr ExprKind Kind = ExprKind::System;
+
+  SystemExpr() : Expr(Kind) {}
+
+  SystemExpr(Location location) : Expr(location, Kind) {}
+
+  virtual ~SystemExpr() override = default;
+};
+
+using SystemExprPtr = std::unique_ptr<SystemExpr>;
+
+inline SystemExprPtr makeSystemExpr(Location location) {
+  return std::make_unique<SystemExpr>(location);
+}
+
+//===----------------------------------------------------------------------===//
 // Literal Expressions
 //===----------------------------------------------------------------------===//
 
@@ -102,15 +207,19 @@ struct IntegerExpr final : public Expr {
 
   IntegerExpr() : Expr(Kind) {}
 
-  IntegerExpr(Location location, int value)
+  IntegerExpr(Location location, std::int64_t value)
       : Expr(location, Kind), value(value) {}
 
   virtual ~IntegerExpr() override = default;
 
-  int value;
+  std::int64_t value;
 };
 
 using IntegerExprPtr = std::unique_ptr<IntegerExpr>;
+
+inline IntegerExprPtr makeIntegerExpr(Location location, std::int64_t value) {
+  return std::make_unique<IntegerExpr>(location, value);
+}
 
 /// Float Literal. eg: 1234.567890
 struct FloatExpr final : public Expr {
@@ -128,6 +237,10 @@ struct FloatExpr final : public Expr {
 
 using FloatExprPtr = std::unique_ptr<FloatExpr>;
 
+inline FloatExprPtr makeFloatExpr(Location location, double value) {
+  return std::make_unique<FloatExpr>(location, value);
+}
+
 /// String Literal, e.g. 'Hello world'
 struct StringExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::String;
@@ -143,6 +256,10 @@ struct StringExpr final : public Expr {
 };
 
 using StringExprPtr = std::unique_ptr<StringExpr>;
+
+inline StringExprPtr makeStringExpr(Location location, std::string value) {
+  return std::make_unique<StringExpr>(location, std::move(value));
+}
 
 /// Symbol Literal, e.g. #hello #+
 struct SymbolExpr final : public Expr {
@@ -160,6 +277,10 @@ struct SymbolExpr final : public Expr {
 
 using SymbolExprPtr = std::unique_ptr<SymbolExpr>;
 
+inline SymbolExprPtr makeSymbolExpr(Location location, std::string value) {
+  return std::make_unique<SymbolExpr>(location, std::move(value));
+}
+
 /// Array literal expression. eg: #(1 2 3 4)
 struct ArrayExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::Array;
@@ -176,6 +297,12 @@ struct ArrayExpr final : public Expr {
 
 using ArrayExprPtr = std::unique_ptr<ArrayExpr>;
 
+inline ArrayExprPtr makeArrayExpr() { return std::make_unique<ArrayExpr>(); }
+
+inline ArrayExprPtr makeArrayExpr(Location location, ExprPtrList elements) {
+  return std::make_unique<ArrayExpr>(location, std::move(elements));
+}
+
 //===----------------------------------------------------------------------===//
 // Expression Kinds
 //===----------------------------------------------------------------------===//
@@ -187,15 +314,27 @@ struct IdentifierExpr final : public Expr {
 
   IdentifierExpr() : Expr(Kind) {}
 
-  IdentifierExpr(Location location, std::string name)
-      : Expr(location, Kind), name(std::move(name)) {}
+  IdentifierExpr(Location location, std::string value)
+      : Expr(location, Kind), value(std::move(value)) {
+    assert(value != "self");
+    assert(value != "super");
+    assert(value != "true");
+    assert(value != "false");
+    assert(value != "nil");
+    assert(value != "system");
+  }
 
   virtual ~IdentifierExpr() override = default;
 
-  std::string name;
+  std::string value;
 };
 
 using IdentifierExprPtr = std::unique_ptr<IdentifierExpr>;
+
+inline IdentifierExprPtr makeIdentifierExpr(Location location,
+                                            std::string value) {
+  return std::make_unique<IdentifierExpr>(location, std::move(value));
+}
 
 struct SendExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::Send;
@@ -217,6 +356,14 @@ struct SendExpr final : public Expr {
 
 using SendExprPtr = std::unique_ptr<SendExpr>;
 
+inline SendExprPtr makeSendExpr() { return std::make_unique<SendExpr>(); }
+
+inline SendExprPtr makeSendExpr(Location location, IdentifierList selector,
+                                ExprPtrList parameters) {
+  return std::make_unique<SendExpr>(location, std::move(selector),
+                                    std::move(parameters));
+}
+
 //===----------------------------------------------------------------------===//
 // Statements
 //===----------------------------------------------------------------------===//
@@ -237,6 +384,10 @@ struct ReturnExpr final : public Expr {
 
 using ReturnExprPtr = std::unique_ptr<ReturnExpr>;
 
+inline ReturnExprPtr makeReturnExpr(Location location, ExprPtr value) {
+  return std::make_unique<ReturnExpr>(location, std::move(value));
+}
+
 /// A subexpression grouped by parenthesis.
 struct NonlocalReturnExpr final : public Expr {
   static constexpr ExprKind Kind = ExprKind::NonlocalReturn;
@@ -252,6 +403,11 @@ struct NonlocalReturnExpr final : public Expr {
 };
 
 using NonlocalReturnExprPtr = std::unique_ptr<NonlocalReturnExpr>;
+
+inline NonlocalReturnExprPtr makeNonlocalReturnExpr(Location location,
+                                                    ExprPtr value) {
+  return std::make_unique<NonlocalReturnExpr>(location, std::move(value));
+}
 
 /// An assignment. eg x := y := 1234.
 struct AssignmentExpr final : public Expr {
@@ -270,6 +426,17 @@ struct AssignmentExpr final : public Expr {
 };
 
 using AssignmentExprPtr = std::unique_ptr<AssignmentExpr>;
+
+inline AssignmentExprPtr makeAssignmentExpr() {
+  return std::make_unique<AssignmentExpr>();
+}
+
+inline AssignmentExprPtr makeAssignmentExpr(Location location,
+                                            IdentifierList identifiers,
+                                            ExprPtr value) {
+  return std::make_unique<AssignmentExpr>(location, std::move(identifiers),
+                                          std::move(value));
+}
 
 //===----------------------------------------------------------------------===//
 // Blocks
@@ -292,6 +459,12 @@ struct BlockExpr final : public Expr {
 
 using BlockExprPtr = std::unique_ptr<BlockExpr>;
 
+inline BlockExprPtr makeBlockExpr() { return std::make_unique<BlockExpr>(); }
+
+inline BlockExprPtr makeBlockExpr(Location location) {
+  return std::make_unique<BlockExpr>(location);
+}
+
 //===----------------------------------------------------------------------===//
 // Methods
 //===----------------------------------------------------------------------===//
@@ -308,6 +481,8 @@ public:
 
 using MethodPtr = std::unique_ptr<Method>;
 
+inline MethodPtr makeMethod() { return std::make_unique<Method>(); }
+
 using MethodPtrList = std::vector<MethodPtr>;
 
 /// Top level class declaration. eg: MyClass = Super ()
@@ -315,7 +490,8 @@ class Klass {
 public:
   Klass() = default;
 
-  Klass(Location location, Identifier name) : location(location), name(name) {}
+  Klass(Location location, Identifier name)
+      : location(location), name(std::move(name)) {}
 
   Location location;
 
@@ -330,6 +506,13 @@ public:
 };
 
 using KlassPtr = std::unique_ptr<Klass>;
+
+inline KlassPtr makeKlass() { return std::make_unique<Klass>(); }
+
+inline KlassPtr makeKlass(Location location, Identifier name) {
+  return std::make_unique<Klass>(location, std::move(name));
+}
+
 using KlassPtrList = std::vector<KlassPtr>;
 
 class Module {
@@ -339,6 +522,12 @@ public:
   Location location;
   KlassPtrList klasses;
 };
+
+using ModulePtr = std::unique_ptr<Module>;
+
+inline ModulePtr makeModule(Location location) {
+  return std::make_unique<Module>(location);
+}
 
 } // namespace parser
 } // namespace omtalk

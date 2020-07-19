@@ -202,6 +202,14 @@ def Omtalk_ConstantFloatOp : Omtalk_Op<"constant_float", [
   let results = (outs Omtalk_BoxRefType);
 }
 
+def Omtalk_ConstantStringOp : Omtalk_Op<"constant_string", [
+    ConstantLike, NoSideEffect
+  ]> {
+  let summary = "constant string";
+  let arguments = (ins StrAttr:$value);
+  let results = (outs Omtalk_BoxRefType);
+}
+
 def Omtalk_ConstantSymbolOp : Omtalk_Op<"constant_symbol", [
     ConstantLike, NoSideEffect
   ]> {

@@ -7,11 +7,7 @@
 namespace omtalk {
 namespace parser {
 
-class ParseError {
-
-};
-
-std::unique_ptr<Module> parseFile(std::string filename);
+ModulePtr parseFile(const std::string &filename);
 
 } // namespace parser
 } // namespace omtalk

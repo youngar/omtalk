@@ -53,6 +53,13 @@ public:
         location, mlir::omtalk::BoxRefType::get(builder.getContext()), value);
   }
 
+  mlir::omtalk::ConstantStringOp irGen(const StringExpr &expr) {
+    auto location = loc(expr.location);
+    auto value = builder.getStringAttr(expr.value);
+    return builder.create<mlir::omtalk::ConstantStringOp>(
+        location, mlir::omtalk::BoxRefType::get(builder.getContext()), value);
+  }
+
   mlir::omtalk::ConstantSymbolOp irGen(const SymbolExpr &expr) {
     auto location = loc(expr.location);
     auto value = builder.getStringAttr(expr.value);
@@ -72,10 +79,10 @@ public:
   }
 
   mlir::Value irGen(const IdentifierExpr &expr) {
-    if (expr.name == "nil") {
+    if (expr.value == "nil") {
       return irGenNil(expr);
     }
-    return symbolTable.lookup(expr.name);
+    return symbolTable.lookup(expr.value);
   }
 
   mlir::omtalk::SendOp irGen(const SendExpr &expr) {
@@ -85,7 +92,7 @@ public:
     auto location = loc(expr.location);
 
     llvm::SmallVector<mlir::Value, 4> operands;
-    for (int i = 1; i < expr.parameters.size(); i++) {
+    for (std::size_t i = 1; i < expr.parameters.size(); i++) {
       operands.push_back(irGenExpr(*(expr.parameters[i])));
     }
 
@@ -114,9 +121,9 @@ public:
     case ExprKind::Float:
       return irGen(expr.cast<FloatExpr>());
     case ExprKind::String:
-      assert(false && "StringExpr");
+      return irGen(expr.cast<StringExpr>());
     case ExprKind::Symbol:
-      assert(false && "SymbolExpr");
+      return irGen(expr.cast<SymbolExpr>());
     case ExprKind::Array:
       assert(false && "ArrayExpr");
     case ExprKind::Identifier:
@@ -202,6 +209,8 @@ public:
     for (const auto &expr : method.body) {
       irGenStatement(*expr);
     }
+
+    return methodOp;
   }
 
   mlir::omtalk::KlassOp irGen(const Klass &klass) {
@@ -227,7 +236,7 @@ public:
     }
 
     for (const auto &method : klass.methods) {
-      auto methodOp = irGen(*method);
+      irGen(*method);
     }
 
     builder.create<mlir::omtalk::KlassEndOp>(loc(klass.location));
@@ -251,6 +260,25 @@ public:
     return moduleOp;
   }
 
+  /// Generate a single Module from multiple loaded files
+  mlir::ModuleOp irGen(const std::vector<ModulePtr> &modules) {
+
+    moduleOp = mlir::ModuleOp::create(builder.getUnknownLoc());
+
+    for (const auto &module : modules) {
+      for (const auto &klass : module->klasses) {
+        moduleOp.push_back(irGen(*klass));
+      }
+    }
+
+    if (mlir::failed(mlir::verify(moduleOp))) {
+      moduleOp.emitError("module verification error");
+      return nullptr;
+    }
+
+    return moduleOp;
+  }
+
 private:
   mlir::ModuleOp moduleOp;
   mlir::OpBuilder builder;
@@ -264,4 +292,12 @@ mlir::OwningModuleRef omtalk::irgen::irGen(mlir::MLIRContext &context,
 
   IRGen irGen(context);
   return irGen.irGen(module);
+}
+
+mlir::OwningModuleRef
+omtalk::irgen::irGen(mlir::MLIRContext &context,
+                     const std::vector<parser::ModulePtr> &modules) {
+
+  IRGen irGen(context);
+  return irGen.irGen(modules);
 }

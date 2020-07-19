@@ -17,7 +17,11 @@ PUBLIC
 if(OMTALK_WARNINGS)
 target_compile_options(omtalk-objectmodel
     PRIVATE
-        -Werror -Wall -Wextra -Wno-unused-parameter
+        -Werror
+        -Wall
+        # -Wextra
+        -Wno-unused-parameter
+        -Wno-unused-function
 )
 endif()
 
@@ -34,7 +38,11 @@ PRIVATE
 if(OMTALK_WARNINGS)
 target_compile_options(omtalk-objectmodel-test
     PRIVATE
-        -Werror -Wall -Wextra -Wno-unused-parameter
+        -Werror
+        -Wall
+        # -Wextra
+        -Wno-unused-parameter
+        -Wno-unused-function
 )
 endif()
 
