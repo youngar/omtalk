@@ -1,5 +1,5 @@
-#ifndef MLIR_DIALECT_OMTALK_BOX_H
-#define MLIR_DIALECT_OMTALK_BOX_H
+#ifndef OMTALK_UtIL_BOX_H
+#define OMTALK_UtIL_BOX_H
 
 #include <cstdint>
 
@@ -19,6 +19,6 @@ constexpr std::uint64_t box_ref(std::uint64_t value) { return value; }
 
 constexpr void *unbox_ref(std::uint64_t value) { return (void *)value; }
 
-} //endif
+} // namespace omtalk
 
-#endif  // MLIR_DIALECT_OMTALK_BOX_H
+#endif

@@ -116,6 +116,16 @@ public:
 
   mlir::Value irGenExpr(const Expr &expr) {
     switch (expr.kind) {
+    case ExprKind::Nil:
+      assert(0 && "Unable to compile nil literals.");
+    case ExprKind::Bool:
+      assert(0 && "Unable to compile boolean literals.");
+    case ExprKind::Self:
+      return irGen(expr.cast<SelfExpr>());
+    case ExprKind::Super:
+      assert(0 && "Unable to compile a super expression in isolation.");
+    case ExprKind::System:
+      assert(0 && "Unable to compile system literals.");
     case ExprKind::Integer:
       return irGen(expr.cast<IntegerExpr>());
     case ExprKind::Float:
@@ -125,18 +135,18 @@ public:
     case ExprKind::Symbol:
       return irGen(expr.cast<SymbolExpr>());
     case ExprKind::Array:
-      assert(false && "ArrayExpr");
+      assert(0 && "Unable to compile array literals.");
     case ExprKind::Identifier:
       return irGen(expr.cast<IdentifierExpr>());
     case ExprKind::Send:
       return irGen(expr.cast<SendExpr>());
     case ExprKind::Block:
       return irGen(expr.cast<BlockExpr>());
-    default:
-      llvm::outs() << static_cast<int>(expr.kind) << "\n";
-      assert(false && "Unhandled expression type");
-      break;
     }
+  }
+
+  mlir::Value irGen(const SelfExpr &expr) {
+    return symbolTable.lookup("self");
   }
 
   std::optional<mlir::Value> irGenStatement(const Expr &expr) {

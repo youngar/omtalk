@@ -1,5 +1,5 @@
-#ifndef OMTALK_SYMBOL_HPP_
-#define OMTALK_SYMBOL_HPP_
+#ifndef OMTALK_SYMBOLTABLE_HP_
+#define OMTALK_SYMBOLTABLE_HP_
 
 #include <cassert>
 #include <cstdint>
@@ -92,3 +92,4 @@ private:
 } // namespace omtalk
 
 #endif // OMTALK_SYMBOL_HPP_
+

@@ -1,9 +1,9 @@
 #ifndef OMTALK_KLASSLOADER_H_
 #define OMTALK_KLASSLOADER_H_
 
+#include <omtalk/KlassInfo.h>
 #include <omtalk/Parser/AST.h>
 #include <omtalk/Parser/Parser.h>
-
 #include <optional>
 #include <string>
 #include <unistd.h>
@@ -40,7 +40,7 @@ private:
 class KlassLoaderEntry {};
 
 /// The KlassLoader loads klass ASTs into memory.
-/// The klass loader will load a given file, plus it's dependencies, into meory.
+/// The klass loader will load a given file, plus it's dependencies, into memory.
 /// Dependencies are determined by scanning the AST.
 class KlassLoader {
 public:
@@ -327,6 +327,22 @@ private:
   IdentifierScope globalScope;
   std::vector<parser::ModulePtr> modules;
 };
+
+inline KlassInfo
+createKlassInfo(parser::Klass &klass) {
+  KlassInfo info;
+
+  info.name = klass.name.value;
+  info.super = nullptr;
+
+  if (klass.fields) {
+    for (const auto &field : klass.fields->elements) {
+      info.fields.push_back(field.value);
+    }
+  }
+
+  return info;
+}
 
 } // namespace omtalk
 

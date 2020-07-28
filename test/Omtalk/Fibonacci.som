@@ -1,4 +1,4 @@
-Fibonacci = (          "defines a subclass of Object"
+Fibonacci = nil (          "defines a subclass of Object"
     fib: n = (         "defines the fib method with the argument n"
         ^ n <= 1
             ifTrue:  1

@@ -87,15 +87,14 @@ struct MemoryManagerBuilder final {
     return *this;
   }
 
-  MemoryManagerBuilder &
-  withConfig(std::unique_ptr<MemoryManagerConfig> &&config) {
-    this->config = std::move(config);
+  MemoryManagerBuilder &withConfig(MemoryManagerConfig &config) {
+    this->config = config;
     return *this;
   }
 
 private:
   std::unique_ptr<RootWalker<S>> rootWalker;
-  std::unique_ptr<MemoryManagerConfig> config;
+  MemoryManagerConfig config;
 };
 
 template <typename S>
@@ -104,7 +103,7 @@ public:
   friend Context<S>;
 
   explicit MemoryManager(MemoryManagerBuilder<S> &&builder)
-      : rootWalker(std::move(builder.rootWalker)) {}
+      : config(builder.config), rootWalker(std::move(builder.rootWalker)) {}
 
   ~MemoryManager();
 
@@ -136,6 +135,7 @@ private:
 
   void detach(Context<S> &cx);
 
+  MemoryManagerConfig config;
   RegionManager regionManager;
   ContextList<S> contexts;
   FreeList freeList;

@@ -365,8 +365,11 @@ OptIdentifier parseIdentifier(ParseCursor &cursor) {
 
 ExprPtr parseSpecialExpr(ParseCursor &cursor) {
   skip(cursor);
-  auto save = cursor;
+  auto start = cursor;
   auto id = parseIdentifier(cursor);
+
+  if (!id)
+    return nullptr;
 
   if (id->value == "nil") {
     return makeNilExpr(id->location);
@@ -392,7 +395,7 @@ ExprPtr parseSpecialExpr(ParseCursor &cursor) {
     return makeSystemExpr(id->location);
   }
 
-  cursor = save;
+  cursor = start;
   return nullptr;
 }
 
