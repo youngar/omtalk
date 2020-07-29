@@ -26,10 +26,10 @@ class Type<Universe u> {
     // The name of the type
     string name = ?;
 
-    // One line description
+    // One line description of the type
     string description = "";
 
-    // The universe set this type belongs to
+    // The universe this type belongs to
     Universe universe = u;
 }
 
@@ -88,13 +88,13 @@ def I32 : CoreType {
 def I64 : CoreType {
     let name = "i64";
     let description = "64 bit integer";
-    let size = 4;
+    let size = 8;
 }
 
 def Ref : CoreType {
     let name = "ref";
     let description = "A reference";
-    let size = 64;
+    let size = 8;
     let trace = 1;
 }
 
@@ -110,7 +110,7 @@ class OmtalkType : AggregateType<Omtalk>;
 
 def Box : PrimitiveType<Omtalk> {
     let name = "box";
-    let size = 64;
+    let size = 8;
     let trace = 1;
 }
 
