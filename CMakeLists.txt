@@ -59,6 +59,10 @@ include(BuildLLVM)
 ### Subdirectories
 ###
 
+# tools/omtalk-tblgen must be added from this directory. This is because of the
+# way tablegen cmake helpers modify the parent scope.
+add_subdirectory(tools/omtalk-tblgen)
+
 add_subdirectory(compiler)
 add_subdirectory(core)
 add_subdirectory(external)
