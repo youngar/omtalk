@@ -78,8 +78,6 @@ public:
 
   bool isAggregate() const { return def->isSubClassOf("AggregateType"); }
 
-  // VariadicType getAsVariadic() const { return VariadicType(def); }
-
   StringRef getName() const { return def->getValueAsString("name"); }
 
   StringRef getDescription() const {
@@ -92,6 +90,12 @@ public:
 
   const llvm::Record *getDef() const { return def; }
 
+  bool operator==(const Type &other) const { return def == other.def; }
+
+  bool operator<(const Type &other) const {
+    return getName() < other.getName();
+  }
+
 private:
   const llvm::Record *def;
 };
@@ -99,6 +103,8 @@ private:
 class AggregateType : Type {
 public:
   explicit AggregateType(const llvm::Record *def) : Type(def) {}
+
+  explicit AggregateType(const Type &type) : Type(type) {}
 
   std::optional<Type> getParent() const {
     auto *parent = getDef()->getValueAsOptionalDef("parent");
@@ -113,10 +119,18 @@ class VariadicType : Type {
 public:
   explicit VariadicType(const llvm::Record *def) : Type(def) {}
 
+  explicit VariadicType(const Type &type) : Type(type) {}
+
   const Type getBaseType() const {
     return Type(getDef()->getValueAsDef("baseType"));
   }
 };
+
+
+unsigned emitField() {
+  
+  return 0;
+}
 
 static bool emitAggregateTypeDef() { return false; }
 
@@ -132,7 +146,7 @@ class {1})";
   os << llvm::formatv(typeInfoStart, type.getDescription(), type.getName());
 
   if (type.isAggregate()) {
-    AggregateType a(type.getDef());
+    AggregateType a(type);
     auto parent = a.getParent();
     if (parent) {
       os << llvm::formatv(R"( : public {0})", parent->getName());
@@ -140,6 +154,7 @@ class {1})";
   }
 
   os << typeInfoEnd;
+
 
 
   os << "};\n\n";
@@ -170,7 +185,7 @@ static bool emitUniverseTypes(const llvm::RecordKeeper &records,
   // Get all types
   auto typeDefs = records.getAllDerivedDefinitions("Type");
   if (typeDefs.empty()) {
-    return true;
+    return false;
   }
 
   // Collect all unioned universes
@@ -190,11 +205,28 @@ static bool emitUniverseTypes(const llvm::RecordKeeper &records,
     }
   }
 
-  // Emit each type that is in one of the universes
-  for (const auto typeDef : typeDefs) {
-    Type type(typeDef);
-    if (universes.count(type.getUniverse())) {
+  // Emit each type that is in one of the universes, respecting that parent
+  // types must be emitted first.
+  std::set<Type> types;
+  for (const auto &typeDef : typeDefs) {
+    types.insert(Type(typeDef));
+  }
+
+  while (!types.empty()) {
+    for (const auto &type : types) {
+
+      // Emit an aggregate type only if its parent type has been emitted
+      if (type.isAggregate()) {
+        AggregateType aggType(type);
+        auto parent = aggType.getParent();
+        if (parent && types.count(*parent)) {
+          // Parent has not been emitted yet, skip the child
+          continue;
+        }
+      }
+
       emitTypeDef(records, os, type);
+      types.erase(type);
     }
   }
 
@@ -210,7 +242,6 @@ static bool omtalkTableGenMain(raw_ostream &os, RecordKeeper &records) {
     break;
   case GenTypes:
     return omtalk::emitUniverseTypes(records, os);
-    break;
   }
   return false;
 }
@@ -219,8 +250,6 @@ int main(int argc, char **argv) {
   llvm::sys::PrintStackTraceOnErrorSignal(argv[0]);
   llvm::PrettyStackTraceProgram X(argc, argv);
   cl::ParseCommandLineOptions(argc, argv);
-
   llvm::llvm_shutdown_obj Y;
-
   return TableGenMain(argv[0], &omtalkTableGenMain);
 }

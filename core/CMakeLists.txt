@@ -16,6 +16,6 @@ target_link_libraries(omtalk-core
         omtalk-parser
 )
 
-add_dependencies(omtalk-core OmtalkObjectsIncGen)
+add_dependencies(omtalk-core OmtalkOmtalkIncGen)
 
 add_subdirectory(include)

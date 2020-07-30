@@ -1,1 +1,1 @@
-add_omtalk_universe(Objects omtalk)
+add_omtalk_universe(Objects Omtalk)
