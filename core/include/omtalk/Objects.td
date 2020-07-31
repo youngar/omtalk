@@ -14,6 +14,7 @@ class Universe {
     list<Universe> union = [];
 }
 
+// Include other universe's types in this universe
 class Union<list<Universe> universes> {
     list<Universe> union = universes;
 }
@@ -23,8 +24,6 @@ def members;
 
 // Represents a type belonging to a universe
 class Type<Universe u> {
-    // The name of the type
-    string name = ?;
 
     // One line description of the type
     string description = "";
@@ -36,6 +35,9 @@ class Type<Universe u> {
 // Represents a primitive type.
 class PrimitiveType<Universe u> : Type<u> {
 
+    // The name of the type
+    string name = ?;
+
     // The size of the type in bytes
     int size = 4;
 
@@ -43,9 +45,19 @@ class PrimitiveType<Universe u> : Type<u> {
     bit trace = 0;
 }
 
-// An aggregate of other types.  Can inherit fields from other types.
+// A type which is already implemented in C
+class CType<Universe u> : PrimitiveType<u>;
+
+// An aggregate of other types.  Can inherit from other aggregate types.
 class AggregateType<Universe u> : Type<u> {
+
+    // The parent type.
     AggregateType parent = ?;
+
+    // The name of the type.
+    string name = ?;
+
+    // A list of the fields of this struct.
     dag fields = (members);
 }
 
@@ -69,6 +81,9 @@ class Optional<Type type> : Derived<type>;
 // A variable number of a type
 class Variadic<Type type> : Derived<type>;
 
+// A pointer to another type
+class Pointer<Type type> : Derived<type>;
+
 //===----------------------------------------------------------------------===//
 // Core Types
 //===----------------------------------------------------------------------===//
@@ -79,20 +94,32 @@ def Core : Universe {
 
 class CoreType : PrimitiveType<Core>;
 
+def U32 : CoreType {
+    let name = "std::uint32_t";
+    let description = "32 unsigned bit integer";
+    let size = 4;
+}
+
+def U64 : CoreType {
+    let name = "std::uint64_t";
+    let description = "64 unsigned bit integer";
+    let size = 8;
+}
+
 def I32 : CoreType {
-    let name = "i64";
-    let description = "32 bit integer";
+    let name = "std::int32_t";
+    let description = "32 signed bit integer";
     let size = 4;
 }
 
 def I64 : CoreType {
-    let name = "i64";
-    let description = "64 bit integer";
+    let name = "std::int64_t";
+    let description = "64 signed bit integer";
     let size = 8;
 }
 
 def Ref : CoreType {
-    let name = "ref";
+    let name = "void *";
     let description = "A reference";
     let size = 8;
     let trace = 1;
@@ -110,27 +137,32 @@ class OmtalkType : AggregateType<Omtalk>;
 
 def Box : PrimitiveType<Omtalk> {
     let name = "box";
+    let description = "A tagged pointer";
     let size = 8;
     let trace = 1;
 }
 
 def MetaObject : OmtalkType {
     let name = "MetaObject";
+    let description = "Common base type to all omtalk objects";
     let fields = (members Ref:$klass);
 }
 
 def Object : OmtalkType, Inherit<MetaObject> {
     let name = "Object";
+    let description = "A standard Omtalk object";
     let fields = (members Variadic<Box>:$fields);
 }
 
 def Klass : OmtalkType, Inherit<MetaObject> {
     let name = "Klass";
+    let description = "An Omtalk class";
     let fields = (members Variadic<Box>:$fields);
 }
 
 def Symbol : OmtalkType, Inherit<MetaObject> {
     let name = "Symbol";
+    let description = "An Omtalk symbol";
     let fields = (I64:$value);
 }
 

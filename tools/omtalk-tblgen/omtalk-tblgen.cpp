@@ -1,5 +1,6 @@
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringExtras.h>
+#include <llvm/Support/Casting.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FormatVariadic.h>
 #include <llvm/Support/PrettyStackTrace.h>
@@ -70,6 +71,8 @@ class Type {
 public:
   explicit Type(const llvm::Record *def) : def(def) {}
 
+  explicit Type(const llvm::DefInit *init) : def(init->getDef()) {}
+
   bool isOptional() const { return def->isSubClassOf("Optional"); }
 
   bool isVariadic() const { return def->isSubClassOf("Variadic"); }
@@ -100,7 +103,7 @@ private:
   const llvm::Record *def;
 };
 
-class AggregateType : Type {
+class AggregateType : public Type {
 public:
   explicit AggregateType(const llvm::Record *def) : Type(def) {}
 
@@ -113,9 +116,24 @@ public:
     }
     return std::nullopt;
   }
+
+  llvm::DagInit *getFields() const {
+    return getDef()->getValueAsDag("fields");
+    ;
+  }
+
+  // Type getFieldType(int index) const {
+  //   llvm::DagInit *fields = getDef()->getValueAsDag("fields");
+  //   return Type(llvm::cast<llvm::DefInit>(fields->getArg(index)));
+  // }
+
+  StringRef getFieldName(int index) const {
+    llvm::DagInit *fields = getDef()->getValueAsDag("fields");
+    return fields->getArgNameStr(index);
+  }
 };
 
-class VariadicType : Type {
+class VariadicType : public Type {
 public:
   explicit VariadicType(const llvm::Record *def) : Type(def) {}
 
@@ -126,38 +144,62 @@ public:
   }
 };
 
+unsigned emitField() { return 0; }
 
-unsigned emitField() {
-  
-  return 0;
-}
-
-static bool emitAggregateTypeDef() { return false; }
-
-static bool emitTypeDef(const llvm::RecordKeeper &keeper, raw_ostream &os,
-                        const Type type) {
+static bool emitAggregateTypeDef(const llvm::RecordKeeper &keeper,
+                                 raw_ostream &os, const AggregateType type) {
 
   const char *typeInfoStart = R"(
 // {0}
 class {1})";
-
-  const char *typeInfoEnd = R"( { )";
+  const char *typeInfoEnd = "{\npublic:\n";
 
   os << llvm::formatv(typeInfoStart, type.getDescription(), type.getName());
-
-  if (type.isAggregate()) {
-    AggregateType a(type);
-    auto parent = a.getParent();
-    if (parent) {
-      os << llvm::formatv(R"( : public {0})", parent->getName());
-    }
+  auto parent = type.getParent();
+  if (parent) {
+    os << llvm::formatv(R"( : public {0} )", parent->getName());
   }
-
   os << typeInfoEnd;
 
+  // Print the constructors
+  const char *baseConstructor =
+      "  explicit {0}(void *address) : address(address) ";
+  const char *childConstructor =
+      "  explicit {0}(void *address) : {1}(address) ";
+  if (!parent) {
+    os << llvm::formatv(baseConstructor, type.getName());
+  } else {
+    os << llvm::formatv(childConstructor, type.getName(), parent->getName());
+  }
+  os << "{ }\n";
 
+  if (!parent) {
+    os << "\n";
+    os << "  void *getAddress() const { return address; }\n";
+  }
+
+  // Print the fields
+  os << "/*\n";
+  auto fields = type.getFields();
+  for (const auto &f : fields->getArgNames()) {
+    os << f;
+  }
+  fields->dump();
+  fields->print(os);
+  os << "*/\n";
+
+  if (!parent) {
+    os << "private:\n";
+    os << "  void *address;\n";
+  }
 
   os << "};\n\n";
+
+  return false;
+}
+
+static bool emitTypeDef(const llvm::RecordKeeper &keeper, raw_ostream &os,
+                        const Type type) {
   return false;
 }
 
@@ -214,6 +256,11 @@ static bool emitUniverseTypes(const llvm::RecordKeeper &records,
 
   while (!types.empty()) {
     for (const auto &type : types) {
+      if (type.isPrimitive()) {
+        // skip primitive types for now
+        types.erase(type);
+        continue;
+      }
 
       // Emit an aggregate type only if its parent type has been emitted
       if (type.isAggregate()) {
@@ -223,9 +270,9 @@ static bool emitUniverseTypes(const llvm::RecordKeeper &records,
           // Parent has not been emitted yet, skip the child
           continue;
         }
+        emitAggregateTypeDef(records, os, aggType);
       }
 
-      emitTypeDef(records, os, type);
       types.erase(type);
     }
   }

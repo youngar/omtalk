@@ -1,5 +1,5 @@
 #ifndef OMTALK_GC_ASSERT
-#define OMRTALK_GC_ASSERT
+#define OMTALK_GC_ASSERT
 
 #include <cstdint>
 #include <type_traits>

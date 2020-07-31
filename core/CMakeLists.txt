@@ -7,6 +7,7 @@ add_library(omtalk-core
 target_include_directories(omtalk-core
     PUBLIC
         include
+        ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
 target_link_libraries(omtalk-core
