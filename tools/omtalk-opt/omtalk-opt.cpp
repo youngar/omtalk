@@ -8,8 +8,6 @@
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/InitAllDialects.h"
-#include "mlir/InitAllPasses.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
@@ -18,8 +16,10 @@
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
-
 #include "mlir/Dialect/Omtalk/IR/OmtalkDialect.h"
+
+using namespace llvm;
+using namespace mlir;
 
 static llvm::cl::opt<std::string> inputFilename(llvm::cl::Positional,
                                                 llvm::cl::desc("<input file>"),
@@ -57,8 +57,6 @@ static llvm::cl::opt<bool>
                  llvm::cl::init(false));
 
 int main(int argc, char **argv) {
-  mlir::registerAllDialects();
-  mlir::registerAllPasses();
 
   mlir::registerDialect<mlir::omtalk::OmtalkDialect>();
 

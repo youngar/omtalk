@@ -9,6 +9,8 @@
 #ifndef MLIR_DIALECT_OMTALK_OMTALKOPS_H
 #define MLIR_DIALECT_OMTALK_OMTALKOPS_H
 
+#include <llvm/ADT/Optional.h>
+#include <llvm/ADT/StringRef.h>
 #include <mlir/IR/Dialect.h>
 #include <mlir/IR/FunctionSupport.h>
 #include <mlir/IR/OpDefinition.h>

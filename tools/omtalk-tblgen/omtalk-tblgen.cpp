@@ -180,12 +180,12 @@ class {1})";
 
   // Print the fields
   os << "/*\n";
-  auto fields = type.getFields();
-  for (const auto &f : fields->getArgNames()) {
-    os << f;
-  }
-  fields->dump();
-  fields->print(os);
+  // auto fields = type.getFields();
+  // for (const auto &f : fields->getArgNames()) {
+  //   os << f;
+  // }
+  // fields->dump();
+  // fields->print(os);
   os << "*/\n";
 
   if (!parent) {
@@ -251,7 +251,7 @@ static bool emitUniverseTypes(const llvm::RecordKeeper &records,
   // types must be emitted first.
   std::set<Type> types;
   for (const auto &typeDef : typeDefs) {
-    types.insert(Type(typeDef));
+    // types.insert(Type(typeDef));
   }
 
   while (!types.empty()) {

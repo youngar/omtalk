@@ -1,5 +1,8 @@
 #include <cstdlib>
 #include <llvm/Support/CommandLine.h>
+
+#include <mlir/Support/LLVM.h>
+
 #include <mlir/Dialect/Omtalk/IR/OmtalkDialect.h>
 #include <mlir/Dialect/Omtalk/IR/OmtalkOps.h>
 #include <mlir/ExecutionEngine/ExecutionEngine.h>
@@ -20,7 +23,10 @@
 #include <omtalk/Parser/Location.h>
 #include <omtalk/Parser/Parser.h>
 
-using namespace omtalk;
+using namespace llvm;
+using namespace mlir;
+
+using namespace ::omtalk;
 namespace cl = llvm::cl;
 
 static cl::OptionCategory omtalkCategory("Omtalk Options");
@@ -61,7 +67,7 @@ int main(int argc, char **argv) {
 
   cl::ParseCommandLineOptions(argc, argv, "Omtalk Parser\n");
 
-  omtalk::KlassLoader loader(getClassPath());
+  ::omtalk::KlassLoader loader(getClassPath());
 
   if (!loader.loadFileOrKlass(inputFilename)) {
     llvm::outs() << "error: failed to load file or klass\n";
@@ -70,7 +76,7 @@ int main(int argc, char **argv) {
 
   if (emitAction == Action::EmitAST) {
     for (const auto &module : loader.getModules()) {
-      omtalk::parser::print(std::cout, *module);
+      ::omtalk::parser::print(std::cout, *module);
     }
     return EXIT_SUCCESS;
   }
@@ -78,7 +84,7 @@ int main(int argc, char **argv) {
   if (emitAction == Action::EmitMLIR) {
     mlir::registerDialect<mlir::omtalk::OmtalkDialect>();
     mlir::MLIRContext context;
-    mlir::OwningModuleRef module = omtalk::irgen::irGen(context, loader.getModules());
+    mlir::OwningModuleRef module = ::omtalk::irgen::irGen(context, loader.getModules());
     module->print(llvm::outs());
     llvm::outs() << "\n";
     return EXIT_SUCCESS;
