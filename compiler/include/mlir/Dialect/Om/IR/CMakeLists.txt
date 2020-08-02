@@ -1,3 +1,3 @@
-add_mlir_dialect(OmtalkOps omtalk)
-add_mlir_doc(OmtalkDialect -gen-dialect-doc OmtalkDialect Omtalk/)
-add_mlir_doc(OmtalkOps -gen-op-doc OmtalkOps Omtalk/)
+add_mlir_dialect(Om om)
+add_mlir_doc(OmDialect -gen-dialect-doc OmDialect Om/)
+add_mlir_doc(OmOps -gen-op-doc OmOps Om/)

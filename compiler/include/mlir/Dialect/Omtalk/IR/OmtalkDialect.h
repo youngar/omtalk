@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_DIALECT_OMTALK_OMTALKDIALECT_H
-#define MLIR_DIALECT_OMTALK_OMTALKDIALECT_H
+#ifndef MLIR_DIALECT_OMTALK_IR_OMTALKDIALECT_H
+#define MLIR_DIALECT_OMTALK_IR_OMTALKDIALECT_H
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/Function.h"
@@ -16,7 +16,7 @@
 namespace mlir {
 namespace omtalk {
 
-#include "mlir/Dialect/Omtalk/IR/OmtalkOpsDialect.h.inc"
+#include "mlir/Dialect/Omtalk/IR/OmtalkDialect.h.inc"
 
 ///
 /// Omtalk Dialect
@@ -75,4 +75,4 @@ public:
 } // namespace omtalk
 } // namespace mlir
 
-#endif // MLIR_DIALECT_OMTALK_OMTALKDIALECT_H
+#endif // MLIR_DIALECT_OMTALK_IR_OMTALKDIALECT_H

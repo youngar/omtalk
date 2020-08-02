@@ -1,4 +1,4 @@
-//===- OmtalkOps.cpp - Omtalk dialect ops ---------------*- C++ -*-===//
+//===- OmtalkOps.cpp - Omtalk dialect ops -----------------------*- C++ -*-===//
 //
 // This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -36,7 +36,7 @@ void MethodOp::build(OpBuilder &builder, OperationState &result, StringRef name,
 }
 
 #define GET_OP_CLASSES
-#include "mlir/Dialect/Omtalk/IR/OmtalkOps.cpp.inc"
+#include "mlir/Dialect/Omtalk/IR/Omtalk.cpp.inc"
 
 } // namespace omtalk
 } // namespace mlir

@@ -1,3 +1,11 @@
+//===- OmtalkDialect.cpp - Omtalk dialect ops -------------------*- C++ -*-===//
+//
+// This file is licensed under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
 #include "mlir/Dialect/Omtalk/IR/OmtalkDialect.h"
 #include "mlir/Dialect/Omtalk/IR/OmtalkOps.h"
 #include "mlir/IR/Builders.h"
@@ -20,7 +28,7 @@ OmtalkDialect::OmtalkDialect(MLIRContext *context)
     : Dialect(getDialectNamespace(), context) {
   addOperations<
 #define GET_OP_LIST
-#include "mlir/Dialect/Omtalk/IR/OmtalkOps.cpp.inc"
+#include "mlir/Dialect/Omtalk/IR/Omtalk.cpp.inc"
       >();
   addTypes<BoxUnkType, BoxIntType, BoxRefType>();
 }

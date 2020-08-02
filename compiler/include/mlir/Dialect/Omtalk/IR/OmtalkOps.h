@@ -6,24 +6,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_DIALECT_OMTALK_OMTALKOPS_H
-#define MLIR_DIALECT_OMTALK_OMTALKOPS_H
+#ifndef MLIR_DIALECT_OMTALK_IR_OMTALKOPS_H
+#define MLIR_DIALECT_OMTALK_IR_OMTALKOPS_H
 
-#include <llvm/ADT/Optional.h>
-#include <llvm/ADT/StringRef.h>
-#include <mlir/IR/Dialect.h>
-#include <mlir/IR/FunctionSupport.h>
-#include <mlir/IR/OpDefinition.h>
+#include "mlir/IR/StandardTypes.h"
+#include "mlir/Interfaces/ControlFlowInterfaces.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <mlir/IR/SymbolTable.h>
-#include <mlir/Interfaces/SideEffectInterfaces.h>
+#include <mlir/IR/FunctionSupport.h>
 
 namespace mlir {
 namespace omtalk {
 
 #define GET_OP_CLASSES
-#include "mlir/Dialect/Omtalk/IR/OmtalkOps.h.inc"
+#include "mlir/Dialect/Omtalk/IR/Omtalk.h.inc"
 
 } // namespace omtalk
 } // namespace mlir
 
-#endif // MLIR_DIALECT_OMTALK_OMTALKOPS_H
+#endif // MLIR_DIALECT_OMTALK_IR_OMTALKOPS_H
