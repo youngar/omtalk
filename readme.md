@@ -55,3 +55,13 @@ module {
   }
 }
 ```
+
+## Building
+
+To build Omtalk and all tests, run:
+
+```sh
+mkdir build; cd build
+cmake -G Ninja -C ../cmake/caches/dev.cmake ..
+ninja
+```
