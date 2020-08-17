@@ -186,8 +186,6 @@ TEST_CASE("allocation", "[garbage collector]") {
     std::cout << "successful allocation\n" << *ref << std::endl;
   }
   return;
-  int x = 1234;
-  REQUIRE(x == 1234);
 }
 
 TEST_CASE("roots", "[garbage collector") {}
