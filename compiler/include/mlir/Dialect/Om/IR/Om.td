@@ -9,27 +9,26 @@
 #ifndef OM_OPS
 #define OM_OPS
 
-// include "mlir/Interfaces/CallInterfaces.td"
-// include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/OpBase.td"
-// include "mlir/IR/SymbolInterfaces.td"
-// include "mlir/Interfaces/ControlFlowInterfaces.td"
-// include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/IR/SymbolInterfaces.td"
 
 //===----------------------------------------------------------------------===//
-// Om dialect definition.
+// Om dialect
 //===----------------------------------------------------------------------===//
 
 def Om_Dialect : Dialect {
   let name = "om";
+
   let summary = "Object Model Dialect";
+
   let description = [{
     This is a dialect for representing garbage collected datastructures.
   }];
-  let cppNamespace = "om";
 
-  let extraClassDeclaration = [{
-  }];
+  let cppNamespace = "om";
 }
 
 //===----------------------------------------------------------------------===//
@@ -47,14 +46,6 @@ def Om_EndOp : Om_Op<"end", [Terminator]> {
   let summary = "Terminator for datatypes in OM.";
 }
 
-def Omtalk_FieldOp : Om_Op<"field", [
-     HasParent<"KlassOp">, Symbol
-    ]> {
-  let summary = "Define an instance variable, aka field";
-  let arguments = (ins StrAttr:$sym_name);
-  let results = (outs);
-}
-
 def Om_RecordOp : Om_Op<"record", [
     IsolatedFromAbove, Symbol, SymbolTable,
     NoRegionArguments,
@@ -69,6 +60,14 @@ def Om_RecordOp : Om_Op<"record", [
   }];
   let arguments = (ins StrAttr:$sym_name, StrAttr:$super);
   let regions = (region SizedRegion<1>:$body);
+}
+
+def Omtalk_FieldOp : Om_Op<"field", [
+     HasParent<"RecordOp">, Symbol
+    ]> {
+  let summary = "Define an instance variable, aka field";
+  let arguments = (ins StrAttr:$sym_name);
+  let results = (outs);
 }
 
 #endif // OM_OPS

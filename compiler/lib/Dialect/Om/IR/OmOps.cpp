@@ -15,9 +15,6 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include <mlir/IR/FunctionSupport.h>
 
-using namespace mlir;
-using namespace om;
-
 namespace mlir {
 namespace om {
 

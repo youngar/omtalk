@@ -10,23 +10,26 @@
 #define OMTALK_OPS
 
 include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/OpBase.td"
 include "mlir/IR/SymbolInterfaces.td"
-include "mlir/Interfaces/ControlFlowInterfaces.td"
-include "mlir/Interfaces/SideEffectInterfaces.td"
 
 //===----------------------------------------------------------------------===//
 // Omtalk dialect definition.
 //===----------------------------------------------------------------------===//
 
 def Omtalk_Dialect : Dialect {
+
   let name = "omtalk";
+
   let summary = "Omtalk Smalltalk Dialect";
+
   let description = [{
       This is a dialect for representing small talk objects. It is tightly
       coupled to the omtalk virtual machine.
   }];
+
   let cppNamespace = "omtalk";
 
   let extraClassDeclaration = [{

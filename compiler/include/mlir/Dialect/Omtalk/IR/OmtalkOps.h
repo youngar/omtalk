@@ -12,8 +12,8 @@
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include <mlir/IR/SymbolTable.h>
 #include <mlir/IR/FunctionSupport.h>
+#include <mlir/IR/SymbolTable.h>
 
 namespace mlir {
 namespace omtalk {
