@@ -20,7 +20,9 @@ class Context;
 template <typename T>
 class BasicInit {
 public:
-  void operator()(Ref<T> target) {} // no-op.
+  void operator()(Ref<T> target) {
+    // no-op.
+  }
 };
 
 //===----------------------------------------------------------------------===//
@@ -186,7 +188,7 @@ Ref<T> allocateZeroNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
 }
 
 //===----------------------------------------------------------------------===//
-// General Porpoise Object Allocators
+// General Purpose Object Allocators
 //===----------------------------------------------------------------------===//
 
 /// Allocate an object and initialize it.  May cause a garbage collection.

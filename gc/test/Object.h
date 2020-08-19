@@ -152,6 +152,17 @@ struct TestMapObject {
 
   TestValue get(int key) const noexcept { return {0, TestValue::Kind::INT}; }
 
+
+  template <typename C, typename V>
+  void walk(C &cx, V &visitor) {
+    for (unsigned i = 0; i < length; i++) {
+      auto &slot = buckets[i].value;
+      if (slot.kind == TestValue::Kind::REF) {
+        visitor.visit(cx, &slot);
+      }
+    }
+  }
+  
   TestObjectKind kind;
   std::size_t length;
   Bucket buckets[];

@@ -12,6 +12,7 @@ target_include_directories(omtalk-gc
 target_link_libraries(omtalk-gc
     PUBLIC
         omtalk-util
+        ${CMAKE_THREAD_LIBS_INIT}
 )
 
 if(OMTALK_WARNINGS)
