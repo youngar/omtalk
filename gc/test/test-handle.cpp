@@ -54,7 +54,8 @@ TEST_CASE("WalkHandles", "[garbage collector]") {
     unsigned count = 0;
     for (auto n : rootScope) {
       count++;
-      REQUIRE(*(n->load().reinterpret<uintptr_t>()) == 100);
+      Handle<std::uintptr_t> *h = static_cast<Handle<std::uintptr_t> *>(n);
+      REQUIRE(h->load() == 100);
     }
     REQUIRE(count == 2);
   }
