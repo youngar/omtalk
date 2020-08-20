@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <omtalk/GlobalCollector.h>
 #include <omtalk/Heap.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
@@ -106,11 +107,14 @@ public:
   friend Context<S>;
 
   explicit MemoryManager(MemoryManagerBuilder<S> &&builder)
-      : config(builder.config), rootWalker(std::move(builder.rootWalker)) {}
+      : config(builder.config), globalCollector(this),
+        rootWalker(std::move(builder.rootWalker)) {}
 
   ~MemoryManager();
 
   RootWalker<S> &getRootWalker() { return *rootWalker; }
+
+  RegionManager &getRegionManager() { return regionManager; }
 
   unsigned getContextAccessCount() { return contextAccessCount; }
 
@@ -158,20 +162,24 @@ private:
   /// be held when this function is called.
   void waitOrGC(Context<S> &context, std::unique_lock<std::mutex> &yieldLock);
 
+  /// Perform a stop the world garbage collection.  All mutator threads must be
+  /// paused.
+  void performGC(Context<S> &context);
+
   MemoryManagerConfig config;
   RegionManager regionManager;
-
+  GlobalCollector<S> globalCollector;
+  std::unique_ptr<RootWalker<S>> rootWalker;
   ContextList<S> contexts;
 
   // If exclusive access is held, this points to the context
   std::mutex yieldForGcMutex;
   std::condition_variable yieldForGcCv;
-  volatile Context<S> *exclusiveContext = nullptr;
+  Context<S> *volatile exclusiveContext = nullptr;
   unsigned contextCount = 0;
   unsigned contextAccessCount = 0;
 
   FreeList freeList;
-  std::unique_ptr<RootWalker<S>> rootWalker;
 };
 
 //===----------------------------------------------------------------------===//
@@ -279,14 +287,12 @@ void MemoryManager<S>::waitOrGC(Context<S> &context,
     yieldForGcCv.wait(yieldLock);
     contextAccessCount++;
   } else {
-    
-    // GC HERE
-
-
-    contextAccessCount++;
+    globalCollector.collect();
 
     // Must remove exclusive request before waking up other threads
     releaseExclusive(context);
+
+    contextAccessCount++;
 
     // Wake up other threads
     yieldLock.unlock();
