@@ -1,16 +1,23 @@
 #ifndef OMTALK_GLOBALCOLLECTOR_H
 #define OMTALK_GLOBALCOLLECTOR_H
 
+#include <omtalk/Handle.h>
+#include <omtalk/Heap.h>
+#include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
+#include <stack>
 
 namespace omtalk::gc {
+
+template <typename S>
+class MemoryManager;
 
 //===----------------------------------------------------------------------===//
 // Work Stack
 //===----------------------------------------------------------------------===//
 
 template <typename S>
-class WorkItem {
+struct WorkItem {
 public:
   WorkItem(ObjectProxy<S> target) : target(target) {}
 
@@ -45,9 +52,9 @@ private:
 /// Interface for the global collector scheme.
 class AbstractGlobalCollector {
 public:
-  virtual void collect();
+  virtual void collect() = 0;
 
-  virtual ~AbstractGlobalCollector() = 0;
+  virtual ~AbstractGlobalCollector() = default;
 };
 
 template <typename S>
@@ -59,18 +66,25 @@ class GlobalCollector : public AbstractGlobalCollector {
 public:
   using Context = GlobalCollectorContext<S>;
 
-  GlobalCollector(MemoryManager mm) = default;
+  GlobalCollector(MemoryManager<S> *memoryManager)
+      : memoryManager(memoryManager) {}
+
+  ~GlobalCollector(){};
 
   virtual void collect() noexcept override;
 
+  WorkStack<S> &getStack() { return stack; }
+
 private:
-  void setup(Context &cx) noexcept;
+  void setup(Context &context) noexcept;
 
-  void scanRoots(Context &cx) noexcept;
+  void scanRoots(Context &context) noexcept;
 
-  void completeScanning(Context &cx) noexcept;
+  void completeScanning(Context &context) noexcept;
 
-  MemoryManager *memoryManager;
+  void sweep(Context &context) noexcept;
+
+  MemoryManager<S> *memoryManager;
   WorkStack<S> stack;
 };
 
@@ -78,10 +92,13 @@ private:
 template <typename S>
 class GlobalCollectorContext {
 public:
-  explicit GlobalCollectorContext(GlobalCollector<S> &collector)
+  explicit GlobalCollectorContext(GlobalCollector<S> *collector)
       : collector(collector) {}
 
-  GlobalCollector *collector;
+  GlobalCollector<S> &getCollector() { return *collector; }
+
+private:
+  GlobalCollector<S> *collector;
 };
 
 //===----------------------------------------------------------------------===//
@@ -90,17 +107,22 @@ public:
 
 template <typename S>
 struct Mark {
-  void operator()(GlobalCollectorContext<S> cx, Ref<void> target) noexcept {
+  void operator()(GlobalCollectorContext<S> context,
+                  ObjectProxy<S> target) noexcept {
+    auto ref = target.asRef();
     auto region = Region::get(ref);
+    std::cout << "!!! mark: " << ref;
     if (region->mark(ref)) {
-      cx.marking->stack.push(getObjectProxy(ref));
+      std::cout << " pushed ";
+      context.getCollector().getStack().push(target);
     }
+    std::cout << std::endl;
   }
 };
 
 template <typename S>
-void mark(GlobalCollectorContext<S> &cx, Ref<void> target) noexcept {
-  Mark<S>()(cx, target);
+void mark(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
+  Mark<S>()(context, target);
 }
 
 //===----------------------------------------------------------------------===//
@@ -110,29 +132,25 @@ void mark(GlobalCollectorContext<S> &cx, Ref<void> target) noexcept {
 template <typename S>
 class ScanVisitor {
 public:
+  // Mark any kind of slot proxy
   template <typename SlotProxyT>
-  void visit(GlobalCollectorContext<S> &cx, SlotProxyT slot) {
-    mark<S>(cx, Ref<void>(slot.load()));
+  void visit(GlobalCollectorContext<S> &context, SlotProxyT slot) {
+    mark<S>(context, slot.load());
   }
 };
 
 template <typename S>
 struct Scan {
-  void operator()(GlobalCollectorContext<S> &cx,
+  void operator()(GlobalCollectorContext<S> &context,
                   ObjectProxy<S> target) const noexcept {
     ScanVisitor<S> visitor;
-    walk(cx, target, visitor);
+    walk<S>(context, target, visitor);
   }
 };
 
 template <typename S>
-void scan(GlobalCollectorContext<S> &cx, ObjectProxy<S> target) noexcept {
-  return Scan<S>()(cx, ref);
-}
-
-template <typename S>
-void scan(GlobalCollectorContext<S> cx, Ref<void> target) noexcept {
-  return scan<S>(cx, getProxy(target));
+void scan(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
+  return Scan<S>()(context, target);
 }
 
 //===----------------------------------------------------------------------===//
@@ -143,23 +161,26 @@ template <typename S>
 class ScavengeVisitor {
 public:
   template <typename SlotProxyT>
-  void visit(Context &cx, const SlotProxyT slot) const noexcept {
+  void visit(GlobalCollectorContext<S> &context,
+             const SlotProxyT slot) const noexcept {
     auto ref = slot.load();
-    scavenge(cx, slot);
+    scavenge(context, slot);
   }
 };
 
 template <typename S>
 struct Scavenge {
-  void operator()(Context &cx, ObjectProxy<S> target) const noexcept {
-    ScavengeVisitor scavenger;
-    target.walk(cx, scavenger);
+  void operator()(GlobalCollectorContext<S> &context,
+                  ObjectProxy<S> target) const noexcept {
+    ScavengeVisitor<S> scavenger;
+    target.walk(context, scavenger);
   }
 };
 
 template <typename S>
-void scavenge(Context &cx, ObjectProxy<S> target) noexcept {
-  Scavenge<S>()(cx, target);
+void scavenge(GlobalCollectorContext<S> &context,
+              ObjectProxy<S> target) noexcept {
+  Scavenge<S>()(context, target);
 }
 
 //===----------------------------------------------------------------------===//
@@ -168,40 +189,36 @@ void scavenge(Context &cx, ObjectProxy<S> target) noexcept {
 
 template <typename S>
 void GlobalCollector<S>::collect() noexcept {
-  GlobCollectorContext<S> cx(*this);
-  setup(cx);
-  scanRoots(cx);
-  completeScanning(cx);
-  sweep(cx);
+  GlobalCollectorContext<S> context(this);
+  setup(context);
+  scanRoots(context);
+  completeScanning(context);
+  sweep(context);
 }
 
 template <typename S>
-void GlobalCollector<S>::setup(Context &cx) noexcept {
-  cx.collector->memoryManager.regionManager.clearMarkMaps();
+void GlobalCollector<S>::setup(Context &context) noexcept {
+  // assert that the workstack is empty
+  memoryManager->getRegionManager().clearMarkMaps();
 }
 
 template <typename S>
-void GlobalCollector<S>::scanRoots(Context &cx) noexcept {
+void GlobalCollector<S>::scanRoots(Context &context) noexcept {
   ScanVisitor<S> visitor;
-  RootWalker<S> rootWalker;
-  rootWalker.walk(cx, visitor);
+  memoryManager->getRootWalker().walk(context, visitor);
 }
 
 template <typename S>
-void GlobalCollector<S>::completeScanning(Context &cx) noexcept {
+void GlobalCollector<S>::completeScanning(Context &context) noexcept {
   while (stack.more()) {
     auto item = stack.pop();
-    scan<S>(cx, getProxy(item.target));
+    std::cout << "completeScanning: " << item.target.asRef() << std::endl;
+    scan<S>(context, item.target);
   }
 }
 
 template <typename S>
-void GlobalCollector<S>::sweep(Context &cx) noexcept {
-  while (stack.more()) {
-    auto item = stack.pop();
-    scan<S>(cx, item);
-  }
-}
+void GlobalCollector<S>::sweep(Context &context) noexcept {}
 
 } // namespace omtalk::gc
 
