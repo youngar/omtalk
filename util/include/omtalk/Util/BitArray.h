@@ -33,18 +33,10 @@ constexpr BitChunk &operator&=(BitChunk &lhs, BitChunk rhs) {
   return lhs = lhs & rhs;
 }
 
-static_assert(sizeof(BitChunk) == 4 || sizeof(BitChunk) == 8);
-
 constexpr std::size_t BITCHUNK_NBITS = sizeof(BitChunk) * 8;
-
-static_assert(isPow2(BITCHUNK_NBITS));
 
 template <std::size_t N>
 using BitChunkArray = std::array<BitChunk, N>;
-
-static_assert(sizeof(BitChunkArray<1>) == sizeof(BitChunk) * 1);
-static_assert(sizeof(BitChunkArray<4>) == sizeof(BitChunk) * 4);
-static_assert(sizeof(BitChunkArray<8>) == sizeof(BitChunk) * 8);
 
 template <std::size_t N>
 class BitArray {
@@ -57,7 +49,7 @@ public:
   BitArray() = default;
 
   bool get(std::size_t index) const noexcept {
-    return BitChunk(0) == (chunkForBit(index) & maskForBit(index));
+    return BitChunk(0) != (chunkForBit(index) & maskForBit(index));
   }
 
   bool set(std::size_t index) noexcept {
@@ -86,11 +78,11 @@ private:
   }
 
   static constexpr std::size_t shiftForBit(std::size_t index) {
-    return index - (indexForBit(index) * BITCHUNK_NBITS);
+    return index % BITCHUNK_NBITS;
   }
 
   static constexpr BitChunk maskForBit(std::size_t index) {
-    return BitChunk(1) << shiftForBit(0);
+    return BitChunk(1) << shiftForBit(index);
   }
 
   BitChunk &chunkForBit(std::size_t index) noexcept {
@@ -104,8 +96,7 @@ private:
   BitChunkArray<NCHUNKS> chunks;
 };
 
-static_assert(sizeof(BitArray<BITCHUNK_NBITS>) == sizeof(BitChunk));
-static_assert(sizeof(BitArray<BITCHUNK_NBITS * 4>) == sizeof(BitChunk) * 4);
+
 
 } // namespace omtalk
 
