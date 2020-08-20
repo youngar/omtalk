@@ -218,7 +218,21 @@ void GlobalCollector<S>::completeScanning(Context &context) noexcept {
 }
 
 template <typename S>
-void GlobalCollector<S>::sweep(Context &context) noexcept {}
+void GlobalCollector<S>::sweep(Context &context) noexcept {
+
+  FreeBlock firstBlock;
+  F
+  for (auto &region : memoryManager->getRegionManager()) {
+    const auto *markMap = region.getMarkMap();
+
+    FreeList freeList;
+
+    for (const auto chunk : markmap) {
+
+
+    }
+  }
+}
 
 } // namespace omtalk::gc
 

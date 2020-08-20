@@ -72,6 +72,18 @@ public:
 
   void clear() noexcept { chunks.fill(BitChunk(0)); }
 
+  typedef BitChunkArray<NCHUNKS>::iterator Iterator;
+
+  typedef BitChunkArray<NCHUNKS>::const_iterator ConstIterator;
+
+  Iterator begin() const { return chunks.begin(); }
+
+  Iterator end() const { return chunks.end(); }
+
+  ConstIterator cbegin() const { return chunks.cbegin(); }
+
+  ConstIterator cend() const { return chunks.cend(); }
+
 private:
   static constexpr std::size_t indexForBit(std::size_t index) {
     return index / BITCHUNK_NBITS;
@@ -95,7 +107,6 @@ private:
 
   BitChunkArray<NCHUNKS> chunks;
 };
-
 
 
 } // namespace omtalk

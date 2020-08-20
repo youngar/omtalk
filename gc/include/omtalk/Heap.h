@@ -63,8 +63,6 @@ private:
   FreeBlock *next = nullptr;
 };
 
-static_assert(sizeof(FreeBlock) == MIN_OBJECT_SIZE);
-
 class FreeList {
 public:
   void addFreeBlockNoCheck(FreeBlock *freeBlock) noexcept {
@@ -94,7 +92,9 @@ public:
   }
 
 private:
-  FreeBlock *freeList = nullptr;
+  FreeBlock dummy;
+  FreeBlock *freeList = &dummy;
+  FreeBlock *lastBlock = &dummy;
 };
 
 //===----------------------------------------------------------------------===//
@@ -132,17 +132,21 @@ public:
   bool marked(HeapIndex index) const { return data.get(std::size_t(index)); }
 
   bool unmarked(HeapIndex index) const { return !data.get(std::size_t(index)); }
+  
+  typedef BitArray<REGION_MAP_NBITS>::Iterator Iterator;
+
+  typedef BitArray<REGION_MAP_NBITS>::ConstIterator ConstIterator;
+
+  Iterator begin() { return data.begin(); }
+
+  ConstIterator cbegin() { return data.cbegin(); }
+
+  Iterator end() { return data.end(); }
+
+  ConstIterator cend() { return data.cend(); }
 
 private:
   BitArray<REGION_MAP_NBITS> data;
-};
-
-struct RegionMapChecks {
-  static_assert(std::is_trivially_destructible_v<RegionMap>);
-  // static_assert(sizeof(RegionMap) == (REGION_MAP_NCHUNKS *
-  // sizeof(BitChunk)));
-  static_assert(
-      check_size<RegionMap, (REGION_MAP_NCHUNKS * sizeof(BitChunk))>());
 };
 
 //===----------------------------------------------------------------------===//
@@ -224,6 +228,10 @@ public:
     return markMap.marked(toIndex(ref));
   }
 
+  RegionMap &getMarkMap() { return markMap; }
+
+  const RegionMap &getMarkMap() const { return regionMap; }
+
   HeapIndex toIndex(Ref<> ref) {
     return HeapIndex((ref.toAddr() & REGION_INDEX_MASK) / OBJECT_ALIGNMENT);
   }
@@ -253,13 +261,6 @@ private:
 
   // trailing data must be last
   alignas(OBJECT_ALIGNMENT) std::byte data[];
-};
-
-class RegionChecks {
-  static_assert((sizeof(Region) % OBJECT_ALIGNMENT) == 0);
-  static_assert((offsetof(Region, data) % OBJECT_ALIGNMENT) == 0);
-  static_assert(check_size<Region, REGION_SIZE>());
-  static_assert(sizeof(Region) <= REGION_SIZE);
 };
 
 //===----------------------------------------------------------------------===//
@@ -295,6 +296,18 @@ public:
     for (auto &region : regions)
       region.clearMarkMap();
   }
+
+  typedef RegionList::Iterator Iterator;
+
+  typedef RegionList::ConstIterator ConstIterator;
+
+  Iterator begin() const { return regions.begin(); }
+
+  Iterator end() const { return regions.end(); }
+
+  ConstIterator cbegin() const { return regions.cbegin(); }
+
+  ConstIterator cend() const { return regions.cend(); }
 
 private:
   RegionList regions;
