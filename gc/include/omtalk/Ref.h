@@ -31,6 +31,8 @@ public:
 
   constexpr T *get() const noexcept { return value_; }
 
+  constexpr T load() const noexcept { return *value_; }
+
   std::uintptr_t toAddr() const noexcept {
     return reinterpret_cast<std::uintptr_t>(value_);
   }
@@ -64,7 +66,7 @@ public:
   /// Static cast from T to U.
   template <typename U>
   Ref<U> cast() const {
-    return Ref<U>(static_cast<U *>(value_));
+    return Ref<U>(static_cast<U * const>(value_));
   }
 
   template <typename U>
