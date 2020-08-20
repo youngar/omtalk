@@ -12,9 +12,18 @@ namespace gc = omtalk::gc;
 //===----------------------------------------------------------------------===//
 // TestValue
 //===----------------------------------------------------------------------===//
+struct RefTag {};
+struct IntTag {};
+constexpr RefTag REF;
+constexpr IntTag INT;
 
 struct TestValue {
   enum class Kind { REF, INT };
+
+  TestValue() {}
+  TestValue(IntTag, int x) : asInt(x), kind(Kind::INT) {}
+  TestValue(RefTag, TestObject *x) : asRef(x), kind(Kind::REF) {}
+  TestValue(RefTag, gc::Ref<TestObject> x) : asRef(x.get()), kind(Kind::REF) {}
 
   union {
     TestObject *asRef;
@@ -86,7 +95,7 @@ std::ostream &operator<<(std::ostream &out, const TestObject &obj) {
 // TestStructObject
 //===----------------------------------------------------------------------===//
 
-struct TestStructObject {
+struct TestStructObject : public TestObject {
   static constexpr std::size_t allocSize(std::size_t nslots) {
     return sizeof(TestStructObject) + (sizeof(TestValue) * nslots);
   }
@@ -95,17 +104,20 @@ struct TestStructObject {
 
   std::size_t getLength() const noexcept { return length; }
 
+  void setSlot(unsigned slot, TestValue value) noexcept { slots[slot] = value; }
+
   template <typename C, typename V>
   void walk(C &cx, V &visitor) {
+    std::cout << "!!! TestStructObject::walk: " << this << std::endl;
     for (unsigned i = 0; i < length; i++) {
       auto &slot = slots[i];
-      if (slot.kind == TestValue::Kind::REF) {
+      if (slot.kind == TestValue::Kind::REF && slot.asRef != nullptr) {
+        std::cout << "!!!   slot:" << slot << std::endl;
         visitor.visit(cx, &slot);
       }
     }
   }
 
-  TestObjectKind kind;
   std::size_t length;
   TestValue slots[];
 };
@@ -129,7 +141,7 @@ std::ostream &operator<<(std::ostream &out, const TestStructObject &obj) {
 /// TODO
 ///
 
-struct TestMapObject {
+struct TestMapObject : public TestObject {
 
   struct Bucket {
     int key;
@@ -150,8 +162,7 @@ struct TestMapObject {
 
   bool remove(int key) noexcept { return false; }
 
-  TestValue get(int key) const noexcept { return {0, TestValue::Kind::INT}; }
-
+  TestValue get(int key) const noexcept { return {INT, 0}; }
 
   template <typename C, typename V>
   void walk(C &cx, V &visitor) {
@@ -162,8 +173,7 @@ struct TestMapObject {
       }
     }
   }
-  
-  TestObjectKind kind;
+
   std::size_t length;
   Bucket buckets[];
 };
