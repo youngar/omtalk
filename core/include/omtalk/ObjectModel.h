@@ -48,9 +48,9 @@ public:
 private:
 };
 
-class OmtalkValueProxy {
+class OmtalkSlotProxy {
 public:
-  OmtalkValueProxy(Slot value) : value(value) {}
+  OmtalkSlotProxy(Slot value) : value(value) {}
   Slot getValue() { return value; }
 
 private:
@@ -59,7 +59,7 @@ private:
 
 class OmtalkCollectorScheme {
   using ObjectProxy = OmtalkObjectProxy;
-  using SlotProxy = OmtalkValueProxy;
+  using SlotProxy = OmtalkSlotProxy;
 };
 
 #endif

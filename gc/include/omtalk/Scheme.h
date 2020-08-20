@@ -18,8 +18,8 @@ using ObjectRef = typename S::ObjectRef;
 template <typename S>
 using ObjectProxy = typename S::ObjectProxy;
 
-// template <typename S>
-// using RootWalker = typename S::RootWalker;
+template <typename S>
+using SlotProxy = typename S::SlotProxy;
 
 //===----------------------------------------------------------------------===//
 // Object Proxy Construction
@@ -81,7 +81,7 @@ void walk(ContextT &cx, ObjectProxy<S> target, VisitorT &visitor) noexcept {
 // RootWalker
 //===----------------------------------------------------------------------===//
 
-template <typename SchemeT>
+template <typename S>
 struct RootWalker {
   template <typename ContextT, typename VisitorT>
   void walk(ContextT &cx, VisitorT &visitor) noexcept {}
