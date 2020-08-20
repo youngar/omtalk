@@ -10,24 +10,26 @@
 #include <omtalk/Util/BitArray.h>
 
 //===----------------------------------------------------------------------===//
-// TestValueProxy
+// TestSlotProxy
 //===----------------------------------------------------------------------===//
 
 class TestObjectProxy;
 
-class TestValueProxy {
+class TestSlotProxy {
 public:
-  TestValueProxy(TestValue *target) : target(target) {}
+  TestSlotProxy(TestValue *target) : target(target) {}
 
-  TestValueProxy(const TestValueProxy &) = default;
+  TestSlotProxy(const TestSlotProxy &) = default;
+
+  TestObjectProxy load() const noexcept;
+
+  void store(TestObjectProxy object) const noexcept;
 
   gc::Ref<TestObject> loadRef() const noexcept { return target->asRef; }
 
   void storeRef(gc::Ref<TestObject> object) const noexcept {
     target->asRef = object.get();
   }
-
-  TestObjectProxy loadProxy() const noexcept;
 
 private:
   TestValue *target;
@@ -37,30 +39,12 @@ private:
 // TestObjectProxy
 //===----------------------------------------------------------------------===//
 
-// template <typename S>
-// struct SizeOf {
-//   template <typename ObjectProxyT>
-//   void operator()(Context &cx, ObjectProxyT target) const noexcept {
-//     return target.size(cx);
-//   }
-// };
-
-// template <typename C, typename V>
-// void walk(C &cx, V &visitor) {
-//   for (unsigned i = 0; i < length; i++) {
-//     auto &slot = slots[i];
-//     if (slot.kind == TestValue::Kind::REF) {
-//       visitor.visit(cx, TestValueProxy(&slot));
-//     }
-//   }
-// }
-
 template <typename C, typename V>
-class ValueProxyVisitor {
+class SlotProxyVisitor {
 public:
-  void visit(C &cx, TestValue *slot) {
-    visitor.visit(cx, TestValueProxy(slot));
-  }
+  explicit SlotProxyVisitor(V &visitor) : visitor(visitor) {}
+
+  void visit(C &cx, TestValue *slot) { visitor.visit(cx, TestSlotProxy(slot)); }
   V &visitor;
 };
 
@@ -72,6 +56,9 @@ public:
       : TestObjectProxy(obj.reinterpret<TestObject>()) {}
 
   explicit TestObjectProxy(gc::Ref<TestMapObject> obj)
+      : TestObjectProxy(obj.reinterpret<TestObject>()) {}
+
+  explicit TestObjectProxy(gc::Ref<void> obj)
       : TestObjectProxy(obj.reinterpret<TestObject>()) {}
 
   std::size_t getSize() const noexcept {
@@ -88,7 +75,7 @@ public:
   template <typename ContextT, typename VisitorT>
   void walk(ContextT &cx, VisitorT &visitor) const noexcept {
 
-    ValueProxyVisitor<ContextT, VisitorT> proxyVisitor(visitor);
+    SlotProxyVisitor<ContextT, VisitorT> proxyVisitor(visitor);
 
     switch (target->kind) {
     case TestObjectKind::STRUCT:
@@ -102,18 +89,18 @@ public:
     }
   }
 
-  gc::Ref<TestObject> get() const noexcept { return target; }
+  gc::Ref<TestObject> asRef() const noexcept { return target; }
 
 private:
   gc::Ref<TestObject> target;
 };
 
 //===----------------------------------------------------------------------===//
-// TestValueProxy inlines
+// TestSlotProxy inlines
 //===----------------------------------------------------------------------===//
 
-inline TestObjectProxy TestValueProxy::loadProxy() const noexcept {
-  return TestObjectProxy(target->asRef);
+inline TestObjectProxy TestSlotProxy::load() const noexcept {
+  return TestObjectProxy(gc::Ref<TestObject>(target->asRef));
 }
 
 //===----------------------------------------------------------------------===//
@@ -122,7 +109,7 @@ inline TestObjectProxy TestValueProxy::loadProxy() const noexcept {
 
 struct TestCollectorScheme {
   using ObjectProxy = TestObjectProxy;
-  using SlotProxy = TestValueProxy;
+  using SlotProxy = TestSlotProxy;
 };
 
 template <>
@@ -139,9 +126,14 @@ struct gc::RootWalker<TestCollectorScheme> {
 
   template <typename ContextT, typename VisitorT>
   void walk(ContextT &cx, VisitorT &visitor) noexcept {
-    // for (auto h : rootScope) {
-    //   visitor.rootEdge(cx, RefProxy());
-    // }
+    std::cout << "!!! rootwalker: start " << std::endl;
+    std::cout << "!!! rootwalker: handlecount=" << rootScope.handleCount()
+              << std::endl;
+    for (auto h : rootScope) {
+      std::cout << "!!! rootwalker: handle " << h << std::endl;
+      visitor.visit(cx, HandleProxy<TestCollectorScheme>(h));
+    }
+    std::cout << "!!! rootwalker: end " << std::endl;
   }
 
   gc::RootHandleScope rootScope;
@@ -156,7 +148,13 @@ allocateTestStructObject(gc::Context<TestCollectorScheme> &cx,
                          std::size_t nslots) noexcept {
   auto size = TestStructObject::allocSize(nslots);
   return gc::allocate<TestCollectorScheme, TestStructObject>(
-      cx, size, [=](auto object) { object->length = nslots; });
+      cx, size, [=](auto object) {
+        object->kind = TestObjectKind::STRUCT;
+        object->length = nslots;
+        for (unsigned i = 0; i < nslots; i++) {
+          object->setSlot(i, {REF, nullptr});
+        }
+      });
 }
 
 //===----------------------------------------------------------------------===//
@@ -176,7 +174,7 @@ TEST_CASE("Startup and Shutdown", "[garbage collector]") {
 // Test Exclusive Access
 //===----------------------------------------------------------------------===//
 
-TEST_CASE("Hanging", "[garbage collector]") {
+TEST_CASE("Exclusive requested check", "[garbage collector]") {
   auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
                 .withRootWalker(
                     std::make_unique<gc::RootWalker<TestCollectorScheme>>())
@@ -188,13 +186,12 @@ TEST_CASE("Hanging", "[garbage collector]") {
   std::thread other([&]() { context2.collect(); });
 
   while (!mm.exclusiveRequested()) {
-
   }
   REQUIRE(context.yieldForGC() == true);
   other.join();
 }
 
-TEST_CASE("Exclusive Access", "[garbage collector]") {
+TEST_CASE("Exclusive Access blocked by other thread", "[garbage collector]") {
   auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
                 .withRootWalker(
                     std::make_unique<gc::RootWalker<TestCollectorScheme>>())
@@ -223,9 +220,6 @@ TEST_CASE("Exclusive Access", "[garbage collector]") {
     // Allow the GC to progress
     lock.unlock();
 
-    // while (!mm.exclusiveRequested()) {
-    // }
-
     while (!context.yieldForGC()) {
     }
 
@@ -243,6 +237,29 @@ TEST_CASE("Exclusive Access", "[garbage collector]") {
   }
 
   REQUIRE(context.yieldForGC() == false);
+  context.collect();
+  REQUIRE(context.yieldForGC() == false);
+}
+
+TEST_CASE("Exclusive access not blocked by destroyed context",
+          "[garbage collector]") {
+  auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
+                .withRootWalker(
+                    std::make_unique<gc::RootWalker<TestCollectorScheme>>())
+                .build();
+
+  gc::Context<TestCollectorScheme> context(mm);
+  REQUIRE(mm.getContextAccessCount() == 1);
+  REQUIRE(context.yieldForGC() == false);
+  context.collect();
+
+  {
+    gc::Context<TestCollectorScheme> context2(mm);
+    REQUIRE(mm.getContextAccessCount() == 2);
+    REQUIRE(context.yieldForGC() == false);
+    REQUIRE(context2.yieldForGC() == false);
+  }
+
   context.collect();
   REQUIRE(context.yieldForGC() == false);
 }
@@ -298,19 +315,44 @@ TEST_CASE("Allocate single root and gc", "[garbage collector]") {
                 .withRootWalker(
                     std::make_unique<gc::RootWalker<TestCollectorScheme>>())
                 .build();
-
   gc::Context<TestCollectorScheme> context(mm);
-
   gc::HandleScope scope = mm.getRootWalker().rootScope.createScope();
-
   auto ref = allocateTestStructObject(context, 10);
   gc::Handle<TestStructObject> handle(scope, ref);
-
   mm.collect(context);
 }
 
-TEST_CASE("Root scanning", "[garbage collector]") {
+TEST_CASE("Allocate object tree and gc", "[garbage collector]") {
+  auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
+                .withRootWalker(
+                    std::make_unique<gc::RootWalker<TestCollectorScheme>>())
+                .build();
 
+  std::cout << "!!! Start of the good test" << std::endl;
+
+  gc::Context<TestCollectorScheme> context(mm);
+  gc::HandleScope scope = mm.getRootWalker().rootScope.createScope();
+
+  std::cout << "test: handleCount:"
+            << mm.getRootWalker().rootScope.handleCount() << std::endl;
+
+  gc::Handle<TestStructObject> handle(scope, allocateTestStructObject(context, 10));
+
+  auto ref = allocateTestStructObject(context, 10);
+  handle->setSlot(0, {REF, ref});
+
+  std::cout << *handle;
+
+  std::cout << "test: handleCount:"
+            << mm.getRootWalker().rootScope.handleCount() << std::endl;
+
+  mm.collect(context);
+  std::cout << "test: handleCount:"
+            << mm.getRootWalker().rootScope.handleCount() << std::endl;
+  std::cout << "!!! End of the good test" << std::endl;
+}
+
+TEST_CASE("Root scanning", "[garbage collector]") {
   auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
                 .withRootWalker(
                     std::make_unique<gc::RootWalker<TestCollectorScheme>>())
