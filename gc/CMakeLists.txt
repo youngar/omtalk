@@ -30,6 +30,7 @@ add_executable(omtalk-gc-test
     test/main.cpp
     test/test-gc.cpp
     test/test-handle.cpp
+    test/test-regions.cpp
 )
 
 target_link_libraries(omtalk-gc-test
