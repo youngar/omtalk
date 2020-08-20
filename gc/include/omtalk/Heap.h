@@ -9,9 +9,9 @@
 #include <omtalk/Util/Assert.h>
 #include <omtalk/Util/BitArray.h>
 #include <omtalk/Util/IntrusiveList.h>
+#include <stdlib.h>
 #include <type_traits>
 #include <vector>
-#include <stdlib.h>
 
 namespace omtalk::gc {
 
@@ -212,6 +212,16 @@ public:
   bool mark(Ref<> ref) {
     assert(inRange(ref));
     return markMap.mark(toIndex(ref));
+  }
+
+  bool unmark(Ref<> ref) {
+    assert(inRange(ref));
+    return markMap.unmark(toIndex(ref));
+  }
+
+  bool marked(Ref<> ref) {
+    assert(inRange(ref));
+    return markMap.marked(toIndex(ref));
   }
 
   HeapIndex toIndex(Ref<> ref) {
