@@ -2,6 +2,7 @@
 #define OMTALK_GC_HANDLE_HPP_
 
 #include <omtalk/Ref.h>
+#include <omtalk/Scheme.h>
 #include <vector>
 
 namespace omtalk::gc {
@@ -71,13 +72,6 @@ public:
 
   ConstIterator cend() noexcept { return handleData.end(); }
 
-  // template <typename ContextT, typename VisitorT>
-  // void walk(ContextT &cx, VisitorT &visitor) {
-  //   for (auto ptr : handleData) {
-  //     visitor.visit(cx, RefProxy<void>(&ptr->data));
-  //   }
-  // }
-
 private:
   std::vector<HandleBase *> handleData;
 };
@@ -121,9 +115,9 @@ public:
 
   T *operator->() const noexcept { return value.reinterpret<T>().get(); }
 
-  Ref<T> get() const noexcept { return value.reinterpret<T>(); }
+  T load() const noexcept { return *value.reinterpret<T>(); }
 
-private:
+  Ref<T> get() const noexcept { return value.reinterpret<T>(); }
 };
 
 template <>
@@ -136,6 +130,29 @@ public:
   Handle(HandleScope &scope, Ref<void> value) : HandleBase(value) {}
 
   Ref<void> get() const noexcept { return value; }
+};
+
+/// Handle proxy.  Allows the garbage collector to scan handles and return
+/// language specific ObjectProxy
+template <typename S>
+class HandleProxy {
+public:
+  HandleProxy(HandleBase *handle) : handle(handle) {}
+
+  ObjectProxy<S> load() const noexcept {
+    return ObjectProxy<S>(handle->load());
+  }
+
+  void store(ObjectProxy<S> object) const noexcept {
+    handle->store(object->asRef());
+  }
+
+  Ref<void> loadRef() const noexcept { return handle->load(); }
+
+  void storeRef(Ref<void> ref) const noexcept { return handle->store(ref); }
+
+private:
+  HandleBase *handle;
 };
 
 } // namespace omtalk::gc
