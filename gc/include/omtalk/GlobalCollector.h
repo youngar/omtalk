@@ -125,6 +125,11 @@ void mark(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
   Mark<S>()(context, target);
 }
 
+template <typename S>
+void mark(GlobalCollectorContext<S> &context, Ref<> target) noexcept {
+  Mark<S>()(context, ObjectProxy<S>(target));
+}
+
 //===----------------------------------------------------------------------===//
 // Scan Functor -- default
 //===----------------------------------------------------------------------===//
@@ -134,8 +139,8 @@ class ScanVisitor {
 public:
   // Mark any kind of slot proxy
   template <typename SlotProxyT>
-  void visit(GlobalCollectorContext<S> &context, SlotProxyT slot) {
-    mark<S>(context, slot.load());
+  void visit(SlotProxyT slot, GlobalCollectorContext<S> &context) {
+    mark<S>(context, proxy::load<RELAXED>(slot));
   }
 };
 

@@ -253,7 +253,7 @@ private:
 
   ~Region() { unlink(); }
 
-  std::size_t flags;
+  // std::size_t flags;
   RegionListNode listNode;
 
   // Order is important

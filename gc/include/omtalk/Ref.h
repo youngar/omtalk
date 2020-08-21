@@ -8,6 +8,8 @@
 
 namespace omtalk::gc {
 
+class RefProxy;
+
 /// A GC Reference. Put simply, a Ref<int> is a pointer to a heap-allocated int.
 /// It will quack like a pointer. Why? To _highlight_ bare references into the
 /// heap, which are unsafe dangerous things.
@@ -18,7 +20,7 @@ public:
     return Ref<T>(reinterpret_cast<T *>(addr));
   }
 
-  Ref() = default;
+  Ref() noexcept = default;
 
   constexpr Ref(std::nullptr_t) : value_(nullptr) {}
 
@@ -26,7 +28,8 @@ public:
 
   constexpr Ref(const Ref &other) = default;
 
-  template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+  template <typename U,
+            typename = std::enable_if_t<std::is_convertible_v<U, T>>>
   explicit constexpr Ref(const Ref<U> &other) : value_(other.get()) {}
 
   constexpr T *get() const noexcept { return value_; }
@@ -66,7 +69,7 @@ public:
   /// Static cast from T to U.
   template <typename U>
   Ref<U> cast() const {
-    return Ref<U>(static_cast<U * const>(value_));
+    return Ref<U>(static_cast<U *const>(value_));
   }
 
   template <typename U>
@@ -76,26 +79,32 @@ public:
 
   constexpr operator bool() const { return value_ != nullptr; }
 
-  friend Ref<T> atomicLoad(Ref<T> *addr, MemoryOrder order = SEQ_CST) {
-    return Ref<T>(atomicLoad(&addr->value_, order));
+  /// @group Memory Operations
+  /// @{
+
+  template <MemoryOrder M>
+  Ref<T> load() const noexcept {
+    return Ref<T>(mem::load<M>(&value_));
   }
 
-  friend void atomicStore(Ref<T> *addr, Ref<T> value,
-                          MemoryOrder order = SEQ_CST) {
-    atomicStore(&addr->value_, value.get(), order);
+  template <MemoryOrder M>
+  void store(Ref<T> value) noexcept {
+    mem::store<M>(&value_, value.get());
   }
 
-  friend Ref<T> atomicExchange(Ref<T> *addr, Ref<T> value,
-                               MemoryOrder order = SEQ_CST) {
-    return Ref<T>(atomicExchange(&addr->value_, value.get(), order));
+  template <MemoryOrder M>
+  Ref<T> exchange(Ref<T> value) noexcept {
+    return Ref<T>(mem::exchange<M>(&value_, value.get()));
   }
 
-  friend bool atomicCompareExchange(Ref<T> *addr, Ref<T> expected,
-                                    Ref<T> desired, MemoryOrder succ = SEQ_CST,
-                                    MemoryOrder fail = RELAXED) {
-    return atomicCompareExchange(&addr->value_, expected.get(), desired.get(),
-                                 succ, fail);
+  template <MemoryOrder S, MemoryOrder F = RELAXED>
+  bool cas(Ref<T> expected, Ref<T> desired) noexcept {
+    return mem::cas<S, F>(&value_, expected.get(), desired.get());
   }
+
+  /// @}
+
+  RefProxy proxy() noexcept;
 
 private:
   T *value_;
@@ -104,7 +113,7 @@ private:
 template <>
 class Ref<void> final {
 public:
-  Ref() = default;
+  Ref() noexcept = default;
 
   constexpr Ref(std::nullptr_t) : value_(nullptr) {}
 
@@ -147,27 +156,32 @@ public:
 
   constexpr operator bool() const { return value_ != nullptr; }
 
-  friend Ref<void> atomicLoad(Ref<void> *addr, MemoryOrder order = SEQ_CST) {
-    return Ref<void>(atomicLoad(&addr->value_, order));
+  /// @group Memory Operations
+  /// @{
+
+  template <MemoryOrder M>
+  Ref<void> load() const noexcept {
+    return mem::load<M>(&value_);
   }
 
-  friend void atomicStore(Ref<void> *addr, Ref<void> value,
-                          MemoryOrder order = SEQ_CST) {
-    atomicStore(&addr->value_, value.get(), order);
+  template <MemoryOrder M>
+  void store(Ref<void> value) noexcept {
+    mem::store<M>(&value_, value.get());
   }
 
-  friend Ref<void> atomicExchange(Ref<void> *addr, Ref<void> value,
-                                  MemoryOrder order = SEQ_CST) {
-    return Ref<void>(atomicExchange(&addr->value_, value.get(), order));
+  template <MemoryOrder M>
+  Ref<void> exchange(Ref<void> value) noexcept {
+    return Ref<void>(mem::exchange<M>(&value_, value.get()));
   }
 
-  friend bool atomicCompareExchange(Ref<void> *addr, Ref<void> expected,
-                                    Ref<void> desired,
-                                    MemoryOrder succ = SEQ_CST,
-                                    MemoryOrder fail = RELAXED) {
-    return atomicCompareExchange(&addr->value_, expected.get(), desired.get(),
-                                 succ, fail);
+  template <MemoryOrder S, MemoryOrder F = RELAXED>
+  bool compareExchange(Ref<void> expected, Ref<void> desired) noexcept {
+    return mem::compareExchange<S, F>(&value_, expected.get(), desired.get());
   }
+
+  /// @}
+
+  RefProxy proxy() noexcept;
 
 private:
   void *value_;
@@ -182,6 +196,51 @@ template <typename T, typename U>
 constexpr Ref<T> cast(Ref<U> x) {
   return x.template cast<T>();
 }
+
+/// A type-erasing stand-in for a `Ref<T>`. Forwards all calls along to target.
+class RefProxy {
+public:
+  template <typename T>
+  explicit RefProxy(Ref<T> *target)
+      : target(reinterpret_cast<Ref<void> *>(target)) {}
+
+  /// Load from target Ref.
+  template <MemoryOrder M>
+  Ref<void> load() const noexcept {
+    return target->load<M>();
+  }
+
+  /// Store to target Ref.
+  template <MemoryOrder M>
+  void store(Ref<void> value) const noexcept {
+    return target->store<M>(value);
+  }
+
+  /// Exchange the held value for another.
+  template <MemoryOrder M>
+  Ref<void> exchange(Ref<void> value) const noexcept {
+    return target->exchange<M>(value);
+  }
+
+  /// Compare-and-swap the held value.
+  template <MemoryOrder S, MemoryOrder F = RELAXED>
+  bool compareExchange(Ref<void> expected, Ref<void> value) const noexcept {
+    return target->compareExchange<S, F>(expected, value);
+  }
+
+  /// Get the underlying target we are proxying.
+  Ref<void> *get() const noexcept { return target; }
+
+private:
+  Ref<void> *target;
+};
+
+template <typename T>
+RefProxy Ref<T>::proxy() noexcept {
+  return RefProxy(this);
+}
+
+inline RefProxy Ref<void>::proxy() noexcept { return RefProxy(this); }
 
 } // namespace omtalk::gc
 

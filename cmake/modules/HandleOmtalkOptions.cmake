@@ -27,15 +27,21 @@ list(APPEND OMTALK_LLVM_OPTIONS
 add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fdiagnostics-color>)
 
 ###
-###
+### Warnings and Errors
 ###
 
 if(OMTALK_WARNINGS)
 	add_compile_options(
-		$<$<COMPILE_LANGUAGE:CXX,C>:-Werror>
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Wall>
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-parameter>
-		$<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-functions>
+		$<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-function>
+		#<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-private-field>
+	)
+endif()
+
+if(OMTALK_WARNINGS_AS_ERRORS)
+	add_compile_options(
+		$<$<COMPILE_LANGUAGE:CXX,C>:-Werror>
 	)
 endif()
 

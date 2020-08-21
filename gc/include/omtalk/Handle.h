@@ -49,7 +49,7 @@ protected:
 };
 
 /// The outer most HandleScope.  A RootHandleScope should be scanned as a part
-/// of the root set.  This will scan all interier HandleScopes.
+/// of the root set.  This will scan all interior HandleScopes.
 class RootHandleScope : public HandleScope {
 public:
   using Iterator = std::vector<HandleBase *>::iterator;
@@ -57,36 +57,59 @@ public:
 
   RootHandleScope() : HandleScope() {
     oldSize = 0;
-    data = &handleData;
+    data = &handles;
   }
 
-  Iterator begin() noexcept { return handleData.begin(); }
+  Iterator begin() noexcept { return handles.begin(); }
 
-  ConstIterator begin() const noexcept { return handleData.begin(); }
+  ConstIterator begin() const noexcept { return handles.begin(); }
 
-  Iterator end() noexcept { return handleData.end(); }
+  Iterator end() noexcept { return handles.end(); }
 
-  ConstIterator end() const noexcept { return handleData.end(); }
+  ConstIterator end() const noexcept { return handles.end(); }
 
-  ConstIterator cbegin() const noexcept { return handleData.begin(); }
+  ConstIterator cbegin() const noexcept { return handles.begin(); }
 
-  ConstIterator cend() noexcept { return handleData.end(); }
+  ConstIterator cend() noexcept { return handles.end(); }
+
+  template <typename V, typename... Ts>
+  void walk(V &visitor, Ts &&... xs);
 
 private:
-  std::vector<HandleBase *> handleData;
+  std::vector<HandleBase *> handles;
 };
 
+/// A container class holding a single Ref<void>.
+/// Implements the Slot concept.
 class HandleBase {
 public:
-  Ref<void> load() const noexcept { return value; }
+  template <MemoryOrder M>
+  Ref<void> load() const noexcept {
+    return value.load<M>();
+  }
 
-  void store(Ref<void> address) noexcept { value = address; }
+  template <MemoryOrder M>
+  void store(Ref<void> x) noexcept {
+    value.store<M>(x);
+  }
+
+  template <typename V, typename... Ts>
+  void walk(V &visitor, Ts &&... xs) {
+    visitor.visit(value.proxy(), std::forward<Ts>(xs)...);
+  }
 
 protected:
   HandleBase(Ref<void> value) : value(value) {}
 
   Ref<void> value;
 };
+
+template <typename V, typename... Ts>
+void RootHandleScope::walk(V &visitor, Ts &&... xs) {
+  for (auto handle : handles) {
+    handle->walk(visitor, std::forward<Ts>(xs)...);
+  }
+}
 
 /// GC safe object pointer.  Handles are tracked by their HandleScope, and are
 /// traced during garbage collection.  This ensures that the object pointed to
@@ -115,8 +138,6 @@ public:
 
   T *operator->() const noexcept { return value.reinterpret<T>().get(); }
 
-  T load() const noexcept { return *value.reinterpret<T>(); }
-
   Ref<T> get() const noexcept { return value.reinterpret<T>(); }
 };
 
@@ -130,29 +151,6 @@ public:
   Handle(HandleScope &scope, Ref<void> value) : HandleBase(value) {}
 
   Ref<void> get() const noexcept { return value; }
-};
-
-/// Handle proxy.  Allows the garbage collector to scan handles and return
-/// language specific ObjectProxy
-template <typename S>
-class HandleProxy {
-public:
-  HandleProxy(HandleBase *handle) : handle(handle) {}
-
-  ObjectProxy<S> load() const noexcept {
-    return ObjectProxy<S>(handle->load());
-  }
-
-  void store(ObjectProxy<S> object) const noexcept {
-    handle->store(object->asRef());
-  }
-
-  Ref<void> loadRef() const noexcept { return handle->load(); }
-
-  void storeRef(Ref<void> ref) const noexcept { return handle->store(ref); }
-
-private:
-  HandleBase *handle;
 };
 
 } // namespace omtalk::gc

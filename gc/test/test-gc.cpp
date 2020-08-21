@@ -21,14 +21,14 @@ public:
 
   TestSlotProxy(const TestSlotProxy &) = default;
 
-  TestObjectProxy load() const noexcept;
+  template <omtalk::MemoryOrder M>
+  gc::Ref<void> load() const noexcept {
+    return omtalk::mem::load<M>(&target->asRef);
+  }
 
-  void store(TestObjectProxy object) const noexcept;
-
-  gc::Ref<TestObject> loadRef() const noexcept { return target->asRef; }
-
-  void storeRef(gc::Ref<TestObject> object) const noexcept {
-    target->asRef = object.get();
+  template <omtalk::MemoryOrder M>
+  void store(gc::Ref<void> object) const noexcept {
+    omtalk::mem::store<M>(&target->asRef, object.get());
   }
 
 private:
@@ -44,7 +44,7 @@ class SlotProxyVisitor {
 public:
   explicit SlotProxyVisitor(V &visitor) : visitor(visitor) {}
 
-  void visit(C &cx, TestValue *slot) { visitor.visit(cx, TestSlotProxy(slot)); }
+  void visit(C &cx, TestValue *slot) { visitor.visit(TestSlotProxy(slot), cx); }
   V &visitor;
 };
 
@@ -96,14 +96,6 @@ private:
 };
 
 //===----------------------------------------------------------------------===//
-// TestSlotProxy inlines
-//===----------------------------------------------------------------------===//
-
-inline TestObjectProxy TestSlotProxy::load() const noexcept {
-  return TestObjectProxy(gc::Ref<TestObject>(target->asRef));
-}
-
-//===----------------------------------------------------------------------===//
 // Test Collector
 //===----------------------------------------------------------------------===//
 
@@ -129,9 +121,11 @@ struct gc::RootWalker<TestCollectorScheme> {
     std::cout << "!!! rootwalker: start " << std::endl;
     std::cout << "!!! rootwalker: handlecount=" << rootScope.handleCount()
               << std::endl;
+
+    // TODO: rootScope.walk(visitor, cx);
     for (auto h : rootScope) {
       std::cout << "!!! rootwalker: handle " << h << std::endl;
-      visitor.visit(cx, HandleProxy<TestCollectorScheme>(h));
+      h->walk(visitor, cx);
     }
     std::cout << "!!! rootwalker: end " << std::endl;
   }
@@ -336,7 +330,8 @@ TEST_CASE("Allocate object tree and gc", "[garbage collector]") {
   std::cout << "test: handleCount:"
             << mm.getRootWalker().rootScope.handleCount() << std::endl;
 
-  gc::Handle<TestStructObject> handle(scope, allocateTestStructObject(context, 10));
+  gc::Handle<TestStructObject> handle(scope,
+                                      allocateTestStructObject(context, 10));
 
   auto ref = allocateTestStructObject(context, 10);
   handle->setSlot(0, {REF, ref});

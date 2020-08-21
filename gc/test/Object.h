@@ -6,7 +6,7 @@
 #include <omtalk/Tracing.h>
 #include <ostream>
 
-class TestObject;
+struct TestObject;
 namespace gc = omtalk::gc;
 
 //===----------------------------------------------------------------------===//
