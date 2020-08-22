@@ -11,6 +11,7 @@
 #include <omtalk/Heap.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
+#include <omtalk/Util/Atomic.h>
 #include <omtalk/Util/IntrusiveList.h>
 #include <omtalk/WorkStack.h>
 #include <sys/mman.h>
@@ -116,11 +117,9 @@ public:
 
   RegionManager &getRegionManager() { return regionManager; }
 
+  void setFreeList(FreeList list) { freeList = list; }
+
   unsigned getContextAccessCount() { return contextAccessCount; }
-
-  Context<S> *getExclusiveContext() { return exclusiveContext; }
-
-  void setExclusiveContext(Context<S> *context) { exclusiveContext = context; }
 
   /// Get the mutex used to ensure all contexts yield before performing a
   /// garbage collection.
@@ -136,7 +135,7 @@ public:
   void releaseExclusive(Context<S> &context);
 
   /// Returns if a thread has requested exclusive access
-  bool exclusiveRequested() { return exclusiveContext != nullptr; }
+  bool exclusiveRequested();
 
   /// Refresh the allocation buffer associated with a thread.  May cause tax
   /// paying or garbage collection work to be done.
@@ -175,9 +174,9 @@ private:
   // If exclusive access is held, this points to the context
   std::mutex yieldForGcMutex;
   std::condition_variable yieldForGcCv;
-  Context<S> *volatile exclusiveContext = nullptr;
-  unsigned contextCount = 0;
-  unsigned contextAccessCount = 0;
+  Context<S> *exclusiveContext = nullptr;
+  std::atomic<unsigned> contextCount = 0;
+  std::atomic<unsigned> contextAccessCount = 0;
 
   FreeList freeList;
 };
@@ -254,7 +253,7 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
   // search the free list for an entry at least as big
   FreeBlock *block = freeList.firstFit(minimumSize);
   if (block != nullptr) {
-    context.buffer().begin = block->begin();
+    context.buffer().begin = reinterpret_cast<std::byte *>(block);
     context.buffer().end = block->end();
     return true;
   }
@@ -272,8 +271,13 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
 }
 
 template <typename S>
+bool MemoryManager<S>::exclusiveRequested() {
+  return mem::load<SEQ_CST>(&exclusiveContext) != nullptr;
+}
+
+template <typename S>
 void MemoryManager<S>::releaseExclusive(Context<S> &context) {
-  setExclusiveContext(nullptr);
+  mem::store<SEQ_CST>(&exclusiveContext, static_cast<Context<S> *>(nullptr));
 }
 
 template <typename S>
@@ -314,9 +318,8 @@ template <typename S>
 void MemoryManager<S>::collect(Context<S> &context) {
   std::unique_lock yieldLock(yieldForGcMutex);
   // If no other thread has requested exclusive, take it
-  if (!exclusiveRequested()) {
-    setExclusiveContext(&context);
-  }
+  mem::compareExchange<SEQ_CST, SEQ_CST>(
+      &exclusiveContext, static_cast<Context<S> *>(nullptr), &context);
   waitOrGC(context, yieldLock);
 }
 
