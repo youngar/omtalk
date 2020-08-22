@@ -48,7 +48,7 @@ public:
 /// set the default accessor for a type.
 template <typename T>
 struct IntrusiveListNodeAccessor {
-  typedef IntrusiveListNode<T> Node;
+  using Node = IntrusiveListNode<T>;
 
   /// Obtain the IntrusiveListNode from an element. By default, calls
   /// element.node().
@@ -211,11 +211,11 @@ bool operator!=(const IntrusiveListIterator<T, A> &lhs,
 template <typename T, typename Accessor = IntrusiveListNodeAccessor<T>>
 class IntrusiveList {
 public:
-  typedef IntrusiveListNode<T> Node;
+  using Node = IntrusiveListNode<T>;
 
-  typedef IntrusiveListIterator<T, Accessor> Iterator;
+  using Iterator = IntrusiveListIterator<T, Accessor>;
 
-  typedef IntrusiveListConstIterator<T, Accessor> ConstIterator;
+  using ConstIterator = IntrusiveListConstIterator<T, Accessor>;
 
   IntrusiveList() : _root(NULL) {}
 
