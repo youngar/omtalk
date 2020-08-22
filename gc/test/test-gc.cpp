@@ -334,17 +334,10 @@ TEST_CASE("Allocate object tree and gc", "[garbage collector]") {
                                       allocateTestStructObject(context, 10));
 
   auto ref = allocateTestStructObject(context, 10);
+  ref = allocateTestStructObject(context, 10);
   handle->setSlot(0, {REF, ref});
 
-  std::cout << *handle;
-
-  std::cout << "test: handleCount:"
-            << mm.getRootWalker().rootScope.handleCount() << std::endl;
-
   mm.collect(context);
-  std::cout << "test: handleCount:"
-            << mm.getRootWalker().rootScope.handleCount() << std::endl;
-  std::cout << "!!! End of the good test" << std::endl;
 }
 
 TEST_CASE("Root scanning", "[garbage collector]") {
@@ -367,7 +360,7 @@ TEST_CASE("Root scanning", "[garbage collector]") {
       break;
     }
 
-    std::cout << "successful allocation\n" << *ref << std::endl;
+    // std::cout << "successful allocation\n" << *ref << std::endl;
   }
   return;
 }
