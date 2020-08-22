@@ -47,13 +47,14 @@ option(OMTALK_OM "Build the Omtalk Om object model. Requires OMTALK_COMPILER and
 option(OMTALK_PARSER "Build the Omtalk SOM parser.  A parsing library for the Simple Object Machine language.")
 
 # Build customization
-option(OMTALK_ASAN "Build with clang address sanitizer enabled.")
 option(OMTALK_LLD "Use the LLVM linker ld.lld")
 option(OMTALK_LLVM "Build against the LLVM submodule")
 option(OMTALK_RTTI "Build with RTTI support.")
+option(OMTALK_SAN_ASAN "Build with clang address sanitizer enabled.")
+option(OMTALK_SAN_TSAN " Build with clang thread sanitizer enabled")
+option(OMTALK_SAN_UBSAN "Build with clang undefined behaviour sanitizer.")
 option(OMTALK_SPLIT_DEBUG "Split debug information for faster link times")
 option(OMTALK_TESTS "Build and run the tests")
-option(OMTALK_UBSAN "Build with clang undefined behaviour sanitizer.")
 option(OMTALK_WARNINGS "Build with extra warning enabled")
 option(OMTALK_WARNINGS_AS_ERRORS "Treat compiler warnings as errors")
 

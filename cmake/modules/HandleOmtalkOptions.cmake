@@ -53,13 +53,18 @@ set(LLVM_ENABLE_WERROR off)
 ### Sanitizer Support
 ###
 
-if(OMTALK_ASAN)
+if(OMTALK_SAN_ASAN)
 	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=address>)
 	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fno-omit-frame-pointer>)
 	add_link_options(-fsanitize=address)
 endif()
 
-if(OMTALK_UBSAN)
+if(OMTALK_SAN_TSAN)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=thread>)
+	add_link_options(-fsanitize=thread)
+endif()
+
+if(OMTALK_SAN_UBSAN)
 	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=undefined>)
 	add_link_options(-fsanitize=undefined)
 endif()
