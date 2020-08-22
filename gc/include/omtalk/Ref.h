@@ -34,8 +34,6 @@ public:
 
   constexpr T *get() const noexcept { return value_; }
 
-  constexpr T load() const noexcept { return *value_; }
-
   std::uintptr_t toAddr() const noexcept {
     return reinterpret_cast<std::uintptr_t>(value_);
   }
@@ -98,8 +96,8 @@ public:
   }
 
   template <MemoryOrder S, MemoryOrder F = RELAXED>
-  bool cas(Ref<T> expected, Ref<T> desired) noexcept {
-    return mem::cas<S, F>(&value_, expected.get(), desired.get());
+  bool compareExchange(Ref<T> expected, Ref<T> desired) noexcept {
+    return mem::compareExchange<S, F>(&value_, expected.get(), desired.get());
   }
 
   /// @}
@@ -195,6 +193,11 @@ std::ostream &operator<<(std::ostream &out, const Ref<T> &ref) {
 template <typename T, typename U>
 constexpr Ref<T> cast(Ref<U> x) {
   return x.template cast<T>();
+}
+
+template <typename T, typename U>
+constexpr Ref<T> reinterpret(Ref<U> x) {
+  return x.template reinterpret<T>();
 }
 
 /// A type-erasing stand-in for a `Ref<T>`. Forwards all calls along to target.
