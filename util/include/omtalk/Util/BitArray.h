@@ -72,13 +72,13 @@ public:
 
   void clear() noexcept { chunks.fill(BitChunk(0)); }
 
-  typedef BitChunkArray<NCHUNKS>::iterator Iterator;
+  using Iterator = typename BitChunkArray<NCHUNKS>::iterator;
 
-  typedef BitChunkArray<NCHUNKS>::const_iterator ConstIterator;
+  using ConstIterator = typename BitChunkArray<NCHUNKS>::const_iterator;
 
-  Iterator begin() const { return chunks.begin(); }
+  Iterator begin() { return chunks.begin(); }
 
-  Iterator end() const { return chunks.end(); }
+  Iterator end() { return chunks.end(); }
 
   ConstIterator cbegin() const { return chunks.cbegin(); }
 
