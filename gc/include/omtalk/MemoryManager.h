@@ -258,6 +258,15 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
     return true;
   }
 
+  // Collect and try again
+  collect(context);
+  block = freeList.firstFit(minimumSize);
+  if (block != nullptr) {
+    context.buffer().begin = reinterpret_cast<std::byte *>(block);
+    context.buffer().end = block->end();
+    return true;
+  }
+
   // Get a new region
   Region *region = regionManager.allocateRegion();
   if (region != nullptr) {
