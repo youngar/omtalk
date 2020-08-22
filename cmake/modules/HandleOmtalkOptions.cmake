@@ -98,7 +98,6 @@ if(OMTALK_SPLIT_DEBUG)
 	add_link_options(
 		$<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:GNU>>:-Wl,--gdb-index>
 		$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:-Wl,--gdb-index>
-
 	)
 	list(APPEND OMTALK_LLVM_OPTIONS
 		-DLLVM_USE_SPLIT_DWARF=on
