@@ -119,11 +119,12 @@ public:
 
   void setFreeList(FreeList list) { freeList = list; }
 
-  unsigned getContextAccessCount() { return contextAccessCount; }
+  /// Get the number of contexts currently attached to the MM
+  unsigned getContextCount() { return contextCount.load(); }
 
-  /// Get the mutex used to ensure all contexts yield before performing a
-  /// garbage collection.
-  std::mutex &getYieldForGcMutex() { return yieldForGcMutex; }
+  /// Get the number of threads which have access to the MM.  All threads must
+  /// yield access to the MM before a GC can happen.
+  unsigned getContextAccessCount() { return contextAccessCount.load(); }
 
   /// Signal to other threads that this thread wants exclusive access. Returns
   /// false if another thread has already requested it.  This will yield to
@@ -157,9 +158,8 @@ private:
   void detach(Context<S> &context);
 
   /// Pause the context while waiting for the GC to complete.  If this
-  /// context is the last active context, perform the GC.  The yield mutex must
-  /// be held when this function is called.
-  void waitOrGC(Context<S> &context, std::unique_lock<std::mutex> &yieldLock);
+  /// context is the last active context, perform the GC.
+  void waitOrGC(Context<S> &context);
 
   /// Perform a stop the world garbage collection.  All mutator threads must be
   /// paused.
@@ -174,10 +174,13 @@ private:
   // If exclusive access is held, this points to the context
   std::mutex yieldForGcMutex;
   std::condition_variable yieldForGcCv;
-  Context<S> *exclusiveContext = nullptr;
+
+  std::atomic<Context<S> *> exclusiveContext = nullptr;
   std::atomic<unsigned> contextCount = 0;
   std::atomic<unsigned> contextAccessCount = 0;
 
+  /// Guards access to the global free list
+  std::mutex freeListMutex;
   FreeList freeList;
 };
 
@@ -206,12 +209,12 @@ public:
 
   // GC Notification
 
-  /// If another thread is requesting exclusive access, relinquish access
-  /// to the other thread.
+  /// If another thread has requested a collection, allow it to proceed.  All
+  /// active contexts must yield before a collection can happen.
   bool yieldForGC();
 
   /// Perform a global garbage collection.  This will wait for all attached
-  /// threads to reach GC safe points.
+  /// threads to reach GC safe points and yield.
   void collect();
 
   /// Refresh the allocation buffer associated with a thread.  May cause tax
@@ -250,21 +253,29 @@ void MemoryManager<S>::detach(Context<S> &cx) {
 template <typename S>
 bool MemoryManager<S>::refreshBuffer(Context<S> &context,
                                      std::size_t minimumSize) {
+
   // search the free list for an entry at least as big
-  FreeBlock *block = freeList.firstFit(minimumSize);
-  if (block != nullptr) {
-    context.buffer().begin = reinterpret_cast<std::byte *>(block);
-    context.buffer().end = block->end();
-    return true;
+  {
+    std::lock_guard freeListGuard(freeListMutex);
+    FreeBlock *block = freeList.firstFit(minimumSize);
+    if (block != nullptr) {
+      context.buffer().begin = reinterpret_cast<std::byte *>(block);
+      context.buffer().end = block->end();
+      return true;
+    }
   }
 
   // Collect and try again
   collect(context);
-  block = freeList.firstFit(minimumSize);
-  if (block != nullptr) {
-    context.buffer().begin = reinterpret_cast<std::byte *>(block);
-    context.buffer().end = block->end();
-    return true;
+
+  {
+    std::lock_guard freeListGuard(freeListMutex);
+    FreeBlock *block = freeList.firstFit(minimumSize);
+    if (block != nullptr) {
+      context.buffer().begin = reinterpret_cast<std::byte *>(block);
+      context.buffer().end = block->end();
+      return true;
+    }
   }
 
   // Get a new region
@@ -281,31 +292,28 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
 
 template <typename S>
 bool MemoryManager<S>::exclusiveRequested() {
-  return mem::load<SEQ_CST>(&exclusiveContext) != nullptr;
+  return exclusiveContext != nullptr;
 }
 
 template <typename S>
 void MemoryManager<S>::releaseExclusive(Context<S> &context) {
-  mem::store<SEQ_CST>(&exclusiveContext, static_cast<Context<S> *>(nullptr));
+  contextAccessCount = contextCount.load();
+  exclusiveContext = nullptr;
 }
 
 template <typename S>
-void MemoryManager<S>::waitOrGC(Context<S> &context,
-                                std::unique_lock<std::mutex> &yieldLock) {
+void MemoryManager<S>::waitOrGC(Context<S> &context) {
 
+  std::unique_lock yieldLock(yieldForGcMutex);
   contextAccessCount--;
-
   // If we are not the last thread, wait
   if (contextAccessCount != 0) {
-    yieldForGcCv.wait(yieldLock);
-    contextAccessCount++;
+    yieldForGcCv.wait(yieldLock, [this] { return exclusiveRequested(); });
   } else {
     globalCollector.collect();
 
     // Must remove exclusive request before waking up other threads
     releaseExclusive(context);
-
-    contextAccessCount++;
 
     // Wake up other threads
     yieldLock.unlock();
@@ -316,8 +324,7 @@ void MemoryManager<S>::waitOrGC(Context<S> &context,
 template <typename S>
 bool MemoryManager<S>::yieldForGC(Context<S> &context) {
   if (exclusiveRequested()) {
-    std::unique_lock yieldLock(yieldForGcMutex);
-    waitOrGC(context, yieldLock);
+    waitOrGC(context);
     return true;
   }
   return false;
@@ -325,11 +332,10 @@ bool MemoryManager<S>::yieldForGC(Context<S> &context) {
 
 template <typename S>
 void MemoryManager<S>::collect(Context<S> &context) {
-  std::unique_lock yieldLock(yieldForGcMutex);
   // If no other thread has requested exclusive, take it
-  mem::compareExchange<SEQ_CST, SEQ_CST>(
-      &exclusiveContext, static_cast<Context<S> *>(nullptr), &context);
-  waitOrGC(context, yieldLock);
+  Context<S> *expected = nullptr;
+  exclusiveContext.compare_exchange_strong(expected, &context);
+  waitOrGC(context);
 }
 
 //===----------------------------------------------------------------------===//

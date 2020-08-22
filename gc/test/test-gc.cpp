@@ -101,7 +101,6 @@ private:
 
 struct TestCollectorScheme {
   using ObjectProxy = TestObjectProxy;
-  using SlotProxy = TestSlotProxy;
 };
 
 template <>
@@ -118,16 +117,10 @@ struct gc::RootWalker<TestCollectorScheme> {
 
   template <typename ContextT, typename VisitorT>
   void walk(ContextT &cx, VisitorT &visitor) noexcept {
-    std::cout << "!!! rootwalker: start " << std::endl;
-    std::cout << "!!! rootwalker: handlecount=" << rootScope.handleCount()
-              << std::endl;
-
-    // TODO: rootScope.walk(visitor, cx);
     for (auto h : rootScope) {
       std::cout << "!!! rootwalker: handle " << h << std::endl;
       h->walk(visitor, cx);
     }
-    std::cout << "!!! rootwalker: end " << std::endl;
   }
 
   gc::RootHandleScope rootScope;
@@ -155,13 +148,23 @@ allocateTestStructObject(gc::Context<TestCollectorScheme> &cx,
 // Test Startup and Shutdown
 //===----------------------------------------------------------------------===//
 
-TEST_CASE("Startup and Shutdown", "[garbage collector]") {
+TEST_CASE("Startup and Shutdown MemoryManager", "[garbage collector]") {
+  auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
+                .withRootWalker(
+                    std::make_unique<gc::RootWalker<TestCollectorScheme>>())
+                .build();
+}
+
+TEST_CASE("Startup and Shutdown MemoryManager and Contexts",
+          "[garbage collector]") {
   auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
                 .withRootWalker(
                     std::make_unique<gc::RootWalker<TestCollectorScheme>>())
                 .build();
 
-  gc::Context<TestCollectorScheme> context(mm);
+  gc::Context<TestCollectorScheme> context1(mm);
+  gc::Context<TestCollectorScheme> context2(mm);
+  gc::Context<TestCollectorScheme> context3(mm);
 }
 
 //===----------------------------------------------------------------------===//
@@ -196,43 +199,33 @@ TEST_CASE("Exclusive Access blocked by other thread", "[garbage collector]") {
   REQUIRE(context.yieldForGC() == false);
   context.collect();
 
-  {
-    gc::Context<TestCollectorScheme> context2(mm);
-    REQUIRE(mm.getContextAccessCount() == 2);
-    REQUIRE(context.yieldForGC() == false);
+  gc::Context<TestCollectorScheme> context2(mm);
+  std::thread other([&] {
+    context2.collect();
+  });
 
-    // Prevent collect from starting
-    std::unique_lock lock(mm.getYieldForGcMutex());
-
-    // Start another thread to attempt to GC
-    std::thread other([&]() { context2.collect(); });
-
-    // Verify that a GC has not started
-    REQUIRE(mm.getContextAccessCount() == 2);
-    REQUIRE(context2.yieldForGC() == false);
-
-    // Allow the GC to progress
-    lock.unlock();
-
-    while (!context.yieldForGC()) {
-    }
-
-    REQUIRE(context.yieldForGC() == false);
-
-    std::thread another([&] {
-      while (!context2.yieldForGC()) {
-      }
-    });
-
-    context.collect();
-
-    other.join();
-    another.join();
+  while (!mm.exclusiveRequested()) {
+    // spin
   }
 
+  while (mm.getContextAccessCount() == 2) {
+    // spin
+  }
+
+  REQUIRE(mm.getContextCount() == 2);
+  REQUIRE(mm.getContextAccessCount() == 1);
+
+  REQUIRE(context.yieldForGC() == true);
+
+  REQUIRE(mm.getContextCount() == 2);
+  REQUIRE(mm.getContextAccessCount() == 2);
+  
   REQUIRE(context.yieldForGC() == false);
-  context.collect();
-  REQUIRE(context.yieldForGC() == false);
+
+  REQUIRE(mm.getContextCount() == 2);
+  REQUIRE(mm.getContextAccessCount() == 2);
+
+  other.join();
 }
 
 TEST_CASE("Exclusive access not blocked by destroyed context",

@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
+#include <mutex>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Util/Assert.h>
@@ -343,6 +344,7 @@ public:
   }
 
   Region *allocateRegion() {
+    std::lock_guard regionGuard(regionsMutex);
     Region *region = Region::allocate();
     if (region == nullptr) {
       return nullptr;
@@ -372,6 +374,7 @@ public:
   ConstIterator cend() const { return regions.cend(); }
 
 private:
+  std::mutex regionsMutex;
   RegionList regions;
 };
 
