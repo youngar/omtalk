@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <omtalk/Ref.h>
+#include <omtalk/Scheme.h>
 #include <omtalk/Util/Assert.h>
 #include <omtalk/Util/BitArray.h>
 #include <omtalk/Util/IntrusiveList.h>
@@ -41,50 +42,67 @@ constexpr std::size_t REGION_MAP_NCHUNKS = REGION_MAP_NBITS / BITCHUNK_NBITS;
 
 class alignas(OBJECT_ALIGNMENT) FreeBlock {
 public:
-  FreeBlock() = delete;
+  FreeBlock() = default;
 
-  FreeBlock(std::size_t size, FreeBlock *next) : size(size), next(next) {}
+  static FreeBlock *create(void *address, std::size_t size = 0,
+                           FreeBlock *next = nullptr) noexcept {
+    return new (address) FreeBlock(size, next);
+  }
 
   std::size_t getSize() const noexcept { return size; }
 
   FreeBlock *getNext() const noexcept { return next; }
 
-  std::byte *begin() noexcept { return reinterpret_cast<std::byte *>(this); }
+  bool hasNext() const noexcept { return next != nullptr; }
 
-  std::byte *end() noexcept { return begin() + getSize(); }
+  /// Return the beginning of the bytes in the free block, located immediately
+  /// after this header.
+  std::byte *begin() noexcept {
+    return reinterpret_cast<std::byte *>(this + 1);
+  }
 
-  void link(FreeBlock *freeBlock) noexcept {
-    freeBlock->next = next;
+  /// Return the end of the bytes in the free block
+  std::byte *end() noexcept {
+    return reinterpret_cast<std::byte *>(this) + getSize();
+  }
+
+  /// Create a new FreeBlock at the address and link it to this free block.
+  /// Returns the newly created FreeBlock
+  FreeBlock *link(void *address, std::size_t size = 0) noexcept {
+    return link(FreeBlock::create(address, size));
+  }
+
+  FreeBlock *link(FreeBlock *freeBlock) noexcept {
     next = freeBlock;
+    return freeBlock;
   }
 
 private:
+  FreeBlock(std::size_t size, FreeBlock *next = nullptr)
+      : size(size), next(next) {
+    assert(size > sizeof(FreeBlock));
+  }
+
   std::size_t size = 0;
   FreeBlock *next = nullptr;
 };
 
 class FreeList {
 public:
-  void addFreeBlockNoCheck(FreeBlock *freeBlock) noexcept {
-    freeList->link(freeBlock);
+  void add(void *address, std::size_t size) noexcept {
+    assert(size > sizeof(FreeBlock));
+    last = last->link(address, size);
   }
 
-  void addFreeBlock(FreeBlock *freeBlock) noexcept {
-    if (freeList) {
-      addFreeBlockNoCheck(freeBlock);
-    } else {
-      freeList = freeBlock;
-    }
-  }
-
+  /// Return the first block which is at least as large as size.  Removes the
+  /// free block from the free list.
   FreeBlock *firstFit(std::size_t size) {
-    FreeBlock **block = &freeList;
-    while (*block != nullptr) {
-      if (size <= (*block)->getSize()) {
-        // remove block from the free list and return it
-        FreeBlock *firstFit = *block;
-        *block = (*block)->getNext();
-        return firstFit;
+    FreeBlock *freeBlock = &dummy;
+    while (freeBlock->hasNext()) {
+      auto result = freeBlock->getNext();
+      if (result->getSize() >= size) {
+        freeBlock->link(result->getNext());
+        return result;
       }
     }
 
@@ -93,8 +111,7 @@ public:
 
 private:
   FreeBlock dummy;
-  FreeBlock *freeList = &dummy;
-  FreeBlock *lastBlock = &dummy;
+  FreeBlock *last = &dummy;
 };
 
 //===----------------------------------------------------------------------===//
@@ -132,10 +149,10 @@ public:
   bool marked(HeapIndex index) const { return data.get(std::size_t(index)); }
 
   bool unmarked(HeapIndex index) const { return !data.get(std::size_t(index)); }
-  
-  typedef BitArray<REGION_MAP_NBITS>::Iterator Iterator;
 
-  typedef BitArray<REGION_MAP_NBITS>::ConstIterator ConstIterator;
+  using Iterator = BitArray<REGION_MAP_NBITS>::Iterator;
+
+  using ConstIterator = BitArray<REGION_MAP_NBITS>::ConstIterator;
 
   Iterator begin() { return data.begin(); }
 
@@ -154,6 +171,7 @@ private:
 //===----------------------------------------------------------------------===//
 
 class Region;
+
 using RegionList = IntrusiveList<Region>;
 using RegionListNode = RegionList::Node;
 
@@ -165,13 +183,6 @@ public:
 
   static Region *allocate() {
     auto ptr = aligned_alloc(REGION_ALIGNMENT, REGION_SIZE);
-    std::cout << "ptr " << ptr << std::endl;
-    std::cout << "region_size " << REGION_SIZE << std::endl;
-    std::cout << "sizeof(Region) " << sizeof(Region) << std::endl;
-    std::cout << "sizeof(RegionMap) " << sizeof(RegionMap) << std::endl;
-    std::cout << "offsetof(Region, data) " << offsetof(Region, data)
-              << std::endl;
-
     if (ptr == nullptr) {
       return nullptr;
     }
@@ -213,26 +224,31 @@ public:
     return (heapBegin() <= ref.get()) && (ref.get() < heapEnd());
   }
 
-  bool mark(Ref<> ref) {
+  bool mark(Ref<void> ref) {
     assert(inRange(ref));
     return markMap.mark(toIndex(ref));
   }
 
-  bool unmark(Ref<> ref) {
+  bool unmark(Ref<void> ref) {
     assert(inRange(ref));
     return markMap.unmark(toIndex(ref));
   }
 
-  bool marked(Ref<> ref) {
+  bool marked(Ref<void> ref) {
     assert(inRange(ref));
     return markMap.marked(toIndex(ref));
   }
 
+  bool unmarked(Ref<void> ref) {
+    assert(inRange(ref));
+    return markMap.unmarked(toIndex(ref));
+  }
+
   RegionMap &getMarkMap() { return markMap; }
 
-  const RegionMap &getMarkMap() const { return regionMap; }
+  const RegionMap &getMarkMap() const { return markMap; }
 
-  HeapIndex toIndex(Ref<> ref) {
+  HeapIndex toIndex(Ref<void> ref) {
     return HeapIndex((ref.toAddr() & REGION_INDEX_MASK) / OBJECT_ALIGNMENT);
   }
 
@@ -261,6 +277,52 @@ private:
 
   // trailing data must be last
   alignas(OBJECT_ALIGNMENT) std::byte data[];
+};
+
+/// Iterate the live objects in a Region.  Requires the region to have a valid
+/// MarkMap
+template <typename S>
+class RegionMarkedObjectsIterator {
+public:
+  RegionMarkedObjectsIterator(Region &region, std::byte *address) noexcept
+      : region(region), address(address) {}
+
+  RegionMarkedObjectsIterator(Region &region) noexcept
+      : RegionMarkedObjectsIterator(region, region.heapBegin()) {}
+
+  ObjectProxy<S> operator*() const noexcept { return ObjectProxy<S>(address); }
+
+  RegionMarkedObjectsIterator &operator++() noexcept {
+    assert(address < region.heapEnd());
+    address += ObjectProxy<S>(address).getSize();
+    while ((address < region.heapEnd()) && region.unmarked(address)) {
+      address += OBJECT_ALIGNMENT;
+    }
+    return *this;
+  }
+
+  bool operator!=(const RegionMarkedObjectsIterator &other) const noexcept {
+    return address != other.address;
+  }
+
+  Region &region;
+  std::byte *address = nullptr;
+};
+
+/// Range Adaptor for Regions: iterates marked objects.
+template <typename S>
+class RegionMarkedObjects {
+public:
+  RegionMarkedObjects(Region &region) : region(region) {}
+
+  auto begin() const noexcept { return RegionMarkedObjectsIterator<S>(region); }
+
+  auto end() const noexcept {
+    return RegionMarkedObjectsIterator<S>(region, region.heapEnd());
+  }
+
+private:
+  Region &region;
 };
 
 //===----------------------------------------------------------------------===//
@@ -297,9 +359,9 @@ public:
       region.clearMarkMap();
   }
 
-  typedef RegionList::Iterator Iterator;
+  using Iterator = RegionList::Iterator;
 
-  typedef RegionList::ConstIterator ConstIterator;
+  using ConstIterator = RegionList::ConstIterator;
 
   Iterator begin() const { return regions.begin(); }
 
@@ -312,6 +374,10 @@ public:
 private:
   RegionList regions;
 };
+
+//===----------------------------------------------------------------------===//
+// Inlines
+//===----------------------------------------------------------------------===//
 
 } // namespace omtalk::gc
 
