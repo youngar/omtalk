@@ -195,10 +195,14 @@ void scavenge(GlobalCollectorContext<S> &context,
 template <typename S>
 void GlobalCollector<S>::collect() noexcept {
   GlobalCollectorContext<S> context(this);
+  std::cout << "@@@ GC Start\n";
   setup(context);
   scanRoots(context);
+  std::cout << "@@@ GC Marking\n";
   completeScanning(context);
+  std::cout << "@@@ GC Sweep\n";
   sweep(context);
+  std::cout << "@@@ GC End\n";
 }
 
 template <typename S>
@@ -217,26 +221,36 @@ template <typename S>
 void GlobalCollector<S>::completeScanning(Context &context) noexcept {
   while (stack.more()) {
     auto item = stack.pop();
-    std::cout << "completeScanning: " << item.target.asRef() << std::endl;
+    std::cout << "!!! Scan: " << item.target.asRef() << std::endl;
     scan<S>(context, item.target);
   }
 }
 
 template <typename S>
 void GlobalCollector<S>::sweep(Context &context) noexcept {
+  FreeList freeList;
 
-  FreeBlock firstBlock;
-  F
   for (auto &region : memoryManager->getRegionManager()) {
-    const auto *markMap = region.getMarkMap();
-
-    FreeList freeList;
-
-    for (const auto chunk : markmap) {
-
-
+    std::byte *address = region.heapBegin();
+    for (const auto object : RegionMarkedObjects<S>(region)) {
+      std::byte *objectAddress = reinterpret<std::byte>(object.asRef()).get();
+      std::cout << "!!! region: " << region.heapBegin() << std::endl;
+      if (address < objectAddress) {
+        std::size_t size = objectAddress - address;
+        std::cout << "!!! add to freelist: " << address << " size: " << size
+                  << std::endl;
+        freeList.add(address, size);
+      }
+      address = objectAddress + object.getSize();
+      (void)object;
+    }
+    if (address != region.heapEnd()) {
+      std::size_t size = region.heapEnd() - address;
+      std::cout << "!!! add region tail to free list " << address
+                << " size: " << size << std::endl;
     }
   }
+  memoryManager->setFreeList(freeList);
 }
 
 } // namespace omtalk::gc
