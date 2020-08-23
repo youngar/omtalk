@@ -26,9 +26,10 @@ public:
     return omtalk::mem::load<M>(&target->asRef);
   }
 
-  template <omtalk::MemoryOrder M>
-  void store(gc::Ref<void> object) const noexcept {
-    omtalk::mem::store<M>(&target->asRef, object.get());
+  template <omtalk::MemoryOrder M, typename T>
+  void store(gc::Ref<T> object) const noexcept {
+    omtalk::mem::store<M>(&target->asRef,
+                          object.template cast<TestObject>().get());
   }
 
 private:
@@ -68,9 +69,11 @@ public:
     case TestObjectKind::MAP:
       return target.reinterpret<TestMapObject>()->getSize();
     default:
-      return 0;
+      abort();
     }
   }
+
+  std::size_t getForwardedSize() const noexcept { return getSize(); }
 
   template <typename ContextT, typename VisitorT>
   void walk(ContextT &cx, VisitorT &visitor) const noexcept {
@@ -85,7 +88,7 @@ public:
       target.cast<TestMapObject>()->walk(cx, proxyVisitor);
       break;
     default:
-      break;
+      abort();
     }
   }
 
@@ -200,9 +203,7 @@ TEST_CASE("Exclusive Access blocked by other thread", "[garbage collector]") {
   context.collect();
 
   gc::Context<TestCollectorScheme> context2(mm);
-  std::thread other([&] {
-    context2.collect();
-  });
+  std::thread other([&] { context2.collect(); });
 
   while (!mm.exclusiveRequested()) {
     // spin
@@ -219,7 +220,7 @@ TEST_CASE("Exclusive Access blocked by other thread", "[garbage collector]") {
 
   REQUIRE(mm.getContextCount() == 2);
   REQUIRE(mm.getContextAccessCount() == 2);
-  
+
   REQUIRE(context.yieldForGC() == false);
 
   REQUIRE(mm.getContextCount() == 2);
@@ -352,8 +353,42 @@ TEST_CASE("Root scanning", "[garbage collector]") {
       std::cout << "Bad Allocation\n";
       break;
     }
-
-    // std::cout << "successful allocation\n" << *ref << std::endl;
   }
   return;
+}
+
+//===----------------------------------------------------------------------===//
+// Evacuation
+//===----------------------------------------------------------------------===//
+
+TEST_CASE("Evacuation", "[garbage collector]") {
+  auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
+                .withRootWalker(
+                    std::make_unique<gc::RootWalker<TestCollectorScheme>>())
+                .build();
+
+  gc::Context<TestCollectorScheme> context(mm);
+
+  gc::HandleScope scope = mm.getRootWalker().rootScope.createScope();
+
+  gc::Handle<TestStructObject> handle(scope,
+                                      allocateTestStructObject(context, 10));
+
+  auto ref = allocateTestStructObject(context, 10);
+  ref = allocateTestStructObject(context, 10);
+  handle->setSlot(0, {REF, ref});
+
+  std::cout << "object " << handle.get() << std::endl;
+  std::cout << "object " << ref << std::endl;
+
+  auto *collector = &mm.getGlobalCollector();
+  gc::Region *from = gc::Region::get(ref);
+  gc::Region *to = mm.getRegionManager().allocateRegion();
+  gc::GlobalCollectorContext<TestCollectorScheme> collectorContext(collector);
+
+  collector->scanRoots(collectorContext);
+  collector->completeScanning(collectorContext);
+
+  REQUIRE(gc::evacuate<TestCollectorScheme>(collectorContext, *from, *to) ==
+          true);
 }

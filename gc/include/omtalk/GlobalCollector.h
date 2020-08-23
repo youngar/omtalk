@@ -41,6 +41,8 @@ public:
 
   bool more() const { return !data.empty(); }
 
+  bool empyty() const { return data.empty(); }
+
 private:
   std::stack<WorkItem<S>> data;
 };
@@ -75,7 +77,6 @@ public:
 
   WorkStack<S> &getStack() { return stack; }
 
-private:
   void setup(Context &context) noexcept;
 
   void scanRoots(Context &context) noexcept;
@@ -83,6 +84,10 @@ private:
   void completeScanning(Context &context) noexcept;
 
   void sweep(Context &context) noexcept;
+
+  void evacuate(Context &context) noexcept;
+
+private:
 
   MemoryManager<S> *memoryManager;
   WorkStack<S> stack;
@@ -126,7 +131,7 @@ void mark(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
 }
 
 template <typename S>
-void mark(GlobalCollectorContext<S> &context, Ref<> target) noexcept {
+void mark(GlobalCollectorContext<S> &context, Ref<void> target) noexcept {
   Mark<S>()(context, ObjectProxy<S>(target));
 }
 
@@ -159,33 +164,180 @@ void scan(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
 }
 
 //===----------------------------------------------------------------------===//
-// Object Scavenging
+// Sweep
 //===----------------------------------------------------------------------===//
 
 template <typename S>
-class ScavengeVisitor {
+void dosweep(GlobalCollectorContext<S> &context, Region &region,
+             FreeList &freeList) {
+  std::byte *address = region.heapBegin();
+  for (const auto object : RegionMarkedObjects<S>(region)) {
+    std::byte *objectAddress = reinterpret<std::byte>(object.asRef()).get();
+    std::cout << "!!! region: " << region.heapBegin() << std::endl;
+    if (address < objectAddress) {
+      std::size_t size = objectAddress - address;
+      std::cout << "!!! add to freelist: " << address << " size: " << size
+                << std::endl;
+      freeList.add(address, size);
+    }
+    address = objectAddress + object.getSize();
+  }
+  if (address != region.heapEnd()) {
+    std::size_t size = region.heapEnd() - address;
+    std::cout << "!!! add region tail to free list " << address
+              << " size: " << size << std::endl;
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// Forward
+//===----------------------------------------------------------------------===//
+
+/// Represents a forwarded object.  A forwarded object is one that used to be
+/// at this address but has moved to another address.  This record is left
+/// behind to provide a forwading address to the object's new location.
+class ForwardedObject {
+public:
+  /// Place a forwarded object at an address.  This will forward to a new
+  /// address.
+  static Ref<ForwardedObject> create(Ref<void> address, Ref<void> to) noexcept {
+    return new (address.get()) ForwardedObject(to);
+  }
+
+  /// Get a ForwardedObject which already exists at an address.
+  static Ref<ForwardedObject> at(Ref<void> address) noexcept {
+    return address.reinterpret<ForwardedObject>();
+  }
+
+  /// Get the forwarding address.  This is the address that the object has moved
+  /// to.
+  Ref<void> getForwardedAddress() const noexcept { return to; }
+
+private:
+  ForwardedObject(Ref<void> to) : to(to) {}
+  Ref<void> to;
+};
+
+template <typename S>
+class Forward {
+public:
+  ObjectProxy<S> operator()(GlobalCollectorContext<S> &context,
+                            ObjectProxy<S> from, std::byte *to) const noexcept {
+    std::cout << "!!! forward " << from.asRef().get() << " to " << to
+              << std::endl;
+    memcpy(to, from.asRef().get(), from.getSize());
+    ForwardedObject::create(from.asRef(), to);
+    return ObjectProxy<S>(to);
+  }
+};
+
+template <typename S>
+ObjectProxy<S> forward(GlobalCollectorContext<S> &context, ObjectProxy<S> from,
+                       std::byte *to) {
+  return Forward<S>()(context, from, to);
+}
+
+template <typename S>
+bool forward(GlobalCollectorContext<S> &context, Region &from, std::byte *to,
+             std::byte *end) {
+  for (const auto object : RegionMarkedObjects<S>(from)) {
+    auto forwardedSize = object.getForwardedSize();
+    if (forwardedSize > (end - to)) {
+      assert(false && "TODO: handle case when not all objects can be evacuated "
+                      "to a region");
+      return false;
+    }
+#if DEBUG
+    auto newObject = forward(context, object, to);
+    assert(newObject.getSize() == forwardedSize);
+#else
+    forward(context, object, to);
+#endif
+    to += forwardedSize;
+  }
+  return true;
+}
+
+template <typename S>
+bool forward(GlobalCollectorContext<S> &context, Region &from, Region &to) {
+  return forward(context, from, to.heapBegin(), to.heapEnd());
+}
+
+//===----------------------------------------------------------------------===//
+// Fixup
+//===----------------------------------------------------------------------===//
+
+/// Returns whether a ref is in a region that has been evacuated during a
+/// garbage collection
+template <typename T>
+bool inEvacuatedRegion(Ref<T> address) {
+  return Region::get(address)->isEvacuated();
+}
+
+/// If a slot is pointing to a fowarded object, update the slot to point to the
+/// new address of the object
+template <typename S, typename SlotProxyT>
+struct FixupSlot {
+  void operator()(GlobalCollectorContext<S> context, SlotProxyT slot) noexcept {
+    auto ref = proxy::load<RELAXED>(slot);
+    std::cout << "!!! fixup slot " << ref;
+    if (inEvacuatedRegion(ref)) {
+      auto forwardedAddress = ForwardedObject::at(ref)->getForwardedAddress();
+      std::cout << " to " << forwardedAddress;
+      proxy::store<RELAXED>(slot, forwardedAddress);
+    }
+    std::cout << std::endl;
+  }
+};
+
+template <typename S, typename SlotProxyT>
+void fixupSlot(GlobalCollectorContext<S> &context, SlotProxyT slot) noexcept {
+  FixupSlot<S, SlotProxyT>()(context, slot);
+}
+
+template <typename S>
+class FixupVisitor {
 public:
   template <typename SlotProxyT>
-  void visit(GlobalCollectorContext<S> &context,
-             const SlotProxyT slot) const noexcept {
-    auto ref = slot.load();
-    scavenge(context, slot);
+  void visit(SlotProxyT slot, GlobalCollectorContext<S> &context) {
+    fixupSlot<S>(context, slot);
   }
 };
 
 template <typename S>
-struct Scavenge {
+struct Fixup {
   void operator()(GlobalCollectorContext<S> &context,
                   ObjectProxy<S> target) const noexcept {
-    ScavengeVisitor<S> scavenger;
-    target.walk(context, scavenger);
+    FixupVisitor<S> visitor;
+    walk<S>(context, target, visitor);
   }
 };
 
 template <typename S>
-void scavenge(GlobalCollectorContext<S> &context,
-              ObjectProxy<S> target) noexcept {
-  Scavenge<S>()(context, target);
+void fixup(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
+  return Fixup<S>()(context, target);
+}
+
+template <typename S>
+void fixup(GlobalCollectorContext<S> &context, Region &region) noexcept {
+  for (const auto object : RegionMarkedObjects<S>(region)) {
+    fixup<S>(context, object);
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// Evacuate
+//===----------------------------------------------------------------------===//
+
+template <typename S>
+bool evacuate(GlobalCollectorContext<S> &context, Region &from, Region &to) {
+  from.setEvacuated();
+  if (!forward<S>(context, from, to)) {
+    return false;
+  }
+  fixup<S>(context, to);
+  from.setEvacuated(false);
+  return true;
 }
 
 //===----------------------------------------------------------------------===//
@@ -207,7 +359,7 @@ void GlobalCollector<S>::collect() noexcept {
 
 template <typename S>
 void GlobalCollector<S>::setup(Context &context) noexcept {
-  // assert that the workstack is empty
+  assert(stack->empty());
   memoryManager->getRegionManager().clearMarkMaps();
 }
 
@@ -229,28 +381,15 @@ void GlobalCollector<S>::completeScanning(Context &context) noexcept {
 template <typename S>
 void GlobalCollector<S>::sweep(Context &context) noexcept {
   FreeList freeList;
-
   for (auto &region : memoryManager->getRegionManager()) {
-    std::byte *address = region.heapBegin();
-    for (const auto object : RegionMarkedObjects<S>(region)) {
-      std::byte *objectAddress = reinterpret<std::byte>(object.asRef()).get();
-      std::cout << "!!! region: " << region.heapBegin() << std::endl;
-      if (address < objectAddress) {
-        std::size_t size = objectAddress - address;
-        std::cout << "!!! add to freelist: " << address << " size: " << size
-                  << std::endl;
-        freeList.add(address, size);
-      }
-      address = objectAddress + object.getSize();
-      (void)object;
-    }
-    if (address != region.heapEnd()) {
-      std::size_t size = region.heapEnd() - address;
-      std::cout << "!!! add region tail to free list " << address
-                << " size: " << size << std::endl;
-    }
+    dosweep<S>(context, region, freeList);
   }
   memoryManager->setFreeList(freeList);
+}
+
+template <typename S>
+void GlobalCollector<S>::evacuate(Context &Context) noexcept {
+  assert(false && "Not implemented");
 }
 
 } // namespace omtalk::gc

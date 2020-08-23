@@ -117,6 +117,8 @@ public:
 
   RegionManager &getRegionManager() { return regionManager; }
 
+  GlobalCollector<S> &getGlobalCollector() { return globalCollector; }
+
   void setFreeList(FreeList list) { freeList = list; }
 
   /// Get the number of contexts currently attached to the MM

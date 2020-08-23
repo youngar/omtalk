@@ -245,6 +245,12 @@ public:
     return markMap.unmarked(toIndex(ref));
   }
 
+  /// Records if this region is in the set of regions to be evacuated during a
+  /// garbage collection.  This value is only valid during a garbage collection.
+  bool isEvacuated() { return evacuated; }
+
+  void setEvacuated(bool value = true) { evacuated = value; }
+
   RegionMap &getMarkMap() { return markMap; }
 
   const RegionMap &getMarkMap() const { return markMap; }
@@ -270,7 +276,8 @@ private:
 
   ~Region() { unlink(); }
 
-  // std::size_t flags;
+  bool evacuated = false;
+
   RegionListNode listNode;
 
   // Order is important
@@ -295,7 +302,15 @@ public:
 
   RegionMarkedObjectsIterator &operator++() noexcept {
     assert(address < region.heapEnd());
-    address += ObjectProxy<S>(address).getSize();
+    // TODO reading the address touches the heap.  This is needed for sweeping
+    // i.e. sweeping is from the end of a live object to the start of the next.
+    // On the other hand, when we are forwarding, we are destroying the object
+    // by installing a forwarding header as we walk the markmap.  This means
+    // we cannot read the size of an object at this point, as it will be an
+    // invalid object.
+    //
+    // address += ObjectProxy<S>(address).getSize();
+    address += OBJECT_ALIGNMENT;
     while ((address < region.heapEnd()) && region.unmarked(address)) {
       address += OBJECT_ALIGNMENT;
     }
@@ -374,8 +389,17 @@ public:
   ConstIterator cend() const { return regions.cend(); }
 
 private:
+  /// Protects all the region lists
   std::mutex regionsMutex;
+
+  /// Young generation regions
   RegionList regions;
+
+  /// Old regions
+  RegionList oldRegions;
+
+  /// Regions with no objects allocated out of them
+  RegionList emptyRegions;
 };
 
 //===----------------------------------------------------------------------===//
