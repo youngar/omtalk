@@ -189,7 +189,7 @@ void sweep(GlobalCollectorContext<S> &context, Region &region,
 }
 
 //===----------------------------------------------------------------------===//
-// Forward
+// CopyForward
 //===----------------------------------------------------------------------===//
 
 /// Represents a forwarded object.  A forwarded object is one that used to be
@@ -221,19 +221,19 @@ private:
 /// operation indicates that all objects were successfully forwarded.  A forward
 /// operation may copy some objects but still fail if not all objects were
 /// copied.
-struct ForwardResult {
+struct CopyForwardResult {
 public:
   /// Create a successful forward operation.  The address is the address after
   /// the last copied object.
-  static ForwardResult success(std::byte *address) {
-    return ForwardResult(true, address);
+  static CopyForwardResult success(std::byte *address) {
+    return CopyForwardResult(true, address);
   }
 
   /// Create a failed forwarded operation.  The address is the address after the
   /// last copied object.  If no object was copied, the address is the
   /// original destination address.
-  static ForwardResult fail(std::byte *address = nullptr) {
-    return ForwardResult(false, address);
+  static CopyForwardResult fail(std::byte *address = nullptr) {
+    return CopyForwardResult(false, address);
   }
 
   /// Returns if the operation was a success or failure.
@@ -243,7 +243,7 @@ public:
   std::byte *get() { return address; }
 
 private:
-  ForwardResult(bool result, std::byte *address)
+  CopyForwardResult(bool result, std::byte *address)
       : result(result), address(address) {}
 
   bool result;
@@ -251,35 +251,35 @@ private:
 };
 
 template <typename S>
-class Forward {
+class CopyForward {
 public:
-  ForwardResult operator()(GlobalCollectorContext<S> &context,
+  CopyForwardResult operator()(GlobalCollectorContext<S> &context,
                            ObjectProxy<S> from, std::byte *to,
                            std::byte *end) const noexcept {
     std::cout << "!!! forward " << from.asRef().get() << " to " << to
               << std::endl;
     auto forwardedSize = from.getForwardedSize();
     if (forwardedSize > (end - to)) {
-      return ForwardResult::fail(to);
+      return CopyForwardResult::fail(to);
     }
     memcpy(to, from.asRef().get(), from.getSize());
     ForwardedObject::create(from.asRef(), to);
-    return ForwardResult::success(to + forwardedSize);
+    return CopyForwardResult::success(to + forwardedSize);
   }
 };
 
 template <typename S>
-ForwardResult forward(GlobalCollectorContext<S> &context, ObjectProxy<S> from,
+CopyForwardResult copyForward(GlobalCollectorContext<S> &context, ObjectProxy<S> from,
                       std::byte *to, std::byte *end) {
-  return Forward<S>()(context, from, to, end);
+  return CopyForward<S>()(context, from, to, end);
 }
 
 template <typename S>
-ForwardResult forward(GlobalCollectorContext<S> &context, Region &from,
+CopyForwardResult copyForward(GlobalCollectorContext<S> &context, Region &from,
                       std::byte *to, std::byte *end) {
-  ForwardResult result = ForwardResult::fail(to);
+  CopyForwardResult result = CopyForwardResult::fail(to);
   for (const auto object : RegionMarkedObjects<S>(from)) {
-    result = forward<S>(context, object, result.get(), end);
+    result = copyForward<S>(context, object, result.get(), end);
     if (!result) {
       assert(false && "TODO: handle case when not all objects can be evacuated "
                       "to a region");
@@ -290,9 +290,9 @@ ForwardResult forward(GlobalCollectorContext<S> &context, Region &from,
 }
 
 template <typename S>
-ForwardResult forward(GlobalCollectorContext<S> &context, Region &from,
+CopyForwardResult copyForward(GlobalCollectorContext<S> &context, Region &from,
                       Region &to) {
-  return forward<S>(context, from, to.heapBegin(), to.heapEnd());
+  return copyForward<S>(context, from, to.heapBegin(), to.heapEnd());
 }
 
 //===----------------------------------------------------------------------===//
@@ -364,10 +364,10 @@ void fixup(GlobalCollectorContext<S> &context, Region &region, std::byte *begin,
 //===----------------------------------------------------------------------===//
 
 template <typename S>
-ForwardResult evacuate(GlobalCollectorContext<S> &context, Region &from,
+CopyForwardResult evacuate(GlobalCollectorContext<S> &context, Region &from,
                        Region &to) {
   from.setEvacuated();
-  ForwardResult result = forward<S>(context, from, to);
+  CopyForwardResult result = copyForward<S>(context, from, to);
   fixup<S>(context, to, to.heapBegin(), result.get());
   from.setEvacuated(false);
   return result;
