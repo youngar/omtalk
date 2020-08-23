@@ -167,7 +167,7 @@ void scan(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
 //===----------------------------------------------------------------------===//
 
 template <typename S>
-void dosweep(GlobalCollectorContext<S> &context, Region &region,
+void sweep(GlobalCollectorContext<S> &context, Region &region,
              FreeList &freeList) {
   std::byte *address = region.heapBegin();
   for (const auto object : RegionMarkedObjects<S>(region)) {
@@ -415,7 +415,7 @@ template <typename S>
 void GlobalCollector<S>::sweep(Context &context) noexcept {
   FreeList freeList;
   for (auto &region : memoryManager->getRegionManager()) {
-    dosweep<S>(context, region, freeList);
+    omtalk::gc::sweep<S>(context, region, freeList);
   }
   memoryManager->setFreeList(freeList);
 }
