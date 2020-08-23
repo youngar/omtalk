@@ -287,8 +287,11 @@ private:
   alignas(OBJECT_ALIGNMENT) std::byte data[];
 };
 
-/// Iterate the live objects in a Region.  Requires the region to have a valid
-/// MarkMap
+/// Iterate the live objects in a Region by walking the MarkMap.  Requires
+/// the region to have a valid MarkMap.
+///
+/// Can be used with a range based for loop with:
+///   for (auto object : RegionMarkedObjects(region))
 template <typename S>
 class RegionMarkedObjectsIterator {
 public:
@@ -302,12 +305,15 @@ public:
 
   RegionMarkedObjectsIterator &operator++() noexcept {
     assert(address < region.heapEnd());
-    // TODO reading the address touches the heap.  This is needed for sweeping
-    // i.e. sweeping is from the end of a live object to the start of the next.
-    // On the other hand, when we are forwarding, we are destroying the object
-    // by installing a forwarding header as we walk the markmap.  This means
-    // we cannot read the size of an object at this point, as it will be an
-    // invalid object.
+    // TODO
+    // When we are forwarding, we are destroying the object by installing a
+    // forwarding header as we walk the markmap.  This means we cannot read the
+    // size of an object at this point, as it will be an invalid object.
+    //
+    // On the other hand, if the thing using this iterator is touching the
+    // object, grabbing the object size may increase the speed of the iterator.
+    // This works well with sweeping since sweep needs the object size i.e.
+    // sweeping is from the end of a live object to the start of the next.
     //
     // address += ObjectProxy<S>(address).getSize();
     address += OBJECT_ALIGNMENT;
@@ -339,6 +345,59 @@ public:
 
 private:
   Region &region;
+};
+
+/// Iterate the live objects in a Region by assuming that the next Object begins
+/// immediately after the current object.  Using this iterator requires that
+/// objects in the region are fully compacted.
+///
+/// It is possible to continuously increase the end address mark in the
+/// iterator as it is used.  This is useful for iterating objects in a region as
+/// they are copied in via a cheney style scavenging algorithm.
+template <typename S>
+class ContiguousObjectsIterator {
+public:
+  ContiguousObjectsIterator(std::byte *begin) noexcept
+      : scan(begin) {}
+
+  ObjectProxy<S> operator*() const noexcept { return ObjectProxy<S>(scan); }
+
+  ContiguousObjectsIterator &operator++() noexcept {
+    scan += ObjectProxy<S>(scan).getSize();
+    return *this;
+  }
+
+  bool operator!=(const ContiguousObjectsIterator &other) const noexcept {
+    return scan != other.scan;
+  }
+
+  std::byte *scan;
+};
+
+/// Region adapter for iterating contiguous objects
+template <typename S>
+class RegionContiguousObjects {
+public:
+  RegionContiguousObjects(Region &region)
+      : RegionContiguousObjects(region, region.heapBegin()) {}
+
+  RegionContiguousObjects(Region &region, std::byte *begin)
+      : RegionContiguousObjects(region, begin, region.heapEnd()) {}
+
+  RegionContiguousObjects(Region &region, std::byte *begin, std::byte *end)
+      : begin_(begin), end_(end) {}
+
+  ContiguousObjectsIterator<S> begin() {
+    return ContiguousObjectsIterator<S>(begin_);
+  }
+
+  ContiguousObjectsIterator<S> end() {
+    return ContiguousObjectsIterator<S>(end_);
+  }
+
+private:
+  std::byte *begin_;
+  std::byte *end_;
 };
 
 //===----------------------------------------------------------------------===//

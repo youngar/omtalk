@@ -88,7 +88,6 @@ public:
   void evacuate(Context &context) noexcept;
 
 private:
-
   MemoryManager<S> *memoryManager;
   WorkStack<S> stack;
 };
@@ -218,49 +217,82 @@ private:
   Ref<void> to;
 };
 
+/// Returns whether the forward operation was a success.  A successful forward
+/// operation indicates that all objects were successfully forwarded.  A forward
+/// operation may copy some objects but still fail if not all objects were
+/// copied.
+struct ForwardResult {
+public:
+  /// Create a successful forward operation.  The address is the address after
+  /// the last copied object.
+  static ForwardResult success(std::byte *address) {
+    return ForwardResult(true, address);
+  }
+
+  /// Create a failed forwarded operation.  The address is the address after the
+  /// last copied object.  If no object was copied, the address is the
+  /// original destination address.
+  static ForwardResult fail(std::byte *address = nullptr) {
+    return ForwardResult(false, address);
+  }
+
+  /// Returns if the operation was a success or failure.
+  operator bool() { return result; }
+
+  /// Gets the first unused address after the forwarded objects.
+  std::byte *get() { return address; }
+
+private:
+  ForwardResult(bool result, std::byte *address)
+      : result(result), address(address) {}
+
+  bool result;
+  std::byte *address;
+};
+
 template <typename S>
 class Forward {
 public:
-  ObjectProxy<S> operator()(GlobalCollectorContext<S> &context,
-                            ObjectProxy<S> from, std::byte *to) const noexcept {
+  ForwardResult operator()(GlobalCollectorContext<S> &context,
+                           ObjectProxy<S> from, std::byte *to,
+                           std::byte *end) const noexcept {
     std::cout << "!!! forward " << from.asRef().get() << " to " << to
               << std::endl;
+    auto forwardedSize = from.getForwardedSize();
+    if (forwardedSize > (end - to)) {
+      return ForwardResult::fail(to);
+    }
     memcpy(to, from.asRef().get(), from.getSize());
     ForwardedObject::create(from.asRef(), to);
-    return ObjectProxy<S>(to);
+    return ForwardResult::success(to + forwardedSize);
   }
 };
 
 template <typename S>
-ObjectProxy<S> forward(GlobalCollectorContext<S> &context, ObjectProxy<S> from,
-                       std::byte *to) {
-  return Forward<S>()(context, from, to);
+ForwardResult forward(GlobalCollectorContext<S> &context, ObjectProxy<S> from,
+                      std::byte *to, std::byte *end) {
+  return Forward<S>()(context, from, to, end);
 }
 
 template <typename S>
-bool forward(GlobalCollectorContext<S> &context, Region &from, std::byte *to,
-             std::byte *end) {
+ForwardResult forward(GlobalCollectorContext<S> &context, Region &from,
+                      std::byte *to, std::byte *end) {
+  ForwardResult result = ForwardResult::fail(to);
   for (const auto object : RegionMarkedObjects<S>(from)) {
-    auto forwardedSize = object.getForwardedSize();
-    if (forwardedSize > (end - to)) {
+    result = forward<S>(context, object, result.get(), end);
+    if (!result) {
       assert(false && "TODO: handle case when not all objects can be evacuated "
                       "to a region");
-      return false;
+      break;
     }
-#if DEBUG
-    auto newObject = forward(context, object, to);
-    assert(newObject.getSize() == forwardedSize);
-#else
-    forward(context, object, to);
-#endif
-    to += forwardedSize;
   }
-  return true;
+  return result;
 }
 
 template <typename S>
-bool forward(GlobalCollectorContext<S> &context, Region &from, Region &to) {
-  return forward(context, from, to.heapBegin(), to.heapEnd());
+ForwardResult forward(GlobalCollectorContext<S> &context, Region &from,
+                      Region &to) {
+  return forward<S>(context, from, to.heapBegin(), to.heapEnd());
 }
 
 //===----------------------------------------------------------------------===//
@@ -318,9 +350,11 @@ void fixup(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
   return Fixup<S>()(context, target);
 }
 
+/// Fix up all objects starting at the beginning of a region.
 template <typename S>
-void fixup(GlobalCollectorContext<S> &context, Region &region) noexcept {
-  for (const auto object : RegionMarkedObjects<S>(region)) {
+void fixup(GlobalCollectorContext<S> &context, Region &region, std::byte *begin,
+           std::byte *end) noexcept {
+  for (auto object : RegionContiguousObjects<S>(region, begin, end)) {
     fixup<S>(context, object);
   }
 }
@@ -330,14 +364,13 @@ void fixup(GlobalCollectorContext<S> &context, Region &region) noexcept {
 //===----------------------------------------------------------------------===//
 
 template <typename S>
-bool evacuate(GlobalCollectorContext<S> &context, Region &from, Region &to) {
+ForwardResult evacuate(GlobalCollectorContext<S> &context, Region &from,
+                       Region &to) {
   from.setEvacuated();
-  if (!forward<S>(context, from, to)) {
-    return false;
-  }
-  fixup<S>(context, to);
+  ForwardResult result = forward<S>(context, from, to);
+  fixup<S>(context, to, to.heapBegin(), result.get());
   from.setEvacuated(false);
-  return true;
+  return result;
 }
 
 //===----------------------------------------------------------------------===//

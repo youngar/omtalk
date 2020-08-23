@@ -388,7 +388,5 @@ TEST_CASE("Evacuation", "[garbage collector]") {
 
   collector->scanRoots(collectorContext);
   collector->completeScanning(collectorContext);
-
-  REQUIRE(gc::evacuate<TestCollectorScheme>(collectorContext, *from, *to) ==
-          true);
+  gc::evacuate<TestCollectorScheme>(collectorContext, *from, *to);
 }
