@@ -18,9 +18,6 @@ using ObjectRef = typename S::ObjectRef;
 template <typename S>
 using ObjectProxy = typename S::ObjectProxy;
 
-template <typename S>
-using SlotProxy = typename S::SlotProxy;
-
 //===----------------------------------------------------------------------===//
 // Object Proxy Construction
 //===----------------------------------------------------------------------===//
