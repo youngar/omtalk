@@ -335,16 +335,24 @@ public:
 template <typename S>
 class RegionMarkedObjects {
 public:
-  RegionMarkedObjects(Region &region) : region(region) {}
+  RegionMarkedObjects(Region &region, std::byte *begin, std::byte *end)
+      : region(region), begin_(begin), end_(end) {}
 
-  auto begin() const noexcept { return RegionMarkedObjectsIterator<S>(region); }
+  RegionMarkedObjects(Region &region)
+      : region(region), begin_(region.heapBegin()), end_(region.heapEnd()) {}
+
+  auto begin() const noexcept {
+    return RegionMarkedObjectsIterator<S>(region, begin_);
+  }
 
   auto end() const noexcept {
-    return RegionMarkedObjectsIterator<S>(region, region.heapEnd());
+    return RegionMarkedObjectsIterator<S>(region, end_);
   }
 
 private:
   Region &region;
+  std::byte *begin_;
+  std::byte *end_;
 };
 
 /// Iterate the live objects in a Region by assuming that the next Object begins
@@ -357,8 +365,7 @@ private:
 template <typename S>
 class ContiguousObjectsIterator {
 public:
-  ContiguousObjectsIterator(std::byte *begin) noexcept
-      : scan(begin) {}
+  ContiguousObjectsIterator(std::byte *begin) noexcept : scan(begin) {}
 
   ObjectProxy<S> operator*() const noexcept { return ObjectProxy<S>(scan); }
 
@@ -404,8 +411,6 @@ private:
 // RegionManager
 //===----------------------------------------------------------------------===//
 
-using RegionTable = std::vector<Region *>;
-
 class RegionManager {
 public:
   ~RegionManager() {
@@ -425,6 +430,35 @@ public:
     }
 
     regions.insert(region);
+    return region;
+  }
+
+  void addRegion(Region *region) {
+    std::lock_guard regionGuard(regionsMutex);
+    regions.insert(region);
+  }
+
+  Region *getEmptyRegion() {
+    std::lock_guard regionGuard(regionsMutex);
+    auto i = emptyRegions.begin();
+    if (i == emptyRegions.end()) {
+      return nullptr;
+    }
+    auto region = &*i;
+    emptyRegions.remove(region);
+    return region;
+  }
+
+  void addEmptyRegion(Region *region) {
+    std::lock_guard regionGuard(regionsMutex);
+    emptyRegions.insert(region);
+  }
+
+  Region *getEmptyOrNewRegion() {
+    auto region = getEmptyRegion();
+    if (!region) {
+      region = allocateRegion();
+    }
     return region;
   }
 
@@ -451,19 +485,26 @@ private:
   /// Protects all the region lists
   std::mutex regionsMutex;
 
-  /// Young generation regions
+  /// List of live regions
   RegionList regions;
-
-  /// Old regions
-  RegionList oldRegions;
 
   /// Regions with no objects allocated out of them
   RegionList emptyRegions;
+
+  /// Regions being evacuated from
+  RegionList evacuateRegions;
 };
 
 //===----------------------------------------------------------------------===//
-// Inlines
+// Helpers
 //===----------------------------------------------------------------------===//
+
+/// Returns whether a ref is in a region that has been evacuated during a
+/// garbage collection
+template <typename T>
+bool inEvacuatedRegion(Ref<T> address) {
+  return Region::get(address)->isEvacuated();
+}
 
 } // namespace omtalk::gc
 

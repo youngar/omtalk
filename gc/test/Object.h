@@ -1,9 +1,9 @@
 #ifndef OMTALK_GC_TEST_OBJECT_H_
 #define OMTALK_GC_TEST_OBJECT_H_
 
+#include <cstddef>
+#include <iostream>
 #include <omtalk/Ref.h>
-#include <omtalk/Scheme.h>
-#include <omtalk/Tracing.h>
 #include <ostream>
 
 struct TestObject;
@@ -12,6 +12,7 @@ namespace gc = omtalk::gc;
 //===----------------------------------------------------------------------===//
 // TestValue
 //===----------------------------------------------------------------------===//
+
 struct RefTag {};
 struct IntTag {};
 constexpr RefTag REF;
@@ -90,6 +91,10 @@ std::ostream &operator<<(std::ostream &out, const TestObject &obj) {
   out << ")";
   return out;
 }
+
+struct TestForwardedRecord : TestObject {
+  void *to;
+};
 
 //===----------------------------------------------------------------------===//
 // TestStructObject

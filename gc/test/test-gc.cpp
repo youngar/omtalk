@@ -75,6 +75,22 @@ public:
 
   std::size_t getForwardedSize() const noexcept { return getSize(); }
 
+  bool isForwarded() const noexcept {
+    return target->kind == TestObjectKind::INVALID;
+  }
+
+  gc::Ref<void> getForwardedAddress() const noexcept {
+    assert(forwarded->kind == TestObjectKind::INVALID);
+    auto forwarded = target.reinterpret<TestForwardedRecord>();
+    return forwarded->to;
+  }
+
+  void forward(gc::Ref<void> to) noexcept {
+    auto forwarded = target.reinterpret<TestForwardedRecord>();
+    forwarded->kind = TestObjectKind::INVALID;
+    forwarded->to = to.get();
+  }
+
   template <typename ContextT, typename VisitorT>
   void walk(ContextT &cx, VisitorT &visitor) const noexcept {
 
