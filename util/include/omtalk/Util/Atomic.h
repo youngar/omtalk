@@ -18,7 +18,7 @@ enum class MemoryOrder : int {
   SEQ_CST = __ATOMIC_SEQ_CST,
 };
 
-// shortcuts to
+// short forms.
 constexpr auto RELAXED = MemoryOrder::RELAXED;
 constexpr auto CONSUME = MemoryOrder::CONSUME;
 constexpr auto ACQUIRE = MemoryOrder::ACQUIRE;

@@ -1,6 +1,7 @@
 
 add_library(omtalk-gc
     src/Allocate.cpp
+    src/ArenaManager.cpp
     src/MemoryManager.cpp
 )
 
@@ -28,6 +29,7 @@ endif()
 
 add_executable(omtalk-gc-test
     test/main.cpp
+    test/test-arenas.cpp
     test/test-gc.cpp
     test/test-handle.cpp
     test/test-regions.cpp

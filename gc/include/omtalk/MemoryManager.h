@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <omtalk/ArenaManager.h>
 #include <omtalk/GlobalCollector.h>
 #include <omtalk/Heap.h>
 #include <omtalk/Ref.h>
@@ -182,6 +183,8 @@ private:
   /// Guards access to the global free list
   std::mutex freeListMutex;
   FreeList freeList;
+
+  ArenaManager arenaManager;
 };
 
 //===----------------------------------------------------------------------===//
