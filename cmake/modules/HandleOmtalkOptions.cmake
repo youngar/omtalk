@@ -48,6 +48,10 @@ set(LLVM_ENABLE_WARNINGS off)
 set(LLVM_ENABLE_PEDANTIC off)
 set(LLVM_ENABLE_WERROR off)
 
+if(OMTALK_CCACHE)
+  find_program(OMTALK_TOOL_CCACHE ccache REQUIRED)
+endif()
+
 ###
 ### Sanitizer Support
 ###
@@ -85,13 +89,11 @@ endif()
 ###
 
 if(OMTALK_STATIC_CLANG_TIDY)
-	find_program(CLANG_TIDY clang-tidy REQUIRED)
-	set(OMTALK_TOOL_CLANG_TIDY "${CLANG_TIDY}")
+	find_program(OMTALK_TOOL_CLANG_TIDY clang-tidy REQUIRED)
 endif()
 
 if(OMTALK_STATIC_IWYU)
-	find_program(IWYU include-what-you-use REQUIRED)
-	set(OMTALK_TOOL_IWYU "${IWYU}")
+	find_program(OMTALK_TOOL_IWYU include-what-you-use REQUIRED)
 endif()
 
 if(OMTALK_STATIC_LWYU)

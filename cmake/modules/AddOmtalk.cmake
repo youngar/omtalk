@@ -4,6 +4,15 @@ function(add_omtalk_target target)
   target_compile_options(${target} PUBLIC ${OMTALK_COMPILE_OPTIONS})
   target_link_options(${target} PUBLIC ${OMTALK_LINK_OPTIONS})
 
+  if(OMTALK_CCACHE)
+    set_target_properties(
+      ${target}
+      PROPERTIES
+        C_COMPILER_LAUNCHER ${OMTALK_TOOL_CCACHE}
+        CXX_COMPILER_LAUNCHER ${OMTALK_TOOL_CCACHE}
+    )
+  endif()
+
   if(OMTALK_STATIC_CLANG_TIDY)
     set_target_properties(
       ${target}

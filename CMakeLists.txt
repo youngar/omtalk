@@ -47,6 +47,7 @@ option(OMTALK_OM "Build the Omtalk Om object model. Requires OMTALK_COMPILER and
 option(OMTALK_PARSER "Build the Omtalk SOM parser.  A parsing library for the Simple Object Machine language.")
 
 # Build customization
+option(OMTALK_CCACHE "Build using ccache as a compiler launcher")
 option(OMTALK_LLD "Use the LLVM linker ld.lld")
 option(OMTALK_LLVM "Build against the LLVM submodule")
 option(OMTALK_RTTI "Build with RTTI support.")
