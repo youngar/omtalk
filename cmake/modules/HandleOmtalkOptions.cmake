@@ -1,6 +1,12 @@
 
-set(OMTALK_LLVM_OPTIONS "" CACHE STRING "")
-set(LLVM_ENABLE_PROJECTS "" CACHE STRING "")
+set(LLVM_ENABLE_PROJECTS "" CACHE STRING "LLVM projects to enable")
+set(OMTALK_COMPILE_OPTIONS  "" CACHE STRING "Options passed to the compiler")
+set(OMTALK_LINK_OPTIONS "" CACHE STRING "Options pass to the linker")
+set(OMTALK_LLVM_OPTIONS "" CACHE STRING "Options passed to LLVM")
+
+###
+### LLVM Configuration
+###
 
 list(APPEND OMTALK_LLVM_OPTIONS
 	-DLLVM_PARALLEL_LINK_JOBS=2
@@ -21,26 +27,19 @@ list(APPEND OMTALK_LLVM_OPTIONS
 )
 
 ###
-### Coloured Output
-###
-
-add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fdiagnostics-color>)
-
-###
 ### Warnings and Errors
 ###
 
 if(OMTALK_WARNINGS)
-	add_compile_options(
+	list(APPEND OMTALK_COMPILE_OPTIONS 
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Wall>
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-parameter>
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-function>
-		#<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-private-field>
 	)
 endif()
 
 if(OMTALK_WARNINGS_AS_ERRORS)
-	add_compile_options(
+	list(APPEND OMTALK_COMPILE_OPTIONS 
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Werror>
 	)
 endif()
@@ -54,19 +53,49 @@ set(LLVM_ENABLE_WERROR off)
 ###
 
 if(OMTALK_SAN_ASAN)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=address>)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fno-omit-frame-pointer>)
-	add_link_options(-fsanitize=address)
+	list(APPEND OMTALK_COMPILE_OPTIONS 
+		$<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=address>
+		$<$<COMPILE_LANGUAGE:CXX,C>:-fno-omit-frame-pointer>
+	)
+	list(APPEND OMTALK_LINK_OPTIONS
+		-fsanitize=address
+	)
 endif()
 
 if(OMTALK_SAN_TSAN)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=thread>)
-	add_link_options(-fsanitize=thread)
+	list(APPEND OMTALK_COMPILE_OPTIONS
+		$<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=thread>
+	)
+	list(APPEND OMTALK_LINK_OPTIONS
+		-fsanitize=thread
+	)
 endif()
 
 if(OMTALK_SAN_UBSAN)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=undefined>)
-	add_link_options(-fsanitize=undefined)
+	list(APPEND OMTALK_COMPILE_OPTIONS
+		$<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=undefined>
+	)
+	list(APPEND OMTALK_LINK_OPTIONS
+		-fsanitize=undefined
+	)
+endif()
+
+###
+### Static Analyzer Support
+###
+
+if(OMTALK_STATIC_CLANG_TIDY)
+	find_program(CLANG_TIDY clang-tidy REQUIRED)
+	set(OMTALK_TOOL_CLANG_TIDY "${CLANG_TIDY}")
+endif()
+
+if(OMTALK_STATIC_IWYU)
+	find_program(IWYU include-what-you-use REQUIRED)
+	set(OMTALK_TOOL_IWYU "${IWYU}")
+endif()
+
+if(OMTALK_STATIC_LWYU)
+	# nothing needed!
 endif()
 
 ###
@@ -74,7 +103,9 @@ endif()
 ###
 
 if(NOT OMTALK_RTTI)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fno-rtti>)
+	list(APPEND OMTALK_COMPILE_OPTIONS
+		$<$<COMPILE_LANGUAGE:CXX,C>:-fno-rtti>
+	)
 	list(APPEND OMTALK_LLVM_OPTIONS -DLLVM_ENABLE_RTTI=off)
 else()
 	list(APPEND OMTALK_LLVM_OPTIONS -DLLVM_ENABLE_RTTI=on)
