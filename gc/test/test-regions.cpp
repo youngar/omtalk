@@ -1,7 +1,10 @@
 #include <catch2/catch.hpp>
+#include <cstddef>
 #include <omtalk/Heap.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Util/Assert.h>
+#include <omtalk/Util/BitArray.h>
+#include <type_traits>
 
 using namespace omtalk::gc;
 

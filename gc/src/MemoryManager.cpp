@@ -1,6 +1,6 @@
-#include <iostream>
-#include <omtalk/MemoryManager.h>
 
-using namespace omtalk;
-using namespace omtalk::gc;
+namespace omtalk::gc {
 
+void donothing() {}
+
+} // namespace omtalk::gc

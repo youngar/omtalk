@@ -1,12 +1,9 @@
-#ifndef OMTALK_GC_ALLOCATE_H_
-#define OMTALK_GC_ALLOCATE_H_
+#ifndef OMTALK_ALLOCATE_H
+#define OMTALK_ALLOCATE_H
 
 #include <cstddef>
-#include <cstdint>
-#include <omtalk/Heap.h>
-#include <omtalk/MemoryManager.h>
 #include <omtalk/Ref.h>
-#include <omtalk/Util/Bytes.h>
+#include <type_traits>
 
 namespace omtalk::gc {
 

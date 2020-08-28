@@ -1,5 +1,5 @@
-#ifndef OMTALK_GC_HANDLE_HPP_
-#define OMTALK_GC_HANDLE_HPP_
+#ifndef OMTALK_HANDLE_H
+#define OMTALK_HANDLE_H
 
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
@@ -7,17 +7,24 @@
 
 namespace omtalk::gc {
 
+/// Handles are a helper mechanism to assist language writers with keeping
+/// references to on heap objects from C++ code. Handles are thin wrappers
+/// around pointers that are tracked by a HandleScope.  A HandleScope allows the
+/// language to provide a list of on stack references for the purposes of root
+/// walking.
 ///
+/// The garbage collector is not automatically aware of HandleScopes, and must
+/// be manually walked during root walking.
+
 /// TODO: create a handle which is guaranteed to point into old space.
 /// It will not need to be scavenged during a local GC.
-///
 
 class HandleBase;
 
 template <typename T>
 class Handle;
 
-/// Stack allocated Handle manager.  When HandleScope goes out of scope,
+/// Stack allocated Handle manager.  When a HandleScope goes out of scope,
 /// all Handles created by it, or an inner scope, become invalid.  When a Handle
 /// becomes invalid, the garbage collector will not find the Handle, and the
 /// object could be free'd or moved.
@@ -155,4 +162,4 @@ public:
 
 } // namespace omtalk::gc
 
-#endif // OMTALK_GC_HANDLE_HPP_
+#endif

@@ -1,7 +1,7 @@
-#ifndef OMTALK_BARRIER_H_
-#define OMTALK_BARRIER_H_
+#ifndef OMTALK_BARRIER_H
+#define OMTALK_BARRIER_H
 
-#include <omtalk/Tracing.h>
+#include <omtalk/Scheme.h>
 
 namespace omtalk::gc {
 
@@ -41,4 +41,4 @@ auto store(Context<S> &cx, ObjectProxyT object, SlotProxyT &slot,
 
 } // namespace omtalk::gc
 
-#endif // OMTALK_BARRIER_H_
+#endif

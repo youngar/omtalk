@@ -13,7 +13,6 @@
 #include <omtalk/Scheme.h>
 #include <omtalk/Util/Atomic.h>
 #include <omtalk/Util/IntrusiveList.h>
-#include <omtalk/WorkStack.h>
 #include <sys/mman.h>
 #include <thread>
 #include <vector>

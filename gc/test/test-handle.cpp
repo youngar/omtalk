@@ -1,6 +1,8 @@
 #include <catch2/catch.hpp>
 #include <cstdint>
 #include <omtalk/Handle.h>
+#include <omtalk/Ref.h>
+#include <omtalk/Util/Atomic.h>
 
 using namespace omtalk;
 using namespace omtalk::gc;
@@ -52,7 +54,7 @@ TEST_CASE("WalkHandles", "[garbage collector]") {
     HandleScope inner = rootScope.createScope();
     Handle<std::uintptr_t> handle(inner, Ref<std::uintptr_t>(&testValue));
     unsigned count = 0;
-    for (auto n : rootScope) {
+    for (auto *n : rootScope) {
       count++;
       Handle<std::uintptr_t> *h = static_cast<Handle<std::uintptr_t> *>(n);
       REQUIRE(*h->load<RELAXED>().reinterpret<uintptr_t>() == 100);
@@ -60,7 +62,7 @@ TEST_CASE("WalkHandles", "[garbage collector]") {
     REQUIRE(count == 2);
   }
   unsigned count = 0;
-  for (auto n : rootScope) {
+  for (auto *n : rootScope) {
     count++;
     REQUIRE(*n->load<RELAXED>().reinterpret<uintptr_t>() == 100);
   }
