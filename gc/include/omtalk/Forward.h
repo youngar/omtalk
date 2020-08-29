@@ -32,9 +32,37 @@ private:
 };
 
 template<typename S>
-void forward(ObjectProxy<S> from, ObjectProxy<S> to) {
-
+void isForwarded(GlobalCollectorContext<S> &context, ObjectProxy<S> from) {
+  auto fromRegion = Region::get(from);
+  fromRegion.getForwardingMap().insert
 }
+
+template<typename S>
+void forward(GlobalCollectorContext<S> &context, ObjectProxy<S> from, ObjectProxy<S> to) {
+  auto fromRegion = Region::get(from);
+  fromRegion.getForwardingMap().insert(from, to);
+}
+
+template <typename S>
+struct Forward {
+  void operator()(GlobalCollectorContext<S> context, ObjectProxy<S> from,
+                        std::byte *to, std::size_t size) const noexcept {
+    std::size_t copySize = from.getCopySize();
+    assert(copySize = from.getSize());
+    if (copySize > size) {
+      return CopyResult::fail();
+    }
+    std::memcpy(to, from.asRef().get(), from.getSize());
+    return CopyResult::success(copySize);
+  }
+};
+
+template <typename S>
+void copy(GlobalCollectorContext<S> &context, ObjectProxy<S> from,
+                std::byte *to, std::size_t size) noexcept {
+  return Copy<S>()(context, from, to, size);
+}
+
 
 } // namespace omtalk::gc
 

@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 #include <cstddef>
+#include <omtalk/ForwardingMap.h>
 #include <omtalk/Heap.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Util/Assert.h>

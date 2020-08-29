@@ -48,7 +48,7 @@ private:
 /// or if two objects are combined into one new object, which is common in
 /// javascript where objects grow slots as the program is running.
 ///
-/// The default implemenation assumes that the object does not change in size or
+/// The default implementation assumes that the object does not change in size or
 /// contents when it is copied.
 template <typename S>
 struct Copy {

@@ -1,11 +1,12 @@
-#ifndef OMTALK_GC_HEAP_
-#define OMTALK_GC_HEAP_
+#ifndef OMTALK_GC_HEAP_H
+#define OMTALK_GC_HEAP_H
 
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
 #include <mutex>
+#include <omtalk/ForwardingMap.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Util/Assert.h>
@@ -265,6 +266,8 @@ public:
                             std::uintptr_t(this));
   }
 
+  ForwardingMap &getForwardingMap() noexcept { return forwardingMap; }
+
   /// Intrusive list
 
   RegionListNode &getListNode() noexcept { return listNode; }
@@ -277,6 +280,8 @@ private:
   ~Region() { unlink(); }
 
   bool evacuated = false;
+
+  ForwardingMap forwardingMap;
 
   RegionListNode listNode;
 
@@ -508,4 +513,4 @@ bool inEvacuatedRegion(Ref<T> address) {
 
 } // namespace omtalk::gc
 
-#endif // OMTALK_GC_HEAP_
+#endif // OMTALK_GC_HEAP_H
