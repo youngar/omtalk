@@ -2,7 +2,6 @@
 #define OMTALK_OBJECTMODEL_H
 
 #include <omtalk/Ref.h>
-#include <omtalk/Tracing.h>
 
 struct VMKlass;
 

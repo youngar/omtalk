@@ -6,5 +6,4 @@
 #include <omtalk/Heap.h>
 #include <omtalk/MemoryManager.h>
 #include <omtalk/Ref.h>
-#include <omtalk/Tracing.h>
 #include <omtalk/Util/BitArray.h>
