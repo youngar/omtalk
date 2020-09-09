@@ -124,6 +124,13 @@ template <typename S>
 void GlobalCollector<S>::setup(Context &context) noexcept {
   assert(stack->empty());
   memoryManager->getRegionManager().clearMarkMaps();
+
+  // select regions for collection.  Selection is based on the reigons with the
+  // // least amount of live data in them.
+  // for (auto &region : regionManager) {
+    
+  // }
+
 }
 
 template <typename S>
@@ -156,39 +163,6 @@ void GlobalCollector<S>::sweep(Context &context) noexcept {
 //   for (auto &region : memoryManager->getRegionManager()) {
 //     region.setEvacuate();
 //   }
-// }
-
-// template <typename S>
-// void GlobalCollector<S>::finalCopyForward(Context &Context) noexcept {
-//   auto toRegion = evacuateRegion;
-//   auto toBegin = evacuateBegin;
-//   auto toEnd = evacuateEnd;
-//   for (auto &fromRegion : memoryManager->getRegionManager()) {
-//     if (!fromRegion.isEvacuated())
-//       continue;
-//     auto fromBegin = fromRegion.heapBegin();
-//     auto fromEnd = fromRegion.heapEnd();
-
-//     do {
-//       auto result =
-//           copyForward(context, fromRegion, fromBegin, fromEnd, toBegin,
-//           toEnd);
-//       if (!result) {
-//         fromBegin = result.getFrom();
-//         toRegion = regionManager.getEmptyOrNewRegion();
-//         toBegin = toRegion.heapBegin();
-//         toEnd = toRegion.heapEnd();
-//         regionManager.addRegion(newRegion);
-//       }
-//     } while (!result);
-
-//     fromBegin = result.getFrom();
-//     toBegin = result.getTo();
-//   }
-
-//   evacuatedRegion = toRegion;
-//   evacuatedBegin = toBegin;
-//   evacuatedEnd = toEnd;
 // }
 
 // template <typename S>

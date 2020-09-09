@@ -106,6 +106,124 @@ CopyForwardResult evacuate(GlobalCollectorContext<S> &context, Region &from,
   return result;
 }
 
+template <typename S>
+class EvacuateRegions {
+public:
+  EvacuateRegions() {}
+
+  begin() {}
+
+  struct Iterator {
+
+  private:
+  };
+
+private:
+};
+
+template <typename S>
+void GlobalCollector<S>::finalCopyForward(Context &Context) noexcept {
+  auto toRegion = evacuateRegion;
+  auto toBegin = evacuateBegin;
+  auto toEnd = evacuateEnd;
+  for (auto &fromRegion : memoryManager->getRegionManager()) {
+    if (!fromRegion.isEvacuated())
+      continue;
+    auto fromBegin = fromRegion.heapBegin();
+    auto fromEnd = fromRegion.heapEnd();
+
+    do {
+      auto result =
+          copyForward(context, fromRegion, fromBegin, fromEnd, toBegin, toEnd);
+      if (!result) {
+        fromBegin = result.getFrom();
+        toRegion = regionManager.getEmptyOrNewRegion();
+        toBegin = toRegion.heapBegin();
+        toEnd = toRegion.heapEnd();
+        regionManager.addRegion(newRegion);
+      }
+    } while (!result);
+
+    fromBegin = result.getFrom();
+    toBegin = result.getTo();
+  }
+
+  evacuatedRegion = toRegion;
+  evacuatedBegin = toBegin;
+  evacuatedEnd = toEnd;
+}
+
+/// Scan every object in a region and scavenge their fields.
+template <typename S>
+void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion,
+              Region *toRegion) {
+  auto begin = scanRegion.heapBegin();
+  for (object : RegionContiguousObjects(scanRegion)) {
+    for ()
+  }
+}
+
+template <typename S>
+scavenge(GlobalCollectorContext<S> &context, Region *scanRegion) {
+
+}
+
+template <typename S>
+void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion, Region *toRegion) {
+
+}
+
+template <typename S>
+void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion) {
+  auto collector = context.getCollector();
+  auto regionManager = collector.getRegionManager();
+  auto toRegion = regionManager.getFreeRegion();
+  auto to = toRegion.heapBegin();
+  auto available = toRegion.getSize();
+  for (object : RegionContiguousObjects(scanRegion)) {
+    
+      // Copy and forward every field if it has not been forwarded
+      if (!isForwarded(context, object)) {
+          auto copyResult = copy(context, object, to, available);
+          if (!copyResult) {
+              // get a new region
+              regionManager.addScanRegion(toRegion);
+              toRegion = regionManager.getFreeRegion();
+              to = toRegion.heapBegin();
+              available = toRegion.getSize();
+              copy(context, object, to, available);
+              assert(copyResult);
+          }
+          available -= copyResult.getCopySize();
+          to += copyResult.getCopySize();
+
+          forward(context, object, to);
+      }
+
+  }
+}
+
+/// Scavenge all regions
+template <typename S>
+void scavenge(GlobalCollectorContext<S> &context) {
+  auto collector = context.getCollector();
+  auto regionManager = collector.getRegionManager();
+  auto scanRegion = regionManager.getScanRegion();
+  scavenge(context, scanRegion);
+}
+
+template <typename S>
+class ScavengeRegions {};
+
+/// Manages the heap and scavenges objects.
+template <typename S>
+class Scavenger {
+public:
+private:
+  std::vector<Region *> fromRegions;
+  std::vector<Region *> toRegions;
+}
+
 } // namespace omtalk::gc
 
 #endif
