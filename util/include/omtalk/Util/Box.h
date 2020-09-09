@@ -1,5 +1,5 @@
-#ifndef OMTALK_UtIL_BOX_H
-#define OMTALK_UtIL_BOX_H
+#ifndef OMTALK_UTIL_BOX_H
+#define OMTALK_UTIL_BOX_H
 
 #include <cstdint>
 
