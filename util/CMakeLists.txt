@@ -23,6 +23,7 @@ add_executable(omtalk-util-test
     test/main.cpp
     test/test-atomic.cpp
     test/test-bitarray.cpp
+    test/test-bits.cpp
     test/test-hashmap.cpp
 )
 
