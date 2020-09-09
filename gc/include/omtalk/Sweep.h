@@ -20,6 +20,7 @@ void sweep(GlobalCollectorContext<S> &context, Region &region,
   }
   if (address != region.heapEnd()) {
     std::size_t size = region.heapEnd() - address;
+    freeList.add(address, size);
   }
 }
 
