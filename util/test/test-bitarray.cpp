@@ -59,3 +59,15 @@ TEST_CASE("multiple of n length", "[BitArray]") {
   REQUIRE(bitArray.get(BITCHUNK_NBITS + 1) == false);
   REQUIRE(bitArray.get(BITCHUNK_NBITS + 2) == false);
 }
+
+TEST_CASE("count", "[BitArray]") {
+  BitArray<BITCHUNK_NBITS*2> bitArray;
+  bitArray.clear();
+  REQUIRE(bitArray.count() == 0);
+  REQUIRE(bitArray.set(BITCHUNK_NBITS + 1)  == true);
+  REQUIRE(bitArray.count() == 1);
+  REQUIRE(bitArray.set(BITCHUNK_NBITS + 2)  == true);
+  REQUIRE(bitArray.count() == 2);
+  bitArray.clear();
+  REQUIRE(bitArray.count() == 0);
+}

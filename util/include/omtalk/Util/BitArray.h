@@ -1,8 +1,10 @@
-#ifndef OMTALK_GC_BITARRAY_HPP_
-#define OMTALK_GC_BITARRAY_HPP_
+#ifndef OMTALK_UTIL_BITARRAY_H
+#define OMTALK_UTIL_BITARRAY_H
 
 #include <array>
+#include <bit>
 #include <cstdint>
+#include <omtalk/Util/Bit.h>
 #include <omtalk/Util/Bytes.h>
 
 namespace omtalk {
@@ -31,6 +33,10 @@ constexpr BitChunk &operator|=(BitChunk &lhs, BitChunk rhs) {
 
 constexpr BitChunk &operator&=(BitChunk &lhs, BitChunk rhs) {
   return lhs = lhs & rhs;
+}
+
+inline unsigned popcount(const BitChunk &chunk) {
+  return popcount(std::uintptr_t(chunk));
 }
 
 constexpr std::size_t BITCHUNK_NBITS = sizeof(BitChunk) * 8;
@@ -66,6 +72,17 @@ public:
       return true;
     }
     return false;
+  }
+
+  std::size_t count() const noexcept {
+    auto i = cbegin();
+    auto e = cend();
+    std::size_t count = 0;
+    while (i != e) {
+      count += popcount(*i);
+      i++;
+    }
+    return count;
   }
 
   std::size_t size() const noexcept { return chunks.size() * BITCHUNK_NBITS; }
@@ -108,7 +125,6 @@ private:
   BitChunkArray<NCHUNKS> chunks;
 };
 
-
 } // namespace omtalk
 
-#endif // OMTALK_GC_BITARRAY_HPP_
+#endif
