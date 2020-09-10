@@ -1,178 +1,18 @@
 #include "Object.h"
-#include <cassert>
 #include <catch2/catch.hpp>
-#include <cstdlib>
 #include <iostream>
 #include <memory>
-#include <omtalk/Allocate.h>
+#include <omtalk/GlobalCollector.h>
 #include <omtalk/Handle.h>
 #include <omtalk/Heap.h>
 #include <omtalk/MemoryManager.h>
 #include <omtalk/Ref.h>
-#include <omtalk/Util/Atomic.h>
 #include <thread>
 
-namespace omtalk {
-namespace gc {
-template <typename S>
-struct GetProxy;
-
+namespace omtalk::gc {
 template <typename S>
 struct RootWalker;
-} // namespace gc
-} // namespace omtalk
-
-//===----------------------------------------------------------------------===//
-// TestSlotProxy
-//===----------------------------------------------------------------------===//
-
-class TestSlotProxy {
-public:
-  TestSlotProxy(TestValue *target) : target(target) {}
-
-  TestSlotProxy(const TestSlotProxy &) = default;
-
-  template <omtalk::MemoryOrder M>
-  gc::Ref<void> load() const noexcept {
-    return omtalk::mem::load<M>(&target->asRef);
-  }
-
-  template <omtalk::MemoryOrder M, typename T>
-  void store(gc::Ref<T> object) const noexcept {
-    omtalk::mem::store<M>(&target->asRef,
-                          object.template cast<TestObject>().get());
-  }
-
-private:
-  TestValue *target;
-};
-
-//===----------------------------------------------------------------------===//
-// TestObjectProxy
-//===----------------------------------------------------------------------===//
-
-template <typename C, typename V>
-class SlotProxyVisitor {
-public:
-  explicit SlotProxyVisitor(V &visitor) : visitor(visitor) {}
-
-  void visit(C &cx, TestValue *slot) { visitor.visit(TestSlotProxy(slot), cx); }
-  V &visitor;
-};
-
-class TestObjectProxy {
-public:
-  explicit TestObjectProxy(gc::Ref<TestObject> obj) : target(obj) {}
-
-  explicit TestObjectProxy(gc::Ref<TestStructObject> obj)
-      : TestObjectProxy(obj.reinterpret<TestObject>()) {}
-
-  explicit TestObjectProxy(gc::Ref<TestMapObject> obj)
-      : TestObjectProxy(obj.reinterpret<TestObject>()) {}
-
-  explicit TestObjectProxy(gc::Ref<void> obj)
-      : TestObjectProxy(obj.reinterpret<TestObject>()) {}
-
-  std::size_t getSize() const noexcept {
-    switch (target->kind) {
-    case TestObjectKind::STRUCT:
-      return target.reinterpret<TestStructObject>()->getSize();
-    case TestObjectKind::MAP:
-      return target.reinterpret<TestMapObject>()->getSize();
-    default:
-      abort();
-    }
-  }
-
-  std::size_t getForwardedSize() const noexcept { return getSize(); }
-
-  bool isForwarded() const noexcept {
-    return target->kind == TestObjectKind::INVALID;
-  }
-
-  gc::Ref<void> getForwardedAddress() const noexcept {
-    assert(forwarded->kind == TestObjectKind::INVALID);
-    auto forwarded = target.reinterpret<TestForwardedRecord>();
-    return forwarded->to;
-  }
-
-  void forward(gc::Ref<void> to) noexcept {
-    auto forwarded = target.reinterpret<TestForwardedRecord>();
-    forwarded->kind = TestObjectKind::INVALID;
-    forwarded->to = to.get();
-  }
-
-  template <typename ContextT, typename VisitorT>
-  void walk(ContextT &cx, VisitorT &visitor) const noexcept {
-
-    SlotProxyVisitor<ContextT, VisitorT> proxyVisitor(visitor);
-
-    switch (target->kind) {
-    case TestObjectKind::STRUCT:
-      target.cast<TestStructObject>()->walk(cx, proxyVisitor);
-      break;
-    case TestObjectKind::MAP:
-      target.cast<TestMapObject>()->walk(cx, proxyVisitor);
-      break;
-    default:
-      abort();
-    }
-  }
-
-  gc::Ref<TestObject> asRef() const noexcept { return target; }
-
-private:
-  gc::Ref<TestObject> target;
-};
-
-//===----------------------------------------------------------------------===//
-// Test Collector
-//===----------------------------------------------------------------------===//
-
-struct TestCollectorScheme {
-  using ObjectProxy = TestObjectProxy;
-};
-
-template <>
-struct gc::GetProxy<TestCollectorScheme> {
-  TestObjectProxy operator()(Ref<void> target) const noexcept {
-    return TestObjectProxy(target.reinterpret<TestObject>());
-  }
-};
-
-template <>
-struct gc::RootWalker<TestCollectorScheme> {
-
-  RootWalker() {}
-
-  template <typename ContextT, typename VisitorT>
-  void walk(ContextT &cx, VisitorT &visitor) noexcept {
-    for (auto *h : rootScope) {
-      std::cout << "!!! rootwalker: handle " << h << std::endl;
-      h->walk(visitor, cx);
-    }
-  }
-
-  gc::RootHandleScope rootScope;
-};
-
-//===----------------------------------------------------------------------===//
-// Test Allocator
-//===----------------------------------------------------------------------===//
-
-inline gc::Ref<TestStructObject>
-allocateTestStructObject(gc::Context<TestCollectorScheme> &cx,
-                         std::size_t nslots) noexcept {
-  auto size = TestStructObject::allocSize(nslots);
-  return gc::allocate<TestCollectorScheme, TestStructObject>(
-      cx, size, [=](auto object) {
-        object->kind = TestObjectKind::STRUCT;
-        object->length = nslots;
-        for (unsigned i = 0; i < nslots; i++) {
-          object->setSlot(i, {REF, nullptr});
-        }
-      });
-}
+} // namespace omtalk::gc
 
 //===----------------------------------------------------------------------===//
 // Test Startup and Shutdown
@@ -383,6 +223,45 @@ TEST_CASE("Root scanning", "[garbage collector]") {
   }
   return;
 }
+
+TEST_CASE("Check live data", "[garbage collector]") {
+  auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
+                .withRootWalker(
+                    std::make_unique<gc::RootWalker<TestCollectorScheme>>())
+                .build();
+  gc::Context<TestCollectorScheme> context(mm);
+  gc::HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  unsigned nslots = 10;
+  auto allocSize = TestStructObject::allocSize(nslots);
+  auto ref = allocateTestStructObject(context, nslots);
+  gc::Handle<TestStructObject> handle(scope, ref);
+
+  auto &gc = mm.getGlobalCollector();
+  gc::GlobalCollectorContext<TestCollectorScheme> gcContext(&gc);
+
+  auto *region = gc::Region::get(ref);
+
+  // perform marking
+  gc.setup(gcContext);
+  gc.scanRoots(gcContext);
+  gc.completeScanning(gcContext);
+
+  // Check live data
+  REQUIRE(region->getLiveDataSize() == allocSize);
+
+  // Do it all again! makes sure things are properly reset between GCs
+  gc.setup(gcContext);
+  gc.scanRoots(gcContext);
+  gc.completeScanning(gcContext);
+
+  // Check live data
+  REQUIRE(region->getLiveDataSize() == allocSize);
+}
+
+TEST_CASE("Region selection", "[garbage collector]") {
+
+}
+
 
 //===----------------------------------------------------------------------===//
 // Evacuation
