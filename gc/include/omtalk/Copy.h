@@ -40,7 +40,7 @@ private:
 
 /// Copy a target object into a memory range. The object must start at the `to`
 /// pointer, but is allowed to end anywhere in the range. The object is allowed
-/// to change size as it is moved. The object must indicate the amount of space
+/// to change size as it is moved. The result must indicate the amount of space
 /// used for for the copy.
 ///
 /// As an example, an object may wish to take more space after being moved if it
