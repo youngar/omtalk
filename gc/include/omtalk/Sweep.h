@@ -1,9 +1,13 @@
 #ifndef OMTALK_SWEEP_H
 #define OMTALK_SWEEP_H
 
+#include <omtalk/GlobalCollector.h>
 #include <omtalk/Scheme.h>
 
 namespace omtalk::gc {
+
+template <typename S>
+class GlobalCollectorContext;
 
 /// Sweep a region with a valid mark map, and add free chunks to the free list.
 template <typename S>
