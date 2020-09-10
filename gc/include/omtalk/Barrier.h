@@ -1,6 +1,8 @@
 #ifndef OMTALK_BARRIER_H
 #define OMTALK_BARRIER_H
 
+#include <omtalk/Mark.h>
+#include <omtalk/MemoryManager.h>
 #include <omtalk/Scheme.h>
 
 namespace omtalk::gc {
@@ -20,6 +22,13 @@ template <typename S, typename ObjectProxyT, typename SlotProxyT,
           typename ValueT>
 void postStoreBarrier(Context<S> &cx, ObjectProxyT object, SlotProxyT &slot,
                       ValueT value) {}
+
+/// Called after an object has been allocated and initialized.
+template <typename S, typename ObjectProxyT>
+void allocateBarrier(Context<S> &cx, ObjectProxyT object) {
+  // Newly allocated objects must be marked black and scanned by the GC.
+  mark<S>(cx.getCollectorContext(), object);
+}
 
 template <typename S, typename ObjectProxyT, typename SlotProxyT>
 auto load(Context<S> &cx, ObjectProxyT &object, SlotProxyT &slot) {

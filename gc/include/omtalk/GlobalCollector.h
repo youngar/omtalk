@@ -55,15 +55,29 @@ public:
 
   ~GlobalCollector() {}
 
+  /// Explicit garbage collection.  Will cancel the previous garbage collection
+  /// and execute a full GC cycle.
   virtual void collect() noexcept override;
 
-  WorkStack<S> &getStack() { return stack; }
 
+
+  /// Cancel an in-progress GC.  This is used to restart a garbage collection
+  /// for a new global gc.
+  void cancel(Context &context) noexcept;
+
+  /// Set up for the next garbage collection. Must only be called after the
+  /// previous GC has finished.
   void setup(Context &context) noexcept;
+
+  /// Scan all roots.
   void scanRoots(Context &context) noexcept;
+
+  /// Concurrent collection helpers
+  // @{
   void completeScanning(Context &context) noexcept;
   void sweep(Context &context) noexcept;
   void evacuate(Context &context) noexcept;
+  // @}
 
   /// Finish a concurrent evacuation.
   void finalEvacuate(Context &context) noexcept;
@@ -71,6 +85,8 @@ public:
   /// Returns true if concurrent evacuation is on-going
   bool concurrentEvacuate() const noexcept { return evacuateRegion != nullptr; }
 
+  WorkStack<S> &getStack() { return stack; }
+  
   /// Get the region we are evacuating to.
   Region *getEvacuateRegion() const noexcept { return evacuateRegion; }
 
@@ -136,25 +152,27 @@ void GlobalCollector<S>::collect() noexcept {
 
 template <typename S>
 void GlobalCollector<S>::setup(Context &context) noexcept {
-  assert(stack->empty());
+  // Clear out any marked references.  This can especially happen from
+  // allocations.  Theoretically if the previous cycle completes, the stacks
+  // should be empty.
+  stack.clear();
+
   auto &regionManager = memoryManager->getRegionManager();
   regionManager.clearMarkMaps();
 
   // select regions for collection.  Selection is based on the regions with the
   // least amount of live data in them.
   for (auto &region : regionManager) {
-    auto liveData = region.getLiveDataSize();
 
     // regions less than half full are candidates for evacuation.
+    auto liveData = region.getLiveDataSize();
     if (liveData < (REGION_SIZE / 2)) {
       region.setEvacuating(true);
     } else {
       region.setEvacuating(false);
     }
-  }
 
-  // Reset the live data in each region
-  for (auto &region : regionManager) {
+    // reset region statistics
     region.clearLiveDataSize();
   }
 }
@@ -182,22 +200,6 @@ void GlobalCollector<S>::sweep(Context &context) noexcept {
   }
   memoryManager->setFreeList(freeList);
 }
-
-// template <typename S>
-// void GlobalCollector<S>::markAllRegionsForEvacuate(Context &Context) noexcept
-// {
-//   for (auto &region : memoryManager->getRegionManager()) {
-//     region.setEvacuate();
-//   }
-// }
-
-// template <typename S>
-// void GlobalCollector<S>::finalFixup(Context &Context) noexcept {
-//   for (auto &region : memoryManager->getRegionManager()) {
-//     fixup(region);
-//   }
-// }
-
 } // namespace omtalk::gc
 
 #endif

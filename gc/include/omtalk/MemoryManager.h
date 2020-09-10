@@ -196,7 +196,9 @@ class Context final {
 public:
   friend MemoryManager<S>;
 
-  Context(MemoryManager<S> &memoryManager) : memoryManager(&memoryManager) {
+  Context(MemoryManager<S> &memoryManager)
+      : memoryManager(&memoryManager),
+        gcContext(&memoryManager.getGlobalCollector()) {
     memoryManager.attach(*this);
   }
 
@@ -209,6 +211,10 @@ public:
   MemoryManager<S> *getCollector() { return memoryManager; }
 
   AllocationBuffer &buffer() { return ab; }
+
+  GlobalCollectorContext<S> &getCollectorContext() noexcept {
+    return gcContext;
+  }
 
   // GC Notification
 
@@ -226,6 +232,7 @@ public:
 
 private:
   MemoryManager<S> *memoryManager;
+  GlobalCollectorContext<S> gcContext;
   ContextListNode<S> listNode;
   AllocationBuffer ab;
 };

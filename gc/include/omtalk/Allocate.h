@@ -2,6 +2,7 @@
 #define OMTALK_ALLOCATE_H
 
 #include <cstddef>
+#include <omtalk/Barrier.h>
 #include <omtalk/Ref.h>
 #include <type_traits>
 
@@ -117,6 +118,7 @@ Ref<T> allocateFast(Context<S> &cx, std::size_t size, Init &&init,
 
   if (object) {
     init(object, std::forward<Args>(args)...);
+    allocateBarrier(cx, object);
   }
   return object;
 }
@@ -128,6 +130,7 @@ Ref<T> allocateZeroFast(Context<S> &cx, std::size_t size, Init &&init,
   auto object = cast<T>(allocateBytesZeroFast<S>(cx, size));
   if (object) {
     init(object, std::forward<Args>(args)...);
+    allocateBarrier(cx, object);
   }
   return object;
 }
@@ -140,6 +143,7 @@ Ref<T> allocateSlow(Context<S> &cx, std::size_t size, Init &&init,
   auto object = cast<T>(allocation);
   if (object) {
     init(object, std::forward<Args>(args)...);
+    allocateBarrier(cx, object);
     if (tax) {
       pay<S>(cx, tax);
     }
@@ -155,6 +159,7 @@ Ref<T> allocateZeroSlow(Context<S> &cx, std::size_t size, Init &&init,
   auto object = cast<T>(allocation);
   if (object) {
     init(object, std::forward<Args>(args)...);
+    allocateBarrier(cx, object);
     if (tax) {
       pay<S>(cx, tax);
     }
@@ -169,6 +174,7 @@ Ref<T> allocateNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
   auto object = cast<T>(allocateBytesNoCollectSlow<S>(cx, size));
   if (object) {
     init(object, std::forward<Args>(args)...);
+    allocateBarrier(cx, object);
   }
   return object;
 }
@@ -180,6 +186,7 @@ Ref<T> allocateZeroNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
   auto object = cast<T>(allocateBytesZeroNoCollectSlow<S>(cx, size));
   if (object) {
     init(object, std::forward<Args>(args)...);
+    allocateBarrier(cx, object);
   }
   return object;
 }

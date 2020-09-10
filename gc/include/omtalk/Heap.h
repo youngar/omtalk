@@ -454,6 +454,10 @@ public:
       return nullptr;
     }
 
+    // TODO who should be responsible for initialization a region
+    region->clearMarkMap();
+    region->clearLiveDataSize();
+
     regions.insert(region);
     return region;
   }

@@ -229,39 +229,66 @@ TEST_CASE("Check live data", "[garbage collector]") {
                 .withRootWalker(
                     std::make_unique<gc::RootWalker<TestCollectorScheme>>())
                 .build();
+  auto &gc = mm.getGlobalCollector();
   gc::Context<TestCollectorScheme> context(mm);
+  auto &gcContext = context.getCollectorContext();
+
   gc::HandleScope scope = mm.getRootWalker().rootScope.createScope();
   unsigned nslots = 10;
   auto allocSize = TestStructObject::allocSize(nslots);
   auto ref = allocateTestStructObject(context, nslots);
   gc::Handle<TestStructObject> handle(scope, ref);
 
-  auto &gc = mm.getGlobalCollector();
-  gc::GlobalCollectorContext<TestCollectorScheme> gcContext(&gc);
-
+  // get the region where the object was allocated
   auto *region = gc::Region::get(ref);
 
-  // perform marking
-  gc.setup(gcContext);
-  gc.scanRoots(gcContext);
-  gc.completeScanning(gcContext);
+  SECTION("Marking sets the proper live data size in a region") {
+    // perform marking
+    gc.setup(gcContext);
+    gc.scanRoots(gcContext);
+    gc.completeScanning(gcContext);
 
-  // Check live data
-  REQUIRE(region->getLiveDataSize() == allocSize);
+    // Check live data
+    REQUIRE(region->getLiveDataSize() == allocSize);
+  }
 
-  // Do it all again! makes sure things are properly reset between GCs
-  gc.setup(gcContext);
-  gc.scanRoots(gcContext);
-  gc.completeScanning(gcContext);
+  SECTION("Garbage collector resets live data for second GC") {
+    // Do it all again! makes sure things are properly reset between GCs
+    gc.setup(gcContext);
+    gc.scanRoots(gcContext);
+    gc.completeScanning(gcContext);
 
-  // Check live data
-  REQUIRE(region->getLiveDataSize() == allocSize);
+    // Check live data
+    REQUIRE(region->getLiveDataSize() == allocSize);
+  }
+
+  SECTION("Object is allocated black") {
+    auto ref = allocateTestStructObject(context, 10);
+    auto *region = gc::Region::get(ref);
+    REQUIRE(region->marked(ref));
+  }
+
+  SECTION("Object allocated black during a gc cycle") {
+    gc.setup(gcContext);
+    auto ref = allocateTestStructObject(context, 10);
+    auto *region = gc::Region::get(ref);
+    REQUIRE(region->marked(ref));
+    gc.completeScanning(gcContext);
+    REQUIRE(region->getLiveDataSize() == allocSize);
+  }
+
+  SECTION("Object is cleared on the cycle following the current cycle") {
+    gc.setup(gcContext);
+    auto ref = allocateTestStructObject(context, 10);
+    auto *region = gc::Region::get(ref);
+    REQUIRE(region->marked(ref));
+    gc.completeScanning(gcContext);
+    REQUIRE(region->getLiveDataSize() == allocSize);
+    gc.collect();
+    REQUIRE(region->unmarked(ref));
+  }
+
 }
-
-TEST_CASE("Region selection", "[garbage collector]") {
-
-}
-
 
 //===----------------------------------------------------------------------===//
 // Evacuation
