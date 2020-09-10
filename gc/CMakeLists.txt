@@ -17,6 +17,7 @@ target_link_libraries(omtalk-gc
 
 add_omtalk_executable(omtalk-gc-test
     test/main.cpp
+    test/test-dispatcher.cpp
     test/test-gc.cpp
     test/test-handle.cpp
     test/test-regions.cpp
