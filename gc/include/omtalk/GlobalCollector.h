@@ -8,12 +8,26 @@
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Sweep.h>
+#include <omtalk/Workstack.h>
 #include <stack>
 
 namespace omtalk::gc {
 
 template <typename S>
+class GlobalCollectorContext;
+
+template <typename S>
 class MemoryManager;
+
+template <typename S>
+class ScanVisitor;
+
+template <typename S>
+void scan(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept;
+
+template <typename S>
+void sweep(GlobalCollectorContext<S> &context, Region &region,
+           FreeList &freeList);
 
 //===----------------------------------------------------------------------===//
 // Global Collector
@@ -123,14 +137,26 @@ void GlobalCollector<S>::collect() noexcept {
 template <typename S>
 void GlobalCollector<S>::setup(Context &context) noexcept {
   assert(stack->empty());
-  memoryManager->getRegionManager().clearMarkMaps();
+  auto &regionManager = memoryManager->getRegionManager();
+  regionManager.clearMarkMaps();
 
-  // select regions for collection.  Selection is based on the reigons with the
-  // // least amount of live data in them.
-  // for (auto &region : regionManager) {
-    
-  // }
+  // select regions for collection.  Selection is based on the regions with the
+  // least amount of live data in them.
+  for (auto &region : regionManager) {
+    auto liveData = region.getLiveDataSize();
 
+    // regions less than half full are candidates for evacuation.
+    if (liveData < (REGION_SIZE / 2)) {
+      region.setEvacuating(true);
+    } else {
+      region.setEvacuating(false);
+    }
+  }
+
+  // Reset the live data in each region
+  for (auto &region : regionManager) {
+    region.clearLiveDataSize();
+  }
 }
 
 template <typename S>
