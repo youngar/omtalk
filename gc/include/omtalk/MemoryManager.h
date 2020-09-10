@@ -57,7 +57,9 @@ public:
 // MemoryManagerConfig
 //===----------------------------------------------------------------------===//
 
-struct MemoryManagerConfig {};
+struct MemoryManagerConfig {
+  unsigned gcWorkerThreads = 0;
+};
 
 constexpr MemoryManagerConfig DEFAULT_MEMORY_MANAGER_CONFIG;
 
