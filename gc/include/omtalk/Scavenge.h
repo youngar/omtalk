@@ -98,10 +98,10 @@ template <typename S>
 CopyForwardResult evacuate(GlobalCollectorContext<S> &context, Region &from,
                            Region &to) {
   auto collector = context.getCollector();
-  from.setEvacuated();
+  from.setEvacuating();
   auto result = copyForward<S>(context, from, to);
   fixup<S>(context, to, to.heapBegin(), result.get());
-  from.setEvacuated(false);
+  from.setEvacuating(false);
   getRegionManager.addFreeRegion(region);
   return result;
 }
@@ -127,7 +127,7 @@ void GlobalCollector<S>::finalCopyForward(Context &Context) noexcept {
   auto toBegin = evacuateBegin;
   auto toEnd = evacuateEnd;
   for (auto &fromRegion : memoryManager->getRegionManager()) {
-    if (!fromRegion.isEvacuated())
+    if (!fromRegion.isEvacuating())
       continue;
     auto fromBegin = fromRegion.heapBegin();
     auto fromEnd = fromRegion.heapEnd();

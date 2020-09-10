@@ -48,3 +48,15 @@ TEST_CASE("Mark Map works", "[MarkMap]") {
 
   REQUIRE(region->marked(address) == false);
 }
+
+TEST_CASE("Count markmap bits", "[MarkMap]") {
+  RegionManager regionManager;
+  Region *region = regionManager.allocateRegion();
+
+  region->clearMarkMap();
+  // REQUIRE(region->)
+
+  REQUIRE(region->mark(region->heapBegin() + 0x100) == true);
+  REQUIRE(region->mark(region->heapBegin() + 0x300) == true);
+  // REQUIRE()
+}

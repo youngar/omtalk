@@ -2,6 +2,7 @@
 #define OMTALK_GC_HEAP_H
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
@@ -152,6 +153,9 @@ public:
 
   bool unmarked(HeapIndex index) const { return !data.get(std::size_t(index)); }
 
+  /// Get the number of marked bits in the bitmap
+  unsigned count() const { return data.count(); }
+
   using Iterator = BitArray<REGION_MAP_NBITS>::Iterator;
 
   using ConstIterator = BitArray<REGION_MAP_NBITS>::ConstIterator;
@@ -246,11 +250,23 @@ public:
     return markMap.unmarked(toIndex(ref));
   }
 
+  /// Return the number of live objects in this region.  Requires that the mark
+  /// map is accurate.
+  unsigned getLiveCount() { return markMap.count(); }
+
+  /// Get the amount of live data in this region.  This count is only accurate
+  /// at the end of the marking phase.
+  std::size_t getLiveDataSize() { return liveDataSize; }
+
+  void clearLiveDataSize() { liveDataSize = 0; }
+
+  void addLiveDataSize(std::size_t dataSize) { liveDataSize += dataSize; }
+
   /// Records if this region is in the set of regions to be evacuated during a
   /// garbage collection.  This value is only valid during a garbage collection.
-  bool isEvacuated() { return evacuated; }
+  bool isEvacuating() { return evacuating; }
 
-  void setEvacuated(bool value = true) { evacuated = value; }
+  void setEvacuating(bool value = true) { evacuating = value; }
 
   RegionMap &getMarkMap() { return markMap; }
 
@@ -279,7 +295,11 @@ private:
 
   ~Region() { unlink(); }
 
-  bool evacuated = false;
+  /// The size of live data in the region.  Used and updated by the garbage
+  /// collector.
+  std::atomic<std::size_t> liveDataSize = 0;
+
+  bool evacuating = false;
 
   ForwardingMap forwardingMap;
 
@@ -508,7 +528,7 @@ private:
 /// garbage collection
 template <typename T>
 bool inEvacuatedRegion(Ref<T> address) {
-  return Region::get(address)->isEvacuated();
+  return Region::get(address)->isEvacuating();
 }
 
 } // namespace omtalk::gc
