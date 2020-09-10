@@ -27,19 +27,19 @@ public:
 
   void push(WorkItem<S> ref) {
     std::unique_lock lock(stackMutex);
-    data.push(ref);
+    data.push_back(ref);
   }
 
   WorkItem<S> pop() {
     std::unique_lock lock(stackMutex);
-    auto ref = data.top();
-    data.pop();
+    auto ref = data.back();
+    data.pop_back();
     return ref;
   }
 
   WorkItem<S> top() {
     std::unique_lock lock(stackMutex);
-    return data.top();
+    return data.back();
   }
 
   bool more() {
@@ -47,14 +47,19 @@ public:
     return !data.empty();
   }
 
-  bool empyty() {
+  bool empty() {
     std::unique_lock lock(stackMutex);
     return data.empty();
   }
 
+  void clear() {
+    std::unique_lock lock(stackMutex);
+    data.clear();
+  }
+
 private:
   std::mutex stackMutex;
-  std::stack<WorkItem<S>> data;
+  std::vector<WorkItem<S>> data;
 };
 
 } // namespace omtalk::gc
