@@ -2,9 +2,11 @@
 #define OMTALK_MARKING_H
 
 #include <iostream>
+#include <mutex>
 #include <omtalk/GlobalCollector.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
+#include <omtalk/Workstack.h>
 #include <stack>
 
 namespace omtalk::gc {
@@ -14,41 +16,6 @@ class GlobalCollector;
 
 template <typename S>
 class GlobalCollectorContext;
-
-//===----------------------------------------------------------------------===//
-// Work Stack
-//===----------------------------------------------------------------------===//
-
-template <typename S>
-struct WorkItem {
-public:
-  WorkItem(ObjectProxy<S> target) : target(target) {}
-
-  ObjectProxy<S> target;
-};
-
-template <typename S>
-class WorkStack {
-public:
-  WorkStack() = default;
-
-  void push(WorkItem<S> ref) { data.push(ref); }
-
-  WorkItem<S> pop() {
-    auto ref = data.top();
-    data.pop();
-    return ref;
-  }
-
-  WorkItem<S> top() { return data.top(); }
-
-  bool more() const { return !data.empty(); }
-
-  bool empyty() const { return data.empty(); }
-
-private:
-  std::stack<WorkItem<S>> data;
-};
 
 //===----------------------------------------------------------------------===//
 // Mark
@@ -98,6 +65,9 @@ struct Scan {
   void operator()(GlobalCollectorContext<S> &context,
                   ObjectProxy<S> target) const noexcept {
     ScanVisitor<S> visitor;
+    auto ref = target.asRef();
+    auto region = Region::get(ref);
+    region->addLiveDataSize(target.getSize());
     walk<S>(context, target, visitor);
   }
 };
