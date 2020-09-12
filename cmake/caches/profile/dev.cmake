@@ -1,7 +1,4 @@
-# Pre-populated cmake cache for regular development. Does not enable any project
-# components.
-
-set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "")
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "")
 set(CMAKE_CXX_FLAGS -fdiagnostics-color CACHE STRING "")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "")
 set(OMTALK_CCACHE ON CACHE BOOL "")

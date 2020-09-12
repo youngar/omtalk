@@ -40,14 +40,14 @@ find_dependency(Threads)
 ###
 
 # High level Omtalk components
-option(OMTALK_COMPILER "Build with compiler support")
-option(OMTALK_CORE "Build the Omtalk core libraries.  This is the main language VM. Requires all other components to be built.")
-option(OMTALK_GC "Build the Omtalk garbage collector")
-option(OMTALK_OM "Build the Omtalk Om object model. Requires OMTALK_COMPILER and OMTALK_GC")
-option(OMTALK_PARSER "Build the Omtalk SOM parser.  A parsing library for the Simple Object Machine language.")
-
-# Build customization
 option(OMTALK_CCACHE "Build using ccache as a compiler launcher")
+option(OMTALK_CHECKS "Enable runtime assertions")
+option(OMTALK_CHECKS_EXPENSIVE "Enable expensive runtime assertions")
+option(OMTALK_COMP_COMPILER "Build with compiler support")
+option(OMTALK_COMP_CORE "Build the Omtalk core libraries.  This is the main language VM. Requires all other components to be built.")
+option(OMTALK_COMP_GC "Build the Omtalk garbage collector")
+option(OMTALK_COMP_OM "Build the Omtalk Om object model. Requires OMTALK_COMP_COMPILER and OMTALK_GC")
+option(OMTALK_COMP_PARSER "Build the Omtalk SOM parser.  A parsing library for the Simple Object Machine language.")
 option(OMTALK_LLD "Use the LLVM linker ld.lld")
 option(OMTALK_LLVM "Build against the LLVM submodule")
 option(OMTALK_RTTI "Build with RTTI support.")
@@ -82,29 +82,29 @@ endif()
 
 # tools/omtalk-tblgen must be added from this directory. This is because of the
 # way tablegen cmake helpers modify the parent scope.
-if(OMTALK_OM)
+if(OMTALK_COMP_OM)
   add_subdirectory(tools/omtalk-tblgen)
 endif()
 
-if(OMTALK_COMPILER)
+if(OMTALK_COMP_COMPILER)
   add_subdirectory(compiler)
 endif()
 
-if(OMTALK_CORE)
+if(OMTALK_COMP_CORE)
   add_subdirectory(core)
 endif()
 
 add_subdirectory(external)
 
-if(OMTALK_GC)
+if(OMTALK_COMP_GC)
   add_subdirectory(gc)
 endif()
 
-if(OMTALK_PARSER)
+if(OMTALK_COMP_PARSER)
 add_subdirectory(parser)
 endif()
 
-if(OMTALK_TEST)
+if(OMTALK_COMP_TEST)
 add_subdirectory(test)
 endif()
 

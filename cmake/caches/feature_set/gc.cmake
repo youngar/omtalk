@@ -1,0 +1,1 @@
+set(OMTALK_COMP_GC ON CACHE BOOL "")
