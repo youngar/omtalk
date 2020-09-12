@@ -1,0 +1,15 @@
+add_omtalk_executable(omtalk-gc-test
+    main.cpp
+    test-dispatcher.cpp
+    test-gc.cpp
+    test-handle.cpp
+    test-regions.cpp
+)
+
+target_link_libraries(omtalk-gc-test
+    PRIVATE
+        omtalk-gc
+        Catch2::Catch2
+)
+
+add_test(omtalk-gc-test omtalk-gc-test)
