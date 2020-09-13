@@ -1,10 +1,9 @@
-add_executable(bench-allocation
-    bench-allocation.cpp
+add_executable(omtalk-gc-bench
     bench-markmap.cpp
     main.cpp
 )
 
-target_link_libraries(bench-allocation
+target_link_libraries(omtalk-gc-bench
     benchmark::benchmark
     omtalk-gc
 )
