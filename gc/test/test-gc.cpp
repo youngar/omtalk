@@ -284,10 +284,30 @@ TEST_CASE("Check live data", "[garbage collector]") {
     REQUIRE(region->marked(ref));
     gc.completeScanning(gcContext);
     REQUIRE(region->getLiveDataSize() == allocSize);
-    gc.collect();
+    gc.collect(gcContext);
     REQUIRE(region->unmarked(ref));
   }
 
+}
+
+
+TEST_CASE("Concurrent", "[garbage collector]") {
+  auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
+                .withRootWalker(
+                    std::make_unique<gc::RootWalker<TestCollectorScheme>>())
+                .build();
+  auto &gc = mm.getGlobalCollector();
+  gc::Context<TestCollectorScheme> context(mm);
+  auto &gcContext = context.getCollectorContext();
+
+  gc::HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  unsigned nslots = 10;
+  // auto allocSize = TestStructObject::allocSize(nslots);
+  auto ref = allocateTestStructObject(context, nslots);
+  gc::Handle<TestStructObject> handle(scope, ref);
+
+  mm.kickoff(context);
+  gc.wait(gcContext);
 }
 
 //===----------------------------------------------------------------------===//

@@ -58,7 +58,7 @@ public:
 //===----------------------------------------------------------------------===//
 
 struct MemoryManagerConfig {
-  unsigned gcWorkerThreads = 0;
+  unsigned gcWorkerThreads = 1;
 };
 
 constexpr MemoryManagerConfig DEFAULT_MEMORY_MANAGER_CONFIG;
@@ -152,6 +152,9 @@ public:
   /// Perform a global garbage collection.  This will wait for all attached
   /// threads to reach GC safe points.
   void collect(Context<S> &context);
+
+  /// Start a global collection if one is not already occuring.
+  void kickoff(Context<S> &context);
 
 private:
   /// Attach a context to the context list. Gives access to the context.
@@ -320,7 +323,7 @@ void MemoryManager<S>::waitOrGC(Context<S> &context) {
   if (contextAccessCount != 0) {
     yieldForGcCv.wait(yieldLock, [this] { return exclusiveRequested(); });
   } else {
-    globalCollector.collect();
+    globalCollector.collect(context.getCollectorContext());
 
     // Must remove exclusive request before waking up other threads
     releaseExclusive(context);
@@ -346,6 +349,11 @@ void MemoryManager<S>::collect(Context<S> &context) {
   Context<S> *expected = nullptr;
   exclusiveContext.compare_exchange_strong(expected, &context);
   waitOrGC(context);
+}
+
+template <typename S>
+void MemoryManager<S>::kickoff(Context<S> &context) {
+  globalCollector.kickoff(context.getCollectorContext());
 }
 
 //===----------------------------------------------------------------------===//

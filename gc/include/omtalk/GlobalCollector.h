@@ -2,12 +2,14 @@
 #define OMTALK_GLOBALCOLLECTOR_H
 
 #include <cstddef>
+#include <omtalk/MarkCompactWorker.h>
 #include <omtalk/Handle.h>
 #include <omtalk/Heap.h>
 #include <omtalk/Mark.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Sweep.h>
+#include <omtalk/Util/Assert.h>
 #include <omtalk/Workstack.h>
 #include <stack>
 
@@ -23,6 +25,9 @@ template <typename S>
 class ScanVisitor;
 
 template <typename S>
+class MarkCompactWorker;
+
+template <typename S>
 void scan(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept;
 
 template <typename S>
@@ -33,33 +38,32 @@ void sweep(GlobalCollectorContext<S> &context, Region &region,
 // Global Collector
 //===----------------------------------------------------------------------===//
 
-/// Interface for the global collector scheme.
-class AbstractGlobalCollector {
-public:
-  virtual void collect() = 0;
-
-  virtual ~AbstractGlobalCollector() = default;
-};
-
 template <typename S>
 class GlobalCollectorContext;
 
 /// Default implementation of global collection.
 template <typename S>
-class GlobalCollector : public AbstractGlobalCollector {
+class GlobalCollector {
 public:
   using Context = GlobalCollectorContext<S>;
 
   GlobalCollector(MemoryManager<S> *memoryManager)
-      : memoryManager(memoryManager) {}
+      : memoryManager(memoryManager), worker(this) {}
 
   ~GlobalCollector() {}
 
   /// Explicit garbage collection.  Will cancel the previous garbage collection
   /// and execute a full GC cycle.
-  virtual void collect() noexcept override;
+  void collect(Context &contex) noexcept;
 
+  /// Kickoff a new GC if one is currently not running.
+  void kickoff(Context &context) noexcept;
 
+  /// Wait for the current GC to finish.
+  void wait(Context &context) noexcept;
+
+  /// Perform a garbage collection.  Will return as early as possible.
+  void concurrentCollect(Context &context) noexcept;
 
   /// Cancel an in-progress GC.  This is used to restart a garbage collection
   /// for a new global gc.
@@ -85,8 +89,9 @@ public:
   /// Returns true if concurrent evacuation is on-going
   bool concurrentEvacuate() const noexcept { return evacuateRegion != nullptr; }
 
+  /// Get the global workstack.
   WorkStack<S> &getStack() { return stack; }
-  
+
   /// Get the region we are evacuating to.
   Region *getEvacuateRegion() const noexcept { return evacuateRegion; }
 
@@ -106,6 +111,7 @@ public:
 
 private:
   MemoryManager<S> *memoryManager;
+  MarkCompactWorker<S> worker;
   WorkStack<S> stack;
 
   /// The region to evacuate objects to.
@@ -135,19 +141,24 @@ private:
 //===----------------------------------------------------------------------===//
 
 template <typename S>
-void GlobalCollector<S>::collect() noexcept {
-  GlobalCollectorContext<S> context(this);
-  // std::cout << "@@@ GC Finalize Previous\n";
-  // finalCopyForward(context);
-  // finalFixup(context);
+void GlobalCollector<S>::collect(Context &context) noexcept {
+  kickoff(context);
+  worker.wait();
+  std::cout << "@@@ GC End\n";
+}
+
+template <typename S>
+void GlobalCollector<S>::kickoff(Context &context) noexcept {
   std::cout << "@@@ GC Roots\n";
   setup(context);
   scanRoots(context);
-  std::cout << "@@@ GC Marking\n";
-  completeScanning(context);
-  std::cout << "@@@ GC Sweep\n";
-  sweep(context);
-  std::cout << "@@@ GC End\n";
+  std::cout << "@@@ starting concurrent\n";
+  worker.run();
+}
+
+template <typename S>
+void GlobalCollector<S>::wait(Context &context) noexcept {
+  worker.wait();
 }
 
 template <typename S>
