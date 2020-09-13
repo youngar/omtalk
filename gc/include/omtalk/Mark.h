@@ -67,6 +67,7 @@ struct Scan {
     ScanVisitor<S> visitor;
     auto ref = target.asRef();
     auto region = Region::get(ref);
+    region->addLiveObjectCount(1);
     region->addLiveDataSize(target.getSize());
     walk<S>(context, target, visitor);
   }

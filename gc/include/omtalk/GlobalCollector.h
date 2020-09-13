@@ -184,7 +184,7 @@ void GlobalCollector<S>::setup(Context &context) noexcept {
     }
 
     // reset region statistics
-    region.clearLiveDataSize();
+    region.clearStatistics();
   }
 }
 

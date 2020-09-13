@@ -250,17 +250,32 @@ public:
     return markMap.unmarked(toIndex(ref));
   }
 
-  /// Return the number of live objects in this region.  Requires that the mark
-  /// map is accurate.
-  unsigned getLiveCount() { return markMap.count(); }
+  /// Return the number of live objects in this region.  This count is only
+  /// accurate at the end of the marking phase.
+  unsigned getLiveObjectCount() const noexcept { return liveObjectCount; }
+
+  void clearLiveObjectCount() noexcept { liveObjectCount = 0; }
+
+  void addLiveObjectCount(std::size_t objectCount) noexcept {
+    liveObjectCount += objectCount;
+  }
 
   /// Get the amount of live data in this region.  This count is only accurate
   /// at the end of the marking phase.
-  std::size_t getLiveDataSize() { return liveDataSize; }
+  std::size_t getLiveDataSize() const noexcept { return liveDataSize; }
 
-  void clearLiveDataSize() { liveDataSize = 0; }
+  void clearLiveDataSize() noexcept { liveDataSize = 0; }
 
-  void addLiveDataSize(std::size_t dataSize) { liveDataSize += dataSize; }
+  void addLiveDataSize(std::size_t dataSize) noexcept {
+    liveDataSize += dataSize;
+  }
+
+  /// Clear all statistics held in this region.  This is typically called by the
+  /// gc before it recalculates statistics during a garbage collection.
+  void clearStatistics() noexcept {
+    clearLiveDataSize();
+    clearLiveObjectCount();
+  }
 
   /// Records if this region is in the set of regions to be evacuated during a
   /// garbage collection.  This value is only valid during a garbage collection.
@@ -298,6 +313,10 @@ private:
   /// The size of live data in the region.  Used and updated by the garbage
   /// collector.
   std::atomic<std::size_t> liveDataSize = 0;
+
+  /// The number of live object in this region.  Used and updated by the garbage
+  /// collector.
+  std::atomic<std::size_t> liveObjectCount = 0;
 
   bool evacuating = false;
 
@@ -439,6 +458,7 @@ private:
 class RegionManager {
 public:
   ~RegionManager() {
+    std::lock_guard regionGuard(regionsMutex);
     auto i = regions.begin();
     auto e = regions.end();
     while (i != e) {
@@ -453,11 +473,8 @@ public:
     if (region == nullptr) {
       return nullptr;
     }
-
-    // TODO who should be responsible for initialization a region
     region->clearMarkMap();
-    region->clearLiveDataSize();
-
+    region->clearStatistics();
     regions.insert(region);
     return region;
   }

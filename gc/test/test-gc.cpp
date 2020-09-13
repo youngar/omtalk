@@ -249,6 +249,7 @@ TEST_CASE("Check live data", "[garbage collector]") {
     gc.completeScanning(gcContext);
 
     // Check live data
+    REQUIRE(region->getLiveObjectCount() == 1);
     REQUIRE(region->getLiveDataSize() == allocSize);
   }
 
@@ -259,6 +260,7 @@ TEST_CASE("Check live data", "[garbage collector]") {
     gc.completeScanning(gcContext);
 
     // Check live data
+    REQUIRE(region->getLiveObjectCount() == 1);
     REQUIRE(region->getLiveDataSize() == allocSize);
   }
 
@@ -274,6 +276,7 @@ TEST_CASE("Check live data", "[garbage collector]") {
     auto *region = gc::Region::get(ref);
     REQUIRE(region->marked(ref));
     gc.completeScanning(gcContext);
+    REQUIRE(region->getLiveObjectCount() == 1);
     REQUIRE(region->getLiveDataSize() == allocSize);
   }
 
@@ -283,13 +286,12 @@ TEST_CASE("Check live data", "[garbage collector]") {
     auto *region = gc::Region::get(ref);
     REQUIRE(region->marked(ref));
     gc.completeScanning(gcContext);
+    REQUIRE(region->getLiveObjectCount() == 1);
     REQUIRE(region->getLiveDataSize() == allocSize);
     gc.collect(gcContext);
     REQUIRE(region->unmarked(ref));
   }
-
 }
-
 
 TEST_CASE("Concurrent", "[garbage collector]") {
   auto mm = gc::MemoryManagerBuilder<TestCollectorScheme>()
