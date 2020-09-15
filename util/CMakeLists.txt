@@ -1,5 +1,5 @@
 
-add_library(omtalk-util
+add_omtalk_library(omtalk-util
     src/Empty.cpp
 )
 
@@ -8,22 +8,12 @@ target_include_directories(omtalk-util
         include
 )
 
-if(OMTALK_WARNINGS)
-target_compile_options(omtalk-util
-    PRIVATE
-        -Werror
-        -Wall
-        # -Wextra
-        -Wno-unused-parameter
-        -Wno-unused-function
-)
-endif()
-
-add_executable(omtalk-util-test
+add_omtalk_executable(omtalk-util-test
     test/main.cpp
     test/test-atomic.cpp
     test/test-bitarray.cpp
     test/test-bits.cpp
+    test/test-eytzinger.cpp
     test/test-hashmap.cpp
 )
 
@@ -32,16 +22,5 @@ target_link_libraries(omtalk-util-test
         omtalk-util
         Catch2::Catch2
 )
-
-if(OMTALK_WARNINGS)
-target_compile_options(omtalk-util-test
-    PRIVATE
-        -Werror
-        -Wall
-        # -Wextra
-        -Wno-unused-parameter
-        -Wno-unused-function
-)
-endif()
 
 add_test(omtalk-util-test omtalk-util-test)
