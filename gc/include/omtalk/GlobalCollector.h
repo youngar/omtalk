@@ -208,7 +208,7 @@ void GlobalCollector<S>::collect() noexcept {
 template <typename S>
 void GlobalCollector<S>::setup(Context &context) noexcept {
   // assert that the workstack is empty
-  memoryManager->getRegionManager().clearMarkMaps();
+  // TODO: memoryManager->getRegionManager().clearMarkMaps();
 }
 
 template <typename S>
@@ -229,6 +229,10 @@ void GlobalCollector<S>::completeScanning(Context &context) noexcept {
 template <typename S>
 void GlobalCollector<S>::sweep(Context &context) noexcept {
   FreeList freeList;
+
+#if 0  ///////////////////////////////////////////////////////
+
+  // TODO
 
   for (auto &region : memoryManager->getRegionManager()) {
     std::byte *address = region.heapBegin();
@@ -251,6 +255,7 @@ void GlobalCollector<S>::sweep(Context &context) noexcept {
     }
   }
   memoryManager->setFreeList(freeList);
+#endif ///////////////////////////////////////////////////////
 }
 
 } // namespace omtalk::gc

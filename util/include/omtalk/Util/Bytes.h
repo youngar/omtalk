@@ -95,7 +95,7 @@ T align(T size, U alignment) {
 ///
 template <typename T, typename U>
 T *align(T *ptr, U alignment) {
-  return static_cast<T *>(align(std::uintptr_t(ptr), alignment));
+  return reinterpret_cast<T *>(align(std::uintptr_t(ptr), alignment));
 }
 
 } // namespace omtalk

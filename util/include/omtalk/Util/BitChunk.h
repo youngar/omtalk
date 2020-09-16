@@ -9,6 +9,9 @@ namespace omtalk {
 
 enum class BitChunk : std::uintptr_t {};
 
+constexpr BitChunk BITCHUNK_ALL = BitChunk(UINTPTR_MAX);
+constexpr BitChunk BITCHUNK_NONE = BitChunk(0);
+
 constexpr std::size_t BITCHUNK_NBITS = sizeof(BitChunk) * 8;
 
 constexpr BitChunk operator<<(BitChunk chunk, std::size_t shift) {
@@ -52,6 +55,22 @@ static constexpr std::size_t shiftForBit(std::size_t index) {
 
 static constexpr BitChunk maskForBit(std::size_t index) {
   return BitChunk(1) << shiftForBit(index);
+}
+
+constexpr bool all(BitChunk chunk) {
+  return chunk == BITCHUNK_ALL;
+}
+
+constexpr bool any(BitChunk chunk) {
+  return chunk != BITCHUNK_NONE;
+}
+
+constexpr bool none(BitChunk chunk) {
+  return chunk == BITCHUNK_NONE;
+}
+
+constexpr std::size_t count(BitChunk chunk) {
+  return __builtin_popcount(std::uintptr_t(chunk));
 }
 
 } // namespace omtalk

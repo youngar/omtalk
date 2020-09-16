@@ -171,6 +171,8 @@ private:
 // Region
 //===----------------------------------------------------------------------===//
 
+enum class RegionMode { NONE, EVACUATING_FROM, EVACUATING_TO };
+
 class Region;
 
 using RegionList = IntrusiveList<Region>;
@@ -181,18 +183,24 @@ enum class RegionMode : std::uintptr_t {};
 class alignas(REGION_ALIGNMENT) Region {
 public:
   friend class RegionChecks;
-
-  static Region *allocate() {
-    auto ptr = aligned_alloc(REGION_ALIGNMENT, REGION_SIZE);
-    if (ptr == nullptr) {
-      return nullptr;
-    }
-    return new (ptr) Region();
-  }
+  friend class RegionManager;
 
   template <typename T>
   static Region *get(Ref<T> ref) {
     return reinterpret_cast<Region *>(ref.toAddr() & REGION_ADDRESS_MASK);
+  }
+
+  static Region *containing(std::uintptr_t address) noexcept {
+    return reinterpret_cast<Region *>(address & REGION_ADDRESS_MASK);
+  }
+  template <typename T>
+  static Region *containing(T *ptr) {
+    return containing(std::uintptr_t(ptr));
+  }
+
+  template <typename T>
+  static Region *containing(Ref<T> ref) {
+    return containing(ref.toAddr());
   }
 
   void kill() noexcept {
@@ -265,6 +273,10 @@ public:
 
   const RegionListNode &getListNode() const noexcept { return listNode; }
 
+  Region *next() const noexcept { return listNode.next; }
+
+  Region *prev() const noexcept { return listNode.prev; }
+
 private:
   Region() {}
 
@@ -278,7 +290,7 @@ private:
 
   // trailing data must be last
   alignas(OBJECT_ALIGNMENT) std::byte data[];
-};
+}; // namespace omtalk::gc
 
 /// Iterate the live objects in a Region.  Requires the region to have a valid
 /// MarkMap
@@ -330,6 +342,8 @@ private:
 // RegionManager
 //===----------------------------------------------------------------------===//
 
+#if 0
+
 using RegionTable = std::vector<Region *>;
 
 class RegionManager {
@@ -378,9 +392,68 @@ private:
   RegionList regions;
 };
 
+#endif
+
 //===----------------------------------------------------------------------===//
 // Inlines
 //===----------------------------------------------------------------------===//
+
+//===----------------------------------------------------------------------===//
+// RegionSet
+//===----------------------------------------------------------------------===//
+
+template <typename T>
+
+template <RegionMode MODE>
+class RegionSet {
+public:
+  using Iterator = RegionList::Iterator;
+
+  using Iterator =
+
+      RegionSet(){};
+
+  /// @group Iteration
+  /// @{
+
+  auto begin() noexcept { return elements.begin(); }
+
+  auto begin() const noexcept { return elements.begin(); }
+
+  auto end() noexcept { return elements.end(); }
+
+  auto end() const noexcept { return elements.end(); }
+
+  auto cbegin() const noexcept { return elements.cbegin(); }
+
+  auto cend() const noexcept { return elements.cend(); }
+
+  bool contains(const Region *region) const noexcept {
+    return region->mode == MODE;
+  }
+
+  void insert(Region *region) noexcept {
+    assert(region->getMode() == none);
+    assert(region->next() == nullptr);
+    assert(region->prev() == nullptr);
+    region->setMode(MODE);
+    elements.insert(region);
+  }
+
+  void remove(Region *region) noexcept {
+    assert(region->getMode() == MODE);
+    elements.remove(region);
+    region->setMode(RegionMode::NONE);
+  } 
+
+  /// @}
+
+private:
+  RegionList elements;
+};
+
+using FromSet = RegionSet<RegionMode::EVACUATING_FROM>;
+using ToSet = RegionSet<RegionMode::EVACUATING_TO>;
 
 } // namespace omtalk::gc
 

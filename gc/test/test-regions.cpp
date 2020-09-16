@@ -2,8 +2,11 @@
 #include <omtalk/Heap.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Util/Assert.h>
+#include <omtalk/RegionManager.h>
 
 using namespace omtalk::gc;
+namespace ot = omtalk;
+namespace gc = ot::gc;
 
 namespace omtalk::gc {
 
@@ -26,21 +29,14 @@ class RegionChecks {
 
 } // namespace omtalk::gc
 
+TEST_CASE("ctor", "[RegionManager]") {
+  gc::RegionManager manager;
+}
+
 TEST_CASE("Mark Map works", "[MarkMap]") {
   RegionManager regionManager;
-  Region *region = regionManager.allocateRegion();
-
-  region->clearMarkMap();
-
-  Ref<void> address = region->heapBegin() + 0x100;
-
-  REQUIRE(region->marked(address) == false);
-
-  REQUIRE(region->mark(address) == true);
-
-  REQUIRE(region->marked(address) == true);
-
-  REQUIRE(region->unmark(address) == true);
-
-  REQUIRE(region->marked(address) == false);
+  Region *region = regionManager.allocate();
+  REQUIRE(regionManager.managed(region));
+  REQUIRE(regionManager.managed(region + REGION_SIZE - 1));
+  regionManager.free(region);
 }

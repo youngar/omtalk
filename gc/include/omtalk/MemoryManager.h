@@ -11,6 +11,7 @@
 #include <omtalk/GlobalCollector.h>
 #include <omtalk/Heap.h>
 #include <omtalk/Ref.h>
+#include <omtalk/RegionManager.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Util/Atomic.h>
 #include <omtalk/Util/IntrusiveList.h>
@@ -235,7 +236,11 @@ private:
 //===----------------------------------------------------------------------===//
 
 template <typename S>
-MemoryManager<S>::~MemoryManager() {}
+MemoryManager<S>::~MemoryManager() {
+  for (auto region : getRegionManager().getRegions()) {
+    regionManager.free(region);
+  }
+}
 
 template <typename S>
 void MemoryManager<S>::attach(Context<S> &cx) {
@@ -282,7 +287,7 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
   }
 
   // Get a new region
-  Region *region = regionManager.allocateRegion();
+  Region *region = regionManager.allocate();
   if (region != nullptr) {
     context.buffer().begin = region->heapBegin();
     context.buffer().end = region->heapEnd();
