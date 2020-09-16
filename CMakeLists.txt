@@ -36,11 +36,18 @@ include(CMakeFindDependencyMacro)
 find_dependency(Threads)
 
 ###
-### Configuration
+### External Programs
+###
+
+find_program(OMTALK_TOOL_CCACHE ccache)
+find_program(OMTALK_TOOL_CLANG_TIDY clang-tidy)
+find_program(OMTALK_TOOL_IWYU include-what-you-use)
+
+###
+### Manual Options
 ###
 
 # High level Omtalk components
-option(OMTALK_CCACHE "Build using ccache as a compiler launcher")
 option(OMTALK_CHECKS "Enable runtime assertions")
 option(OMTALK_CHECKS_EXPENSIVE "Enable expensive runtime assertions")
 option(OMTALK_COMP_COMPILER "Build with compiler support")
@@ -55,14 +62,46 @@ option(OMTALK_SAN_ASAN "Build with clang address sanitizer enabled.")
 option(OMTALK_SAN_TSAN " Build with clang thread sanitizer enabled")
 option(OMTALK_SAN_UBSAN "Build with clang undefined behaviour sanitizer.")
 option(OMTALK_SPLIT_DEBUG "Split debug information for faster link times")
-option(OMTALK_STATIC_CLANG_TIDY "Build with the clang-tidy static analyzer")
-option(OMTALK_STATIC_IWYU "Build with the include-what-you-use static analyzer")
-option(OMTALK_STATIC_LWYU "Build with the link-what-you-use static analyzer")
+
+
 option(OMTALK_TESTS "Build and run the tests")
 option(OMTALK_WARNINGS "Build with extra warning enabled")
 option(OMTALK_WARNINGS_AS_ERRORS "Treat compiler warnings as errors")
 
 set(OMTALK_PATH ${omtalk_SOURCE_DIR}/external/SOM/Smalltalk CACHE STRING "The core library class path")
+
+###
+### Automatic Options
+###
+
+if(OMTALK_TOOL_CCACHE)
+  set(value ON)
+else()
+  set(value OFF)
+endif()
+
+option(OMTALK_CCACHE "Build using ccache as a compiler launcher" ${value})
+
+if(OMTALK_TOOL_CLANG_TIDY)
+  set(value ON)
+else()
+  set(value OFF)
+endif()
+
+option(OMTALK_STATIC_CLANG_TIDY "Build with the clang-tidy static analyzer" ${value})
+
+if(OMTALK_TOOL_IWYU)
+  set(value ON)
+else()
+  set(value OFF)
+endif()
+
+option(OMTALK_STATIC_IWYU "Build with the include-what-you-use static analyzer" ${value})
+option(OMTALK_STATIC_LWYU "Build with the link-what-you-use static analyzer" ${value})
+
+###
+### Option Handling
+###
 
 include(HandleOmtalkOptions)
 
@@ -71,9 +110,9 @@ include(HandleOmtalkOptions)
 ###
 
 if(OMTALK_LLVM)
-# TODO: Including these files here causes LLVM to change how everything
-# is built across all of omtalk
-include(BuildLLVM)
+  # TODO: Including these files here causes LLVM to change how everything
+  # is built across all of omtalk
+  include(BuildLLVM)
 endif()
 
 ###
