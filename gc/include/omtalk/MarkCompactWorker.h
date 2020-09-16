@@ -5,7 +5,6 @@
 #include <iostream>
 #include <mutex>
 #include <omtalk/GlobalCollector.h>
-#include <omtalk/Worker.h>
 #include <thread>
 
 namespace omtalk::gc {
