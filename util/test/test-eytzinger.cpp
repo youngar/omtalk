@@ -2,6 +2,7 @@
 #include <iterator>
 #include <omtalk/Util/Assert.h>
 #include <omtalk/Util/Eytzinger.h>
+#include <omtalk/Util/ValueIter.h>
 #include <utility>
 #include <vector>
 
@@ -51,37 +52,6 @@ TEST_CASE("Non-full binary tree", "[eytzinger]") {
     REQUIRE(p.first == p.second);
     ++i;
   }
-}
-
-template <typename T>
-class ValueIter {
-public:
-  using difference_type = T;
-  using value_type = T;
-  using pointer = T *;
-  using reference = T &;
-  using iterator_category = std::forward_iterator_tag;
-
-  explicit ValueIter(T x) noexcept : x(x) {}
-
-  ValueIter &operator++() noexcept {
-    ++x;
-    return *this;
-  }
-
-  bool operator!=(const ValueIter &rhs) const noexcept { return x != rhs.x; }
-
-  T operator*() const noexcept { return x; }
-
-  T operator-(const ValueIter &rhs) const noexcept { return x - rhs.x; }
-
-private:
-  T x;
-};
-
-template <typename T>
-auto toIter(T x) -> ValueIter<T> {
-  return ValueIter<T>(x);
 }
 
 TEST_CASE("eytzinger2", "[eytzinger]") {
