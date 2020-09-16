@@ -4,6 +4,7 @@ add_omtalk_executable(omtalk-gc-test
     test-gc.cpp
     test-handle.cpp
     test-regions.cpp
+    test-forwarding.cpp
 )
 
 target_link_libraries(omtalk-gc-test

@@ -1,4 +1,5 @@
 add_executable(omtalk-gc-bench
+    bench-forwarding.cpp
     bench-markmap.cpp
     main.cpp
 )

@@ -2,10 +2,10 @@
 #define OMTALK_GLOBALCOLLECTOR_H
 
 #include <cstddef>
-#include <omtalk/MarkCompactWorker.h>
 #include <omtalk/Handle.h>
 #include <omtalk/Heap.h>
 #include <omtalk/Mark.h>
+#include <omtalk/MarkCompactWorker.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Sweep.h>
@@ -169,16 +169,20 @@ void GlobalCollector<S>::setup(Context &context) noexcept {
   stack.clear();
 
   auto &regionManager = memoryManager->getRegionManager();
-  regionManager.clearMarkMaps();
 
   // select regions for collection.  Selection is based on the regions with the
   // least amount of live data in them.
   for (auto &region : regionManager) {
+    region.clearMarkMap();
+    region.getForwardingMap().clear();
 
     // regions less than half full are candidates for evacuation.
     auto liveData = region.getLiveDataSize();
     if (liveData < (REGION_SIZE / 2)) {
       region.setEvacuating(true);
+      // populate the forwarding map
+      region.getForwardingMap().rebuild(RegionMarkedObjectsIterator<S>(region),
+                                        region.getLiveObjectCount());
     } else {
       region.setEvacuating(false);
     }
@@ -187,6 +191,11 @@ void GlobalCollector<S>::setup(Context &context) noexcept {
     region.clearStatistics();
   }
 }
+
+// template <typename S>
+// void GlobalCollector<S>::preCompact(Context &context) noexcept {
+
+// }
 
 template <typename S>
 void GlobalCollector<S>::scanRoots(Context &context) noexcept {

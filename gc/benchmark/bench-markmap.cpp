@@ -3,9 +3,9 @@
 
 using namespace omtalk::gc;
 
-RegionMap *map;
-static void BM_Markmap(benchmark::State &state) {
+static RegionMap *map;
 
+static void BM_Markmap(benchmark::State &state) {
   if (state.thread_index == 0) {
     map = new RegionMap();
   }
@@ -18,4 +18,5 @@ static void BM_Markmap(benchmark::State &state) {
     delete map;
   }
 }
+
 BENCHMARK(BM_Markmap)->Threads(2);

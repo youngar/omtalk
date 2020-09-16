@@ -510,11 +510,6 @@ public:
 
   void freeRegion(Region *region) { std::free(region); }
 
-  void clearMarkMaps() noexcept {
-    for (auto &region : regions)
-      region.clearMarkMap();
-  }
-
   using Iterator = RegionList::Iterator;
 
   using ConstIterator = RegionList::ConstIterator;

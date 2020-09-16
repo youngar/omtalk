@@ -273,6 +273,8 @@ public:
   explicit TestObjectProxy(gc::Ref<void> obj)
       : TestObjectProxy(obj.reinterpret<TestObject>()) {}
 
+  constexpr operator void *() const noexcept { return target.get(); }
+
   std::size_t getSize() const noexcept {
     switch (target->kind) {
     case TestObjectKind::STRUCT:
