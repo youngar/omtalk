@@ -45,7 +45,8 @@ struct TestValue {
   Kind kind;
 };
 
-std::ostream &operator<<(std::ostream &out, const TestValue::Kind &kind) {
+inline std::ostream &operator<<(std::ostream &out,
+                                const TestValue::Kind &kind) {
   switch (kind) {
   case TestValue::Kind::REF:
     out << "REF";
@@ -57,7 +58,7 @@ std::ostream &operator<<(std::ostream &out, const TestValue::Kind &kind) {
   return out;
 }
 
-std::ostream &operator<<(std::ostream &out, const TestValue &obj) {
+inline std::ostream &operator<<(std::ostream &out, const TestValue &obj) {
   out << "(TestValue kind: " << obj.kind << ", value: ";
   if (obj.kind == TestValue::Kind::REF) {
     out << obj.asRef;
@@ -74,7 +75,7 @@ std::ostream &operator<<(std::ostream &out, const TestValue &obj) {
 
 enum class TestObjectKind { INVALID, STRUCT, MAP };
 
-std::ostream &operator<<(std::ostream &out, const TestObjectKind &obj) {
+inline std::ostream &operator<<(std::ostream &out, const TestObjectKind &obj) {
   switch (obj) {
   case TestObjectKind::INVALID:
     out << "INVALID";
@@ -97,7 +98,7 @@ struct TestObject {
   TestObjectKind kind;
 };
 
-std::ostream &operator<<(std::ostream &out, const TestObject &obj) {
+inline std::ostream &operator<<(std::ostream &out, const TestObject &obj) {
   out << "(TestObject";
   out << " kind: " << obj.kind;
   out << ")";
@@ -139,7 +140,8 @@ struct TestStructObject : public TestObject {
   TestValue slots[];
 };
 
-std::ostream &operator<<(std::ostream &out, const TestStructObject &obj) {
+inline std::ostream &operator<<(std::ostream &out,
+                                const TestStructObject &obj) {
   out << "(TestStructObject";
   out << " kind: " << obj.kind;
   out << ", length: " << obj.length;
@@ -195,14 +197,14 @@ struct TestMapObject : public TestObject {
   Bucket buckets[];
 };
 
-std::ostream &operator<<(std::ostream &out,
-                         const TestMapObject::Bucket &bucket) {
+inline std::ostream &operator<<(std::ostream &out,
+                                const TestMapObject::Bucket &bucket) {
   out << "key: " << bucket.key;
   out << " value: " << bucket.value;
   return out;
 }
 
-std::ostream &operator<<(std::ostream &out, const TestMapObject &obj) {
+inline std::ostream &operator<<(std::ostream &out, const TestMapObject &obj) {
   out << "(TestMapObject";
   out << " kind: " << obj.kind;
   out << " length: " << obj.length;
