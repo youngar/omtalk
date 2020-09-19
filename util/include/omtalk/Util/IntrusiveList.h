@@ -2,6 +2,7 @@
 #define OMTALK_GC_INTRUSIVELIST_HPP_
 
 #include <cstddef>
+#include <iterator>
 
 namespace omtalk {
 
@@ -23,20 +24,20 @@ class IntrusiveListConstIterator;
 template <typename T>
 class IntrusiveListNode {
 public:
-  IntrusiveListNode() : prev(NULL), next(NULL) {}
+  IntrusiveListNode() noexcept : prev(nullptr), next(nullptr) {}
 
-  IntrusiveListNode(T *p, T *n) : prev(p), next(n) {}
+  IntrusiveListNode(T *p, T *n) noexcept : prev(p), next(n) {}
 
   /// assign previous, next to node.
-  void assign(T *p, T *n) {
+  void assign(T *p, T *n) noexcept {
     prev = p;
     next = n;
   }
 
   // deactivate the node, and clear the next/prev pointers.
-  void clear() {
-    prev = NULL;
-    next = NULL;
+  void clear() noexcept {
+    prev = nullptr;
+    next = nullptr;
   }
 
   T *prev;
@@ -52,11 +53,11 @@ struct IntrusiveListNodeAccessor {
 
   /// Obtain the IntrusiveListNode from an element. By default, calls
   /// element.node().
-  static Node &node(T &element) { return element.getListNode(); }
+  static Node &node(T &element) noexcept { return element.getListNode(); }
 
   /// Obtain a constant node from an element.
-  static const Node &node(const T &element) {
-    return element.nogetListNodede();
+  static const Node &node(const T &element) noexcept {
+    return element.getListNode();
   }
 };
 
@@ -64,54 +65,70 @@ struct IntrusiveListNodeAccessor {
 template <typename T, typename Accessor = IntrusiveListNodeAccessor<T>>
 class IntrusiveListIterator {
 public:
-  IntrusiveListIterator() : _current(NULL) {}
+  using difference_type = std::size_t;
+  using value_type = T;
+  using pointer = T *;
+  using reference = T &;
+  using iterator_category = std::bidirectional_iterator_tag;
 
-  explicit IntrusiveListIterator(T *root) : _current(root) {}
+  IntrusiveListIterator() noexcept : _current(nullptr) {}
 
-  IntrusiveListIterator(const IntrusiveListIterator<T, Accessor> &rhs)
+  explicit IntrusiveListIterator(T *root) noexcept : _current(root) {}
+
+  IntrusiveListIterator(const IntrusiveListIterator<T, Accessor> &rhs) noexcept
       : _current(rhs.current()) {}
 
-  T &operator*() const { return *_current; }
+  T &operator*() const noexcept { return *_current; }
 
-  T *operator->() const { return _current; }
+  T *operator->() const noexcept { return _current; }
 
-  IntrusiveListIterator<T, Accessor> &operator++() {
+  IntrusiveListIterator<T, Accessor> operator+(difference_type rhs) noexcept {
+    auto copy = *this;
+    for (difference_type i = 0; i < rhs; i++) {
+      ++copy;
+    }
+    return copy;
+  }
+
+  IntrusiveListIterator<T, Accessor> &operator++() noexcept {
     _current = Accessor::node(*_current).next;
     return *this;
   }
 
-  IntrusiveListIterator<T, Accessor> operator++(int) {
+  IntrusiveListIterator<T, Accessor> operator++(int) noexcept {
     IntrusiveListIterator<T, Accessor> copy = *this;
     ++(*this);
     return copy;
   }
 
-  IntrusiveListIterator<T, Accessor> &operator--() {
+  IntrusiveListIterator<T, Accessor> &operator--() noexcept {
     _current = Accessor::node(*_current).prev;
     return *this;
   }
 
-  IntrusiveListIterator<T, Accessor> operator--(int) {
+  IntrusiveListIterator<T, Accessor> operator--(int) noexcept {
     IntrusiveListIterator<T, Accessor> copy = *this;
     _current = Accessor::node(*_current).prev;
     return copy;
   }
 
-  bool operator==(const IntrusiveListIterator<T, Accessor> &rhs) const {
+  bool
+  operator==(const IntrusiveListIterator<T, Accessor> &rhs) const noexcept {
     return _current == rhs._current;
   }
 
-  bool operator!=(const IntrusiveListIterator<T, Accessor> &rhs) const {
+  bool
+  operator!=(const IntrusiveListIterator<T, Accessor> &rhs) const noexcept {
     return _current != rhs._current;
   }
 
   IntrusiveListIterator<T, Accessor> &
-  operator=(const IntrusiveListIterator<T, Accessor> &rhs) {
+  operator=(const IntrusiveListIterator<T, Accessor> &rhs) noexcept {
     _current = rhs._current;
     return *this;
   }
 
-  T *current() const { return _current; }
+  T *current() const noexcept { return _current; }
 
 private:
   T *_current;
@@ -121,65 +138,86 @@ private:
 template <typename T, typename Accessor = IntrusiveListNodeAccessor<T>>
 class IntrusiveListConstIterator {
 public:
-  IntrusiveListConstIterator() : _current(NULL) {}
+  using difference_type = std::size_t;
+  using value_type = T;
+  using pointer = T *;
+  using reference = T &;
+  using iterator_category = std::bidirectional_iterator_tag;
 
-  explicit IntrusiveListConstIterator(T *root) : _current(root) {}
+  IntrusiveListConstIterator() noexcept : _current(nullptr) {}
 
-  IntrusiveListConstIterator(const IntrusiveListConstIterator<T, Accessor> &rhs)
+  explicit IntrusiveListConstIterator(T *root) noexcept : _current(root) {}
+
+  IntrusiveListConstIterator(
+      const IntrusiveListConstIterator<T, Accessor> &rhs) noexcept
       : _current(rhs.current()) {}
 
-  IntrusiveListConstIterator(const IntrusiveListIterator<T, Accessor> &rhs)
+  IntrusiveListConstIterator(
+      const IntrusiveListIterator<T, Accessor> &rhs) noexcept
       : _current(rhs.current()) {}
 
-  const T &operator*() const { return *_current; }
+  const T &operator*() const noexcept { return *_current; }
 
-  const T *operator->() const { return _current; }
+  const T *operator->() const noexcept { return _current; }
 
-  IntrusiveListConstIterator<T, Accessor> &operator++() {
+  IntrusiveListConstIterator<T, Accessor>
+  operator+(difference_type rhs) noexcept {
+    auto copy = *this;
+    for (difference_type i = 0; i < rhs; i++) {
+      ++copy;
+    }
+    return copy;
+  }
+
+  IntrusiveListConstIterator<T, Accessor> &operator++() noexcept {
     _current = Accessor::node(*_current).next;
     return *this;
   }
 
-  IntrusiveListConstIterator<T, Accessor> operator++(int) {
+  IntrusiveListConstIterator<T, Accessor> operator++(int) noexcept {
     IntrusiveListConstIterator<T, Accessor> copy = *this;
     ++this;
     return copy;
   }
 
-  IntrusiveListConstIterator<T, Accessor> &operator--() {
+  IntrusiveListConstIterator<T, Accessor> &operator--() noexcept {
     _current = Accessor::node(*_current).prev;
     return *this;
   }
 
-  IntrusiveListConstIterator<T, Accessor> operator--(int) {
+  IntrusiveListConstIterator<T, Accessor> operator--(int) noexcept {
     IntrusiveListConstIterator<T, Accessor> copy = *this;
     _current = Accessor::node(*_current).prev;
     return copy;
   }
 
-  bool operator==(const IntrusiveListIterator<T, Accessor> &rhs) const {
+  bool
+  operator==(const IntrusiveListIterator<T, Accessor> &rhs) const noexcept {
     return _current == rhs.current();
   }
 
-  bool operator!=(const IntrusiveListIterator<T, Accessor> &rhs) const {
+  bool
+  operator!=(const IntrusiveListIterator<T, Accessor> &rhs) const noexcept {
     return _current != rhs.current();
   }
 
-  bool operator==(const IntrusiveListConstIterator<T, Accessor> &rhs) const {
+  bool operator==(
+      const IntrusiveListConstIterator<T, Accessor> &rhs) const noexcept {
     return _current == rhs._current;
   }
 
-  bool operator!=(const IntrusiveListConstIterator<T, Accessor> &rhs) const {
+  bool operator!=(
+      const IntrusiveListConstIterator<T, Accessor> &rhs) const noexcept {
     return _current != rhs._current;
   }
 
   IntrusiveListConstIterator<T, Accessor> &
-  operator=(const IntrusiveListConstIterator<T, Accessor> &rhs) {
+  operator=(const IntrusiveListConstIterator<T, Accessor> &rhs) noexcept {
     _current = rhs._current;
     return *this;
   }
 
-  const T *current() const { return _current; }
+  const T *current() const noexcept { return _current; }
 
 private:
   const T *_current;
@@ -187,13 +225,13 @@ private:
 
 template <typename T, typename A>
 bool operator==(const IntrusiveListIterator<T, A> &lhs,
-                const IntrusiveListConstIterator<T, A> &rhs) {
+                const IntrusiveListConstIterator<T, A> &rhs) noexcept {
   return rhs.current() == lhs.current();
 }
 
 template <typename T, typename A>
 bool operator!=(const IntrusiveListIterator<T, A> &lhs,
-                const IntrusiveListConstIterator<T, A> &rhs) {
+                const IntrusiveListConstIterator<T, A> &rhs) noexcept {
   return rhs.current() != lhs.current();
 }
 
@@ -212,16 +250,26 @@ template <typename T, typename Accessor = IntrusiveListNodeAccessor<T>>
 class IntrusiveList {
 public:
   using Node = IntrusiveListNode<T>;
-
   using Iterator = IntrusiveListIterator<T, Accessor>;
-
   using ConstIterator = IntrusiveListConstIterator<T, Accessor>;
 
-  IntrusiveList() : _root(NULL) {}
+  explicit IntrusiveList() noexcept : _root(nullptr) {}
+
+  /// Get the front element of the list.
+  T &front() const noexcept { return *_root; }
+
+  /// Get the back element of the list.
+  T &back() const noexcept {
+    Iterator i = begin();
+    while ((i + 1) != end()) {
+      ++i;
+    }
+    return *i;
+  }
 
   /// Add element to the head of the list. Constant time.
-  void insert(T *element) {
-    Accessor::node(*element).assign(NULL, _root);
+  void push_front(T *element) noexcept {
+    Accessor::node(*element).assign(nullptr, _root);
     if (_root) {
       Accessor::node(*_root).prev = element;
     }
@@ -230,33 +278,55 @@ public:
 
   /// Remove element from the list. Removing an element invalidates any
   /// iterators. Constant time.
-  void remove(T *element) {
+  void remove(T *element) noexcept {
     Node &node = Accessor::node(*element);
     if (element == _root) {
-      if (node.next != NULL) {
-        Accessor::node(*node.next).prev = NULL;
+      if (node.next != nullptr) {
+        Accessor::node(*node.next).prev = nullptr;
         _root = node.next;
       } else {
-        _root = NULL;
+        _root = nullptr;
       }
     } else {
       Accessor::node(*node.prev).next = node.next;
-      if (node.next != NULL) {
+      if (node.next != nullptr) {
         Accessor::node(*node.next).prev = node.prev;
       }
     }
     node.clear();
   }
 
-  Iterator begin() const { return Iterator(_root); }
+  /// Move elements from the other list to the start of this list. Does not
+  /// invalidate any iterators.
+  void splice(IntrusiveList &other) noexcept {
 
-  Iterator end() const { return Iterator(NULL); }
+    if (other._root == nullptr) {
+      return;
+    }
 
-  ConstIterator cbegin() const { return ConstIterator(_root); }
+    if (_root == nullptr) {
+      _root = other._root;
+      other._root = nullptr;
+      return;
+    }
 
-  ConstIterator cend() const { return ConstIterator(NULL); }
+    Node &otherBack = Accessor::node(other.back());
+    otherBack.next = _root;
+    _root = other._root;
+    other._root = nullptr;
+  }
 
-  bool empty() const { return _root == NULL; }
+  std::size_t size() noexcept { return std::distance(begin(), end()); }
+
+  Iterator begin() const noexcept { return Iterator(_root); }
+
+  Iterator end() const noexcept { return Iterator(nullptr); }
+
+  ConstIterator cbegin() const noexcept { return ConstIterator(_root); }
+
+  ConstIterator cend() const noexcept { return ConstIterator(nullptr); }
+
+  bool empty() const noexcept { return _root == nullptr; }
 
 private:
   T *_root;
