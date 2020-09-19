@@ -14,7 +14,8 @@ add_omtalk_executable(omtalk-util-test
     test/test-bitarray.cpp
     test/test-bits.cpp
     test/test-eytzinger.cpp
-    test/test-hashmap.cpp
+    test/test-intrusivelist.cpp
+    test/test-math.cpp
 )
 
 target_link_libraries(omtalk-util-test
