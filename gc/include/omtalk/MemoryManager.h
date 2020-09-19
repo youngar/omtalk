@@ -12,7 +12,9 @@
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Util/Atomic.h>
+#include <omtalk/Util/Bytes.h>
 #include <omtalk/Util/IntrusiveList.h>
+#include <omtalk/Util/Math.h>
 #include <sys/mman.h>
 #include <thread>
 #include <vector>
@@ -59,6 +61,7 @@ public:
 
 struct MemoryManagerConfig {
   unsigned gcWorkerThreads = 1;
+  unsigned initialMemory = mebibytes(1);
 };
 
 constexpr MemoryManagerConfig DEFAULT_MEMORY_MANAGER_CONFIG;
@@ -108,9 +111,7 @@ class MemoryManager final {
 public:
   friend Context<S>;
 
-  explicit MemoryManager(MemoryManagerBuilder<S> &&builder)
-      : config(builder.config), globalCollector(this),
-        rootWalker(std::move(builder.rootWalker)) {}
+  explicit MemoryManager(MemoryManagerBuilder<S> &&builder);
 
   ~MemoryManager();
 
@@ -128,6 +129,9 @@ public:
   /// Get the number of threads which have access to the MM.  All threads must
   /// yield access to the MM before a GC can happen.
   unsigned getContextAccessCount() { return contextAccessCount.load(); }
+
+  /// Get the current size of the heap in bytes.
+  std::size_t getHeapSize() noexcept { return regionManager.getHeapSize(); }
 
   /// Signal to other threads that this thread wants exclusive access. Returns
   /// false if another thread has already requested it.  This will yield to
@@ -155,6 +159,18 @@ public:
 
   /// Start a global collection if one is not already occuring.
   void kickoff(Context<S> &context);
+
+  /// Enables the concurrent marking write barrier on all threads.
+  void enableWriteBarrier();
+
+  /// Disables the concurrent marking write barrier on all threads.
+  void disableWriteBarrier();
+
+  /// Enables the concurrent compaction load barrier on all threads.
+  void enableLoadBarrier();
+
+  /// Disables the concurrent compaction load barrier on all threads.
+  void diableLoadBarrier();
 
 private:
   /// Attach a context to the context list. Gives access to the context.
@@ -233,11 +249,31 @@ public:
   /// paying or garbage collection work to be done.
   bool refreshBuffer(std::size_t minimumSize);
 
+  /// Enables the concurrent marking write barrier.
+  void enableWriteBarrier() { writeBarrier = true; }
+
+  /// Disables the concurrent marking write barrier
+  void disableWriteBarrier() { writeBarrier = false; }
+
+  /// Returns true if the concurrent marking write barrier is enabled
+  bool writeBarrierEnabled() { return writeBarrier; }
+
+  /// Enables the concurrent compaction load barrier.
+  void enableLoadBarrier() { loadBarrier = true; }
+
+  /// Disables the concurrent compaction load barrier.
+  void diableLoadBarrier() { loadBarrier = false; }
+
+  /// Returns true if the  the concurrent compaction load barrier is enabled
+  bool loadBarrierEnabled() { return loadBarrier; }
+
 private:
   MemoryManager<S> *memoryManager;
   GlobalCollectorContext<S> gcContext;
   ContextListNode<S> listNode;
   AllocationBuffer ab;
+  std::atomic<bool> writeBarrier = false;
+  std::atomic<bool> loadBarrier = false;
 };
 
 //===----------------------------------------------------------------------===//
@@ -245,19 +281,30 @@ private:
 //===----------------------------------------------------------------------===//
 
 template <typename S>
+MemoryManager<S>::MemoryManager(MemoryManagerBuilder<S> &&builder)
+    : config(builder.config), globalCollector(this),
+      rootWalker(std::move(builder.rootWalker)) {
+  // round up the initial heap size to the number of regions.
+  auto regionCount = ceilingDivide(config.initialMemory, REGION_SIZE);
+  for (int i = 0; i < regionCount; i++) {
+    regionManager.allocateEmptyRegion();
+  }
+}
+
+template <typename S>
 MemoryManager<S>::~MemoryManager() {}
 
 template <typename S>
 void MemoryManager<S>::attach(Context<S> &cx) {
-  std::lock_guard<std::mutex> lock(yieldForGcMutex);
+  std::scoped_lock<std::mutex> lock(yieldForGcMutex);
   contextCount++;
   contextAccessCount++;
-  contexts.insert(&cx);
+  contexts.push_front(&cx);
 }
 
 template <typename S>
 void MemoryManager<S>::detach(Context<S> &cx) {
-  std::lock_guard<std::mutex> lock(yieldForGcMutex);
+  std::scoped_lock<std::mutex> lock(yieldForGcMutex);
   contextCount--;
   contextAccessCount--;
   contexts.remove(&cx);
@@ -269,7 +316,7 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
 
   // search the free list for an entry at least as big
   {
-    std::lock_guard freeListGuard(freeListMutex);
+    std::scoped_lock freeListGuard(freeListMutex);
     FreeBlock *block = freeList.firstFit(minimumSize);
     if (block != nullptr) {
       context.buffer().begin = reinterpret_cast<std::byte *>(block);
@@ -282,7 +329,7 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
   collect(context);
 
   {
-    std::lock_guard freeListGuard(freeListMutex);
+    std::scoped_lock freeListGuard(freeListMutex);
     FreeBlock *block = freeList.firstFit(minimumSize);
     if (block != nullptr) {
       context.buffer().begin = reinterpret_cast<std::byte *>(block);
@@ -354,6 +401,34 @@ void MemoryManager<S>::collect(Context<S> &context) {
 template <typename S>
 void MemoryManager<S>::kickoff(Context<S> &context) {
   globalCollector.kickoff(context.getCollectorContext());
+}
+
+template <typename S>
+void MemoryManager<S>::enableWriteBarrier() {
+  for (auto &context : contexts) {
+    context.enableWriteBarrier();
+  }
+}
+
+template <typename S>
+void MemoryManager<S>::disableWriteBarrier() {
+  for (auto &context : contexts) {
+    context.disableWriteBarrier();
+  }
+}
+
+template <typename S>
+void MemoryManager<S>::enableLoadBarrier() {
+  for (auto &context : contexts) {
+    context.enableLoadBarrier();
+  }
+}
+
+template <typename S>
+void MemoryManager<S>::diableLoadBarrier() {
+  for (auto &context : contexts) {
+    context.diableLoadBarrier();
+  }
 }
 
 //===----------------------------------------------------------------------===//

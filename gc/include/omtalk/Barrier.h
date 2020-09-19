@@ -7,44 +7,39 @@
 
 namespace omtalk::gc {
 
-template <typename S, typename ObjectProxyT, typename SlotProxyT>
-void preLoadBarrier(Context<S> &cx, ObjectProxyT &object, SlotProxyT &slot) {}
-
-template <typename S, typename ObjectProxyT, typename SlotProxyT>
-void postLoadBarrier(Context<S> &cx, ObjectProxyT &object, SlotProxyT &slot) {}
-
-template <typename S, typename ObjectProxyT, typename SlotProxyT,
-          typename ValueT>
-void preStoreBarrier(Context<S> &cx, ObjectProxyT object, SlotProxyT &slot,
-                     ValueT value) {}
-
-template <typename S, typename ObjectProxyT, typename SlotProxyT,
-          typename ValueT>
-void postStoreBarrier(Context<S> &cx, ObjectProxyT object, SlotProxyT &slot,
-                      ValueT value) {}
-
 /// Called after an object has been allocated and initialized.
 template <typename S, typename ObjectProxyT>
-void allocateBarrier(Context<S> &cx, ObjectProxyT object) {
+void allocateBarrier(Context<S> &context, ObjectProxyT object) {
   // Newly allocated objects must be marked black and scanned by the GC.
-  mark<S>(cx.getCollectorContext(), object);
+  if (context.writeBarrierEnabled()) {
+    mark<S>(context.getCollectorContext(), object);
+  }
 }
 
 template <typename S, typename ObjectProxyT, typename SlotProxyT>
-auto load(Context<S> &cx, ObjectProxyT &object, SlotProxyT &slot) {
-  preLoadBarrier(cx, object, slot);
+auto load(Context<S> &context, ObjectProxyT &object, SlotProxyT &slot) {
+  // if the slot points to an evactuate region, copy the object into the current
+  // allocation region.
   auto result = slot.load();
-  postLoadBarrier(cx);
+  if (context.loadBarrierEnabled()) {
+    auto region = Region::get(result);
+    if (region.isEvacuating()) {
+      // auto newObject =
+      OMTALK_ASSERT_UNREACHABLE();
+    }
+  }
   return result;
 }
 
 template <typename S, typename ObjectProxyT, typename SlotProxyT,
           typename ValueT>
-auto store(Context<S> &cx, ObjectProxyT object, SlotProxyT &slot,
+auto store(Context<S> &context, ObjectProxyT object, SlotProxyT &slot,
            ValueT value) {
-  preStoreBarrier(cx);
+  // mark the value which is being replaced
+  if (context.writeBarrierEnabled()) {
+    mark<S>(context.getCollectorContext(), slot.load());
+  }
   auto result = slot.store(value);
-  postStoreBarrier(cx);
   return result;
 }
 
