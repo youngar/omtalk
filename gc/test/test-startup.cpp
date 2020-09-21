@@ -40,7 +40,7 @@ TEST_CASE("Initial memory allocation", "[garbage collector]") {
     config.initialMemory = 0;
     auto mm =
         MemoryManagerBuilder<TestCollectorScheme>().withConfig(config).build();
-    REQUIRE(mm.getHeapSize() > config.initialMemory);
+    REQUIRE(mm.getHeapSize() == config.initialMemory);
   }
 
   SECTION("Default initial memory") {
@@ -52,6 +52,6 @@ TEST_CASE("Initial memory allocation", "[garbage collector]") {
     config.initialMemory = mebibytes(8);
     auto mm =
         MemoryManagerBuilder<TestCollectorScheme>().withConfig(config).build();
-    REQUIRE(mm.getHeapSize() > config.initialMemory);
+    REQUIRE(mm.getHeapSize() >= config.initialMemory);
   }
 }
