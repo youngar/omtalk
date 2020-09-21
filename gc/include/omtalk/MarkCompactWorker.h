@@ -5,7 +5,6 @@
 #include <iostream>
 #include <mutex>
 #include <omtalk/GlobalCollector.h>
-#include <omtalk/Worker.h>
 #include <thread>
 
 namespace omtalk::gc {
@@ -80,11 +79,16 @@ private:
 
   void collect() {
     std::cout << "### background scanning\n";
-    gc->completeScanning(context);
+    gc->mark(context);
     std::cout << "### background scanning complete\n";
-    std::cout << "### background GC Sweep\n";
-    gc->sweep(context);
-    std::cout << "### background GC Sweep complete\n";
+    std::cout << "### background pre-compact\n";
+    gc->postMark(context);
+    gc->preCompact(context);
+    std::cout << "### background compact\n";
+    gc->compact(context);
+    std::cout << "### background post-compact\n";
+    gc->postCompact(context);
+    std::cout << "### backgound GC complete\n";
   }
 
   GlobalCollectorContext<S> context;
