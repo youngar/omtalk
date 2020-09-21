@@ -314,6 +314,31 @@ template <typename S>
 bool MemoryManager<S>::refreshBuffer(Context<S> &context,
                                      std::size_t minimumSize) {
 
+  // Get an empty region
+  {
+    std::scoped_lock lock(regionManager);
+
+    // Return the old region.  Remove it from the alloc list and put it into the
+    // region list.
+    auto &buffer = context.buffer();
+    if (buffer.begin != nullptr) {
+      auto *region = Region::get(static_cast<void *>(buffer.begin));
+      auto &allocRegionList = regionManager.getAllocateRegions();
+      allocRegionList.remove(region);
+      auto &regionList = regionManager.getRegions();
+      regionList.push_front(region);
+    }
+
+    // Get a new region
+    auto *region = regionManager.getEmptyRegion();
+    regionManager.getAllocateRegions().push_front(region);
+    if (region != nullptr) {
+      context.buffer().begin = region->heapBegin();
+      context.buffer().end = region->heapEnd();
+      return true;
+    }
+  }
+
   // search the free list for an entry at least as big
   {
     std::scoped_lock freeListGuard(freeListMutex);
@@ -338,12 +363,16 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
     }
   }
 
-  // Get a new region
-  Region *region = regionManager.allocateRegion();
-  if (region != nullptr) {
-    context.buffer().begin = region->heapBegin();
-    context.buffer().end = region->heapEnd();
-    return true;
+  {
+    // Get a new region
+    std::scoped_lock lock(regionManager);
+    auto *region = regionManager.allocateRegion();
+    regionManager.getAllocateRegions().push_front(region);
+    if (region != nullptr) {
+      context.buffer().begin = region->heapBegin();
+      context.buffer().end = region->heapEnd();
+      return true;
+    }
   }
 
   // Failed to allocate
