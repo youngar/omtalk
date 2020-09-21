@@ -128,13 +128,14 @@ TEST_CASE("Check live data", "[garbage collector]") {
   HandleScope scope = mm.getRootWalker().rootScope.createScope();
   unsigned nslots = 10;
   auto allocSize = TestStructObject::allocSize(nslots);
-  auto ref = allocateTestStructObject(context, nslots);
-  Handle<TestStructObject> handle(scope, ref);
 
   // get the region where the object was allocated
-  auto *region = Region::get(ref);
 
   SECTION("Marking sets the proper live data size in a region") {
+    auto ref = allocateTestStructObject(context, nslots);
+    Handle<TestStructObject> handle(scope, ref);
+    auto *region = Region::get(handle.get());
+
     // perform marking
     gc.preMark(gcContext);
     gc.markRoots(gcContext);
@@ -143,9 +144,7 @@ TEST_CASE("Check live data", "[garbage collector]") {
     // Check live data
     REQUIRE(region->getLiveObjectCount() == 1);
     REQUIRE(region->getLiveDataSize() == allocSize);
-  }
 
-  SECTION("Garbage collector resets live data for second GC") {
     // Do it all again! makes sure things are properly reset between GCs
     gc.preMark(gcContext);
     gc.markRoots(gcContext);
@@ -184,12 +183,15 @@ TEST_CASE("Check live data", "[garbage collector]") {
     gc.preMark(gcContext);
     auto ref = allocateTestStructObject(context, 10);
     auto *region = Region::get(ref);
-    REQUIRE(region->marked(ref));
+    CHECK(region->marked(ref));
     gc.mark(gcContext);
-    REQUIRE(region->getLiveObjectCount() == 1);
-    REQUIRE(region->getLiveDataSize() == allocSize);
+    CHECK(region->marked(ref));
+    CHECK(region->getLiveObjectCount() == 1);
+    CHECK(region->getLiveDataSize() == allocSize);
     gc.collect(gcContext);
-    REQUIRE(region->unmarked(ref));
+    CHECK(region->unmarked(ref));
+    CHECK(region->getLiveObjectCount() == 0);
+    CHECK(region->getLiveDataSize() == 0);
   }
 }
 

@@ -71,56 +71,32 @@ public:
 
   /// Set up for the next garbage collection. Must only be called after the
   /// previous GC has finished.
-  void setup(Context &context) noexcept;
+  void preMark(Context &context) noexcept;
 
   /// Scan all roots.
-  void scanRoots(Context &context) noexcept;
+  void markRoots(Context &context) noexcept;
 
   /// Concurrent collection helpers
   // @{
-  void completeScanning(Context &context) noexcept;
+  void mark(Context &context) noexcept;
+
+  void postMark(Context &context) noexcept;
+
+  void preCompact(Context &context) noexcept;
+  void compact(Context &context) noexcept;
+  void postCompact(Context &context) noexcept;
+
   void sweep(Context &context) noexcept;
   void evacuate(Context &context) noexcept;
   // @}
 
-  /// Finish a concurrent evacuation.
-  void finalEvacuate(Context &context) noexcept;
-
-  /// Returns true if concurrent evacuation is on-going
-  bool concurrentEvacuate() const noexcept { return evacuateRegion != nullptr; }
-
   /// Get the global workstack.
   WorkStack<S> &getStack() { return stack; }
-
-  /// Get the region we are evacuating to.
-  Region *getEvacuateRegion() const noexcept { return evacuateRegion; }
-
-  void setEvacuateRegion(Region *region) noexcept {
-    evacuateRegion = region;
-    evacuateEnd = region->heapEnd();
-  }
-
-  /// Get the address we are evacuating to.
-  std::byte *getEvacuateTo() const noexcept { return evacuateTo; }
-
-  /// Get the address we are evacuating to.
-  std::byte *getEvacuateEnd() const noexcept { return evacuateEnd; }
-
-  /// Get the region we are evacuating to.
-  void setEvacuateTo(std::byte *to) noexcept { evacuateTo = to; }
 
 private:
   MemoryManager<S> *memoryManager;
   MarkCompactWorker<S> worker;
   WorkStack<S> stack;
-
-  /// The region to evacuate objects to.
-  ///
-  /// TODO: This system is a placeholder for something more robust and thread
-  /// safe
-  Region *evacuateRegion = nullptr;
-  std::byte *evacuateTo = nullptr;
-  std::byte *evacuateEnd = nullptr;
 };
 
 /// Default context of the marking scheme.
@@ -150,8 +126,8 @@ void GlobalCollector<S>::collect(Context &context) noexcept {
 template <typename S>
 void GlobalCollector<S>::kickoff(Context &context) noexcept {
   std::cout << "@@@ GC Roots\n";
-  setup(context);
-  scanRoots(context);
+  preMark(context);
+  markRoots(context);
   std::cout << "@@@ starting concurrent\n";
   worker.run();
 }
@@ -162,54 +138,43 @@ void GlobalCollector<S>::wait(Context &context) noexcept {
 }
 
 template <typename S>
-void GlobalCollector<S>::setup(Context &context) noexcept {
-  // Clear out any marked references.  This can especially happen from
-  // allocations.  Theoretically if the previous cycle completes, the stacks
-  // should be empty.
-  stack.clear();
-
+void GlobalCollector<S>::preMark(Context &context) noexcept {
+  OMTALK_ASSERT(stack.empty());
   auto &regionManager = memoryManager->getRegionManager();
 
-  // select regions for collection.  Selection is based on the regions with the
-  // least amount of live data in them.
-  for (auto &region : regionManager) {
+  for (auto &region : regionManager.getRegions()) {
+    std::cout << "clearing region " << &region << std::endl;
     region.clearMarkMap();
-    region.getForwardingMap().clear();
-
-    // regions less than half full are candidates for evacuation.
-    auto liveData = region.getLiveDataSize();
-    if (liveData < (REGION_SIZE / 2)) {
-      region.setEvacuating(true);
-      // populate the forwarding map
-      region.getForwardingMap().rebuild(RegionMarkedObjectsIterator<S>(region),
-                                        region.getLiveObjectCount());
-    } else {
-      region.setEvacuating(false);
-    }
-
-    // reset region statistics
     region.clearStatistics();
   }
+
+  for (auto &region : regionManager.getAllocateRegions()) {
+    std::cout << "clearing region " << &region << std::endl;
+    region.clearMarkMap();
+    region.clearStatistics();
+  }
+
+  memoryManager->enableWriteBarrier();
 }
 
-// template <typename S>
-// void GlobalCollector<S>::preCompact(Context &context) noexcept {
-
-// }
-
 template <typename S>
-void GlobalCollector<S>::scanRoots(Context &context) noexcept {
+void GlobalCollector<S>::markRoots(Context &context) noexcept {
   ScanVisitor<S> visitor;
   memoryManager->getRootWalker().walk(context, visitor);
 }
 
 template <typename S>
-void GlobalCollector<S>::completeScanning(Context &context) noexcept {
+void GlobalCollector<S>::mark(Context &context) noexcept {
   while (stack.more()) {
     auto item = stack.pop();
     std::cout << "!!! Scan: " << item.target.asRef() << std::endl;
     scan<S>(context, item.target);
   }
+}
+
+template <typename S>
+void GlobalCollector<S>::postMark(Context &context) noexcept {
+  memoryManager->disableWriteBarrier();
 }
 
 template <typename S>
@@ -220,6 +185,55 @@ void GlobalCollector<S>::sweep(Context &context) noexcept {
   }
   memoryManager->setFreeList(freeList);
 }
+
+template <typename S>
+void GlobalCollector<S>::preCompact(Context &context) noexcept {
+  // select regions for collection.  Selection is based on the regions with the
+  // least amount of live data in them.
+  auto &regionManager = memoryManager->getRegionManager();
+  auto regionList = regionManager.getRegions();
+  auto emptyList = regionManager.getEmptyRegions();
+  auto evacList = regionManager.getEvacuateRegions();
+  auto iter = regionList.begin();
+  auto end = regionList.end();
+  while (iter != end) {
+    auto &region = *iter;
+    // increment the iterator before potentially removing the current region
+    // from the list.
+    iter++;
+    // regions less than half full are candidates for evacuation.
+    auto liveData = region.getLiveDataSize();
+    if (liveData == 0) {
+      regionList.remove(&region);
+      emptyList.push_front(&region);
+    } else if (liveData < (REGION_SIZE / 2)) {
+      std::cout << "!! precompact region: " << &region << " evacuate\n";
+      regionList.remove(&region);
+      evacList.push_front(&region);
+      // populate the forwarding map
+      auto liveObjects = RegionMarkedObjectsIterator<S>(region);
+      region.getForwardingMap().rebuild(liveObjects,
+                                        region.getLiveObjectCount());
+      // As soon as this bit is set, mutator threads will start evacuating
+      // objects.
+      region.setEvacuating(true);
+    }
+  }
+}
+
+template <typename S>
+void GlobalCollector<S>::compact(Context &context) noexcept {}
+
+template <typename S>
+void GlobalCollector<S>::postCompact(Context &context) noexcept {
+  RegionManager &regionManager = memoryManager->getRegionManager();
+  for (auto &region : regionManager.getEvacuateRegions()) {
+    region.getForwardingMap().clear();
+    region.setEvacuating(false);
+  }
+  regionManager.getEmptyRegions().splice(regionManager.getEvacuateRegions());
+}
+
 } // namespace omtalk::gc
 
 #endif
