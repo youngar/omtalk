@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cassert>
 #include <cstdlib>
 #include <iostream>
 #include <mutex>
@@ -83,7 +82,7 @@ public:
 private:
   FreeBlock(std::size_t size, FreeBlock *next = nullptr)
       : size(size), next(next) {
-    assert(size > sizeof(FreeBlock));
+    OMTALK_ASSERT(size > sizeof(FreeBlock));
   }
 
   std::size_t size = 0;
@@ -93,7 +92,7 @@ private:
 class FreeList {
 public:
   void add(void *address, std::size_t size) noexcept {
-    assert(size > sizeof(FreeBlock));
+    OMTALK_ASSERT(size > sizeof(FreeBlock));
     last = last->link(address, size);
   }
 
@@ -200,13 +199,12 @@ public:
     return reinterpret_cast<Region *>(ref.toAddr() & REGION_ADDRESS_MASK);
   }
 
+  static Region *get(void *ref) { return get(Ref(ref)); }
+
   void kill() noexcept {
     this->~Region();
     std::free(this);
   }
-
-  /// Remove this region from the RegionList
-  void unlink() { getListNode().clear(); }
 
   std::byte *heapBegin() noexcept {
     return reinterpret_cast<std::byte *>(data);
@@ -231,22 +229,22 @@ public:
   }
 
   bool mark(Ref<void> ref) {
-    assert(inRange(ref));
+    OMTALK_ASSERT(inRange(ref));
     return markMap.mark(toIndex(ref));
   }
 
   bool unmark(Ref<void> ref) {
-    assert(inRange(ref));
+    OMTALK_ASSERT(inRange(ref));
     return markMap.unmark(toIndex(ref));
   }
 
   bool marked(Ref<void> ref) {
-    assert(inRange(ref));
+    OMTALK_ASSERT(inRange(ref));
     return markMap.marked(toIndex(ref));
   }
 
   bool unmarked(Ref<void> ref) {
-    assert(inRange(ref));
+    OMTALK_ASSERT(inRange(ref));
     return markMap.unmarked(toIndex(ref));
   }
 
@@ -300,15 +298,15 @@ public:
   ForwardingMap &getForwardingMap() noexcept { return forwardingMap; }
 
   /// Intrusive list
-
+  /// @{
   RegionListNode &getListNode() noexcept { return listNode; }
-
   const RegionListNode &getListNode() const noexcept { return listNode; }
+  /// @}
 
 private:
   Region() {}
 
-  ~Region() { unlink(); }
+  ~Region() {}
 
   /// The size of live data in the region.  Used and updated by the garbage
   /// collector.
@@ -318,7 +316,8 @@ private:
   /// collector.
   std::atomic<std::size_t> liveObjectCount = 0;
 
-  bool evacuating = false;
+  /// True if this region is marked for evacuation.
+  std::atomic<bool> evacuating = false;
 
   ForwardingMap forwardingMap;
 
@@ -329,7 +328,7 @@ private:
 
   // trailing data must be last
   alignas(OBJECT_ALIGNMENT) std::byte data[];
-};
+}; // namespace omtalk::gc
 
 /// Iterate the live objects in a Region by walking the MarkMap.  Requires
 /// the region to have a valid MarkMap.
@@ -348,7 +347,7 @@ public:
   ObjectProxy<S> operator*() const noexcept { return ObjectProxy<S>(address); }
 
   RegionMarkedObjectsIterator &operator++() noexcept {
-    assert(address < region.heapEnd());
+    OMTALK_ASSERT(address < region.heapEnd());
     // TODO
     // When we are forwarding, we are destroying the object by installing a
     // forwarding header as we walk the markmap.  This means we cannot read the
@@ -455,10 +454,13 @@ private:
 // RegionManager
 //===----------------------------------------------------------------------===//
 
+/// Manages allocation of regions.  Provides a centralized location to manage
+/// region lists.
 class RegionManager {
 public:
+  RegionManager() = default;
+
   ~RegionManager() {
-    std::lock_guard regionGuard(regionsMutex);
     auto i = regions.begin();
     auto e = regions.end();
     while (i != e) {
@@ -467,25 +469,31 @@ public:
     }
   }
 
+  /// Get the size of the heap in bytes.
+  std::size_t getHeapSize() noexcept { return regionCount * REGION_SIZE; }
+
+  Region *allocateEmptyRegion() {
+    auto *region = allocateRegion();
+    regions.remove(region);
+    emptyRegions.push_front(region);
+    return region;
+  }
+
   Region *allocateRegion() {
-    std::lock_guard regionGuard(regionsMutex);
     Region *region = Region::allocate();
     if (region == nullptr) {
       return nullptr;
     }
+    regionCount++;
     region->clearMarkMap();
     region->clearStatistics();
-    regions.insert(region);
+    regions.push_front(region);
     return region;
   }
 
-  void addRegion(Region *region) {
-    std::lock_guard regionGuard(regionsMutex);
-    regions.insert(region);
-  }
+  void addRegion(Region *region) { regions.push_front(region); }
 
   Region *getEmptyRegion() {
-    std::lock_guard regionGuard(regionsMutex);
     auto i = emptyRegions.begin();
     if (i == emptyRegions.end()) {
       return nullptr;
@@ -493,11 +501,6 @@ public:
     auto region = &*i;
     emptyRegions.remove(region);
     return region;
-  }
-
-  void addEmptyRegion(Region *region) {
-    std::lock_guard regionGuard(regionsMutex);
-    emptyRegions.insert(region);
   }
 
   Region *getEmptyOrNewRegion() {
@@ -508,44 +511,50 @@ public:
     return region;
   }
 
-  void freeRegion(Region *region) { std::free(region); }
+  void freeRegion(Region *region) {
+    regionCount--;
+    std::free(region);
+  }
 
-  using Iterator = RegionList::Iterator;
+  /// Get regular regions which are not being allocated out of or evacuated.
+  RegionList &getRegions() { return regions; }
 
-  using ConstIterator = RegionList::ConstIterator;
+  /// Get the list of regions being evacuated.  This list is empty outisde of a
+  /// garbage collection.
+  RegionList &getEvacuateRegions() { return evacuateRegions; }
 
-  Iterator begin() const { return regions.begin(); }
+  /// Get the list of regions being allocated from.
+  RegionList &getAllocateRegions() noexcept { return allocateRegions; }
 
-  Iterator end() const { return regions.end(); }
+  /// Get the list of empt regions.  Regions in this list are evually reused for
+  /// allocation, or copied to this region during a garbage collection.
+  RegionList &getEmptyRegions() { return emptyRegions; }
 
-  ConstIterator cbegin() const { return regions.cbegin(); }
+  void lock() { regionsMutex.lock(); }
 
-  ConstIterator cend() const { return regions.cend(); }
+  void unlock() { regionsMutex.unlock(); }
+
+  bool try_lock() { return regionsMutex.try_lock(); }
 
 private:
-  /// Protects all the region lists
+  /// The number of regions currently allocated
+  std::size_t regionCount = 0;
+
+  /// Protects all the region lists.
   std::mutex regionsMutex;
 
-  /// List of live regions
+  /// List of live regions.
   RegionList regions;
 
-  /// Regions with no objects allocated out of them
+  /// Regions with no objects allocated out of them.
   RegionList emptyRegions;
 
-  /// Regions being evacuated from
+  /// Regions with active allocation.
+  RegionList allocateRegions;
+
+  /// Regions being evacuated from.
   RegionList evacuateRegions;
 };
-
-//===----------------------------------------------------------------------===//
-// Helpers
-//===----------------------------------------------------------------------===//
-
-/// Returns whether a ref is in a region that has been evacuated during a
-/// garbage collection
-template <typename T>
-bool inEvacuatedRegion(Ref<T> address) {
-  return Region::get(address)->isEvacuating();
-}
 
 } // namespace omtalk::gc
 
