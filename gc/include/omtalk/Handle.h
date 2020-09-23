@@ -146,6 +146,16 @@ public:
   T *operator->() const noexcept { return value.reinterpret<T>().get(); }
 
   Ref<T> get() const noexcept { return value.reinterpret<T>(); }
+
+  Handle<T> &operator=(const Handle<T> &other) noexcept {
+    value = other.value;
+    return *this;
+  }
+
+  Handle<T> &operator=(const Ref<T> &other) noexcept {
+    value = other;
+    return *this;
+  }
 };
 
 template <>
@@ -158,6 +168,16 @@ public:
   Handle(HandleScope &scope, Ref<void> value) : HandleBase(value) {}
 
   Ref<void> get() const noexcept { return value; }
+
+  Handle<void> &operator=(const Handle<void> &other) noexcept {
+    value = other.value;
+    return *this;
+  }
+
+  Handle<void> &operator=(const Ref<void> &other) noexcept {
+    value = other;
+    return *this;
+  }
 };
 
 } // namespace omtalk::gc

@@ -68,3 +68,28 @@ TEST_CASE("WalkHandles", "[garbage collector]") {
   }
   REQUIRE(count == 1);
 }
+
+TEST_CASE("Handle Assignment", "[garbage collector]") {
+  RootHandleScope rootScope;
+
+  std::uintptr_t value1 = 5;
+  Ref<std::uintptr_t> ref1 = &value1;
+  Handle<std::uintptr_t> handle1(rootScope, ref1);
+
+  std::uintptr_t value2 = 6;
+  Ref<std::uintptr_t> ref2 = &value2;
+  Handle<std::uintptr_t> handle2(rootScope, ref2);
+
+  CHECK(*handle1 == value1);
+  CHECK(*handle2 == value2);
+
+  handle1 = handle2;
+
+  CHECK(*handle1 == value2);
+  CHECK(*handle2 == value2);
+
+  handle1 = ref1;
+
+  CHECK(*handle1 == value1);
+  CHECK(*handle2 == value2);
+}
