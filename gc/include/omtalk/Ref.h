@@ -200,6 +200,11 @@ constexpr Ref<T> reinterpret(Ref<U> x) {
   return x.template reinterpret<T>();
 }
 
+template <typename T>
+constexpr Ref<T> makeRef(T *x) {
+  return Ref<T>(x);
+}
+
 /// A type-erasing stand-in for a `Ref<T>`. Forwards all calls along to target.
 class RefProxy {
 public:
