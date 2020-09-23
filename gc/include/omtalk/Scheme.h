@@ -40,7 +40,7 @@ ObjectProxy<S> getProxy(Ref<void> target) noexcept {
 // Generic Get Object Size Function
 //===----------------------------------------------------------------------===//
 
-/// Overrideable functor which gets the size of an object at a given object.
+/// Overrideable functor which gets the size of an object at a given address.
 template <typename S>
 struct GetSize {
   std::size_t operator()(Ref<void> target) const noexcept {
@@ -52,6 +52,21 @@ struct GetSize {
 template <typename S>
 std::size_t getSize(Ref<void> target) noexcept {
   return GetSize<S>()(target);
+}
+
+/// Overrideable functor which gets the size of an object after it has been
+/// copied.
+template <typename S>
+struct GetCopySize {
+  std::size_t operator()(Ref<void> target) const noexcept {
+    return getProxy<S>(target).getSize();
+  }
+};
+
+/// Get the size of an object after it has been copied.
+template <typename S>
+std::size_t getCopySize(Ref<void> target) noexcept {
+  return GetCopySize<S>()(target);
 }
 
 //===----------------------------------------------------------------------===//
