@@ -9,7 +9,6 @@ target_include_directories(omtalk-util
 )
 
 add_omtalk_executable(omtalk-util-test
-    test/main.cpp
     test/test-atomic.cpp
     test/test-bitarray.cpp
     test/test-bits.cpp
@@ -22,6 +21,7 @@ target_link_libraries(omtalk-util-test
     PRIVATE
         omtalk-util
         Catch2::Catch2
+        catch2_main
 )
 
 add_test(omtalk-util-test omtalk-util-test)
