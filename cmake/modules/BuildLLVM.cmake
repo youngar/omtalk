@@ -1,37 +1,41 @@
 ###
 ### LLVM CMake Integration
 ###
+if(OMTALK_BUILD_LLVM)
+	message(STATUS "Using LLVM_ENABLE_PROJECTS:    ${LLVM_ENABLE_PROJECTS}")
+	message(STATUS "Using OMTALK_LLVM_OPTIONS:     ${OMTALK_LLVM_OPTIONS}")
 
-message(STATUS "Using LLVM_ENABLE_PROJECTS:    ${LLVM_ENABLE_PROJECTS}")
-message(STATUS "Using OMTALK_LLVM_OPTIONS:     ${OMTALK_LLVM_OPTIONS}")
+	set(OMTALK_LLVM_SOURCE_DIR "${omtalk_SOURCE_DIR}/external/llvm-project")
+	set(OMTALK_LLVM_BINARY_DIR "${omtalk_BINARY_DIR}/external/llvm-project")
 
-set(OMTALK_LLVM_SOURCE_DIR "${omtalk_SOURCE_DIR}/external/llvm-project")
-set(OMTALK_LLVM_BINARY_DIR "${omtalk_BINARY_DIR}/external/llvm-project")
+	file(MAKE_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}")
+	set(extra_find_args NO_DEFAULT_PATH PATHS "${OMTALK_LLVM_BINARY_DIR}")
 
-file(MAKE_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}")
-
-if(NOT OMTALK_RAN_LLVM_CMAKE)
-	execute_process(
-		COMMAND "${CMAKE_COMMAND}" "${OMTALK_LLVM_SOURCE_DIR}/llvm" 
-			-G "${CMAKE_GENERATOR}" 
+	if(NOT OMTALK_RAN_LLVM_CMAKE)
+	message(STATUS "Building LLVM")
+		execute_process(
+			COMMAND "${CMAKE_COMMAND}" "${OMTALK_LLVM_SOURCE_DIR}/llvm"
+			-G "${CMAKE_GENERATOR}"
 			${OMTALK_LLVM_OPTIONS}
 			"-DLLVM_ENABLE_PROJECTS=${LLVM_ENABLE_PROJECTS}"
-		WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
-	)
+			WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
+		)
 
-	# TODO: properly import targets from MLIR. mlir-tblgen is not an exported
-	# target, and dependencies are not represented. Therefore we have to force a
-	# build of LLVM at configure time to make sure tblgen is built.
-	execute_process(
-		COMMAND "${CMAKE_COMMAND}" --build .
-		WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
-	)
+		# TODO: properly import targets from MLIR. mlir-tblgen is not an exported
+		# target, and dependencies are not represented. Therefore we have to force a
+		# build of LLVM at configure time to make sure tblgen is built.
+		execute_process(
+			COMMAND "${CMAKE_COMMAND}" --build .
+			WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
+		)
 
-	set(OMTALK_RAN_LLVM_CMAKE ON CACHE INTERNAL "")
+		set(OMTALK_RAN_LLVM_CMAKE ON CACHE INTERNAL "")
+		list(APPEND extra_find_args "PATHS" "${OMTALK_LLVM_BINARY_DIR}")
+	endif()
+
 endif()
 
-message(STATUS "Using CMAKE_MODULE_PATH:       ${CMAKE_MODULE_PATH}")
-find_package(MLIR REQUIRED PATHS "${OMTALK_LLVM_BINARY_DIR}/lib/cmake/mlir" NO_DEFAULT_PATH)
+find_package(MLIR REQUIRED ${extra_find_args})
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
@@ -80,12 +84,12 @@ add_library(omtalk_llvm INTERFACE)
 
 target_include_directories(omtalk_llvm
 	INTERFACE
-		${LLVM_INCLUDE_DIRS}
+	${LLVM_INCLUDE_DIRS}
 )
 
 target_compile_definitions(omtalk_llvm
 	INTERFACE
-		${LLVM_DEFINITIONS}
+	${LLVM_DEFINITIONS}
 )
 
 ###

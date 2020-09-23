@@ -1,14 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_CXX_STANDARD 17)
-
-if(POLICY CMP0077)
-	cmake_policy(SET CMP0077 NEW)
-endif()
-
-if(POLICY CMP0076)
-	cmake_policy(SET CMP0076 NEW)
-endif()
 
 ###
 ### Omtalk
@@ -94,7 +86,11 @@ om_add_option(OMTALK_TESTS OMTALK_OPTIONS
 )
 
 om_add_option(OMTALK_LLVM OMTALK_OPTIONS
-	DOC "Build against the LLVM submodule"
+	DOC "Build with LLVM"
+)
+om_add_option(OMTALK_BUILD_LLVM OMTALK_OPTIONS
+	DOC "Build the included LLVM submodule"
+	REQUIRES OMTALK_LLVM
 )
 
 set(OMTALK_PATH ${omtalk_SOURCE_DIR}/external/SOM/Smalltalk CACHE STRING "The core library class path")
