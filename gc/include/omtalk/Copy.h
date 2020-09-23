@@ -3,9 +3,13 @@
 
 #include <cassert>
 #include <cstddef>
+#include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 
 namespace omtalk::gc {
+
+template <typename S>
+class GlobalCollectorContext;
 
 /// Returns whether the copy operation was a success or failure.  If the the
 /// copy was a success, record the size of the copied object
@@ -48,18 +52,17 @@ private:
 /// or if two objects are combined into one new object, which is common in
 /// javascript where objects grow slots as the program is running.
 ///
-/// The default implementation assumes that the object does not change in size or
-/// contents when it is copied.
+/// The default implementation assumes that the object does not change in size
+/// or contents when it is copied.
 template <typename S>
 struct Copy {
   CopyResult operator()(GlobalCollectorContext<S> context, ObjectProxy<S> from,
                         std::byte *to, std::size_t size) const noexcept {
-    std::size_t copySize = from.getCopySize();
-    assert(copySize = from.getSize());
+    std::size_t copySize = getCopySize<S>(from.asRef());
     if (copySize > size) {
       return CopyResult::fail();
     }
-    std::memcpy(to, from.asRef().get(), from.getSize());
+    std::memcpy(to, from.asRef().get(), copySize);
     return CopyResult::success(copySize);
   }
 };
