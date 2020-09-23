@@ -222,6 +222,18 @@ public:
     return reinterpret_cast<const std::byte *>(this) + REGION_SIZE;
   }
 
+  /// Get a pointer to the unsed area of the region.  The region should be used
+  /// from low address to high address.
+  std::byte *getFree() const noexcept { return free; }
+
+  /// Set the address of the unused area of the region.
+  void setFree(std::byte *freeMark) noexcept { free = freeMark; }
+
+  /// Get the size of the allocatable part of a region
+  constexpr std::size_t size() noexcept {
+    return REGION_SIZE - offsetof(Region, data);
+  }
+
   void clearMarkMap() noexcept { markMap.clear(); }
 
   bool inRange(Ref<> ref) const {
@@ -318,6 +330,9 @@ private:
 
   /// True if this region is marked for evacuation.
   std::atomic<bool> evacuating = false;
+
+  /// Pointer to the unused area in a region.
+  std::atomic<std::byte *> free;
 
   ForwardingMap forwardingMap;
 
@@ -429,10 +444,10 @@ template <typename S>
 class RegionContiguousObjects {
 public:
   RegionContiguousObjects(Region &region)
-      : RegionContiguousObjects(region, region.heapBegin()) {}
+      : RegionContiguousObjects(region, region.heapBegin(), region.getFree()) {}
 
   RegionContiguousObjects(Region &region, std::byte *begin)
-      : RegionContiguousObjects(region, begin, region.heapEnd()) {}
+      : RegionContiguousObjects(region, begin, region.getFree()) {}
 
   RegionContiguousObjects(Region &region, std::byte *begin, std::byte *end)
       : begin_(begin), end_(end) {}

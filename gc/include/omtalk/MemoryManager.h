@@ -323,6 +323,7 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
     auto &buffer = context.buffer();
     if (buffer.begin != nullptr) {
       auto *region = Region::get(static_cast<void *>(buffer.begin));
+      region->setFree(buffer.begin);
       auto &allocRegionList = regionManager.getAllocateRegions();
       allocRegionList.remove(region);
       auto &regionList = regionManager.getRegions();
