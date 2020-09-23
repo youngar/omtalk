@@ -11,8 +11,9 @@ add_omtalk_executable(omtalk-gc-test
 
 target_link_libraries(omtalk-gc-test
     PRIVATE
-        omtalk-gc
         Catch2::Catch2
+        omtalk-gc
+        omtalk-gc-example
 )
 
 add_test(omtalk-gc-test omtalk-gc-test)

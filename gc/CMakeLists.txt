@@ -15,4 +15,5 @@ target_link_libraries(omtalk-gc
 )
 
 add_subdirectory(benchmark)
+add_subdirectory(example)
 add_subdirectory(test)

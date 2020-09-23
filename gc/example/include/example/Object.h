@@ -1,5 +1,5 @@
-#ifndef OMTALK_GC_TEST_OBJECT_H_
-#define OMTALK_GC_TEST_OBJECT_H_
+#ifndef EXAMPLE_OBJECT_H
+#define EXAMPLE_OBJECT_H
 
 #include <cassert>
 #include <catch2/catch.hpp>
@@ -123,6 +123,8 @@ struct TestStructObject : public TestObject {
   std::size_t getLength() const noexcept { return length; }
 
   void setSlot(unsigned slot, TestValue value) noexcept { slots[slot] = value; }
+
+  TestValue getSlot(unsigned slot) const noexcept { return slots[slot]; }
 
   template <typename C, typename V>
   void walk(C &cx, V &visitor) {
@@ -287,8 +289,6 @@ public:
       abort();
     }
   }
-
-  std::size_t getForwardedSize() const noexcept { return getSize(); }
 
   template <typename ContextT, typename VisitorT>
   void walk(ContextT &cx, VisitorT &visitor) const noexcept {
