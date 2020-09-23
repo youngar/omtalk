@@ -53,7 +53,13 @@ function(om_add_option opt group)
 	om_declare_option(${opt} ${group})
 	om_group_options(${group} ${opt})
 
-	set(${opt} ${ARG_DEFAULT} CACHE BOOL "${ARG_DOC}")
+	if(${ARG_DEFAULT})
+		set(value ON)
+	else()
+		set(value OFF)
+	endif()
+
+	set(${opt} ${value} CACHE BOOL "${ARG_DOC}")
 
 	if(DEFINED ARG_REQUIRES)
 		om_option_requires(${opt} ${ARG_REQUIRES})
