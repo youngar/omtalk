@@ -20,7 +20,8 @@ public:
   /// the entry, or the To field has been previously set.
   bool tryLock() {
     std::uintptr_t expected = 0;
-    return to.compare_exchange_strong(expected, LOCKED);
+    return to.compare_exchange_strong(expected, LOCKED,
+                                      std::memory_order_acquire);
   }
 
   /// Returns true if the To entry is locked.
@@ -40,7 +41,8 @@ public:
   /// entry, tryLockTo() will always fail.
   void set(void *address) {
     OMTALK_ASSERT_MSG(isLocked(), "Entries must be locked before setting");
-    to.store(reinterpret_cast<std::uintptr_t>(address));
+    to.store(reinterpret_cast<std::uintptr_t>(address),
+             std::memory_order_release);
   }
 
 private:
@@ -87,45 +89,4 @@ private:
 
 } // namespace omtalk::gc
 
-#endif
-
-#if 0
-
-// .. pre-insert in the map
-
-// .. later
-
-/// Get a forwarded object, or forward the object
-/// Record a forwarding from one address to another address.  If a forwarding
-/// for an address already exists, return the previous forwarding address.
-template<typename S>
-static void *forwardOrGet(GlobalCollectorContext<S> cx,
-                          void *address() {
-    Region region = Region::get(address);
-    ForwardingEntry &f = region.getForwardingTable()[address];
-    void *newAddress = f.getTo();
-    if (newAddress == nullptr) {
-        if (f.tryLock()) {
-            newAddress = allocate();
-            // copy here!
-            f.setTo(newAddress);
-        } else {
-            // Someone else is copying the entry.  Wait for them to finish.
-            newAddress = f.getTo();
-        }
-    }
-    return newAddress;
-};
-
-void rebuild(const Region &region) { auto n = region.getLiveObjectCount(); }
-
-
-void *forward(Context &context, void *target) {
-  auto *region = Region::get(target);
-  auto &table = region->getForwardingTable();
-
-  auto &entry = table.get(target);
-  if (entry.getTo() != nullptr) {
-  }
-}
 #endif
