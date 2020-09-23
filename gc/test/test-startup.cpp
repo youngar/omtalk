@@ -1,5 +1,5 @@
-#include "Object.h"
 #include <catch2/catch.hpp>
+#include <example/Object.h>
 #include <memory>
 #include <omtalk/GlobalCollector.h>
 #include <omtalk/Heap.h>
