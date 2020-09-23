@@ -33,7 +33,7 @@ target_link_libraries(omtalk-objectmodel-test
 PRIVATE
     omtalk-gc
     Catch2::Catch2
-    catch2_main
+    catch2-main
 )
 
 if(OMTALK_WARNINGS)
