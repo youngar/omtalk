@@ -147,7 +147,7 @@ find_program(OMTALK_TOOL_LLD ld.lld)
 
 om_add_option(OMTALK_LLD OMTALK_OPTIONS
 	DOC "Use the LLVM linker ld.lld"
-	DEFAULT ${OMTALK_TOOL_LLD}
+	DEFAULT  OMTALK_TOOL_LLD
 	REQUIRES OMTALK_TOOL_LLD
 )
 
@@ -157,7 +157,7 @@ find_program(OMTALK_TOOL_CCACHE ccache)
 
 om_add_option(OMTALK_CCACHE OMTALK_OPTIONS
 	DOC "Build using ccache as a compiler launcher"
-	DEFAULT ${OMTALK_TOOL_CCACHE}
+	DEFAULT  OMTALK_TOOL_CCACHE
 	REQUIRES OMTALK_TOOL_CCACHE
 )
 
@@ -165,25 +165,22 @@ find_program(OMTALK_TOOL_CLANG_TIDY clang-tidy)
 
 om_add_option(OMTALK_STATIC_CLANG_TIDY OMTALK_OPTIONS
 	DOC "Build with the clang-tidy static analyzer"
-	DEFAULT ${OMTALK_TOOL_CLANG_TIDY}
-	REQUIRES
-		OMTALK_TOOL_CLANG_TIDY
+	DEFAULT  OMTALK_TOOL_CLANG_TIDY
+	REQUIRES OMTALK_TOOL_CLANG_TIDY
 )
 
 find_program(OMTALK_TOOL_IWYU include-what-you-use)
 
 om_add_option(OMTALK_STATIC_IWYU OMTALK_OPTIONS
 	DOC "Build with the include-what-you-use static analyzer"
-	DEFAULT ${OMTALK_TOOL_IWYU}
-	REQUIRES
-		OMTALK_TOOL_IWYU
+	DEFAULT  OMTALK_TOOL_IWYU
+	REQUIRES OMTALK_TOOL_IWYU
 )
 
 om_add_option(OMTALK_STATIC_LWYU OMTALK_OPTIONS
 	DOC "Build with the link-what-you-use static analyzer"
-	DEFAULT ${OMTALK_TOOL_IWYU}
-	REQUIRES
-		OMTALK_TOOL_IWYU
+	DEFAULT  OMTALK_TOOL_IWYU
+	REQUIRES OMTALK_TOOL_IWYU
 )
 
 om_validate_option_group(OMTALK_OPTIONS)
