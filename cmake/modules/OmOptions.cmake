@@ -47,23 +47,13 @@ endfunction()
 function(om_add_option opt group)
 	cmake_parse_arguments(ARG "" "DOC" "DEFAULT;REQUIRES;CONFLICTS" ${ARGN})
 
-	if (DEFINED ARG_COMMENT)
-		set(comment ${ARG_COMMENT})
-	else()
-		set(comment "")
-	endif()
-
-	if (NOT DEFINED ARG_DEFAULT)
-		set(default OFF)
-	elseif (${ARG_DEFAULT})
-		set(default ON)
-	else()
-		set(default OFF)
-	endif()
+	set_default(ARG_DOC "")
+	set_default(ARG_DEFAULT OFF)
 
 	om_declare_option(${opt} ${group})
 	om_group_options(${group} ${opt})
-	set(${opt} ${default} CACHE BOOL "${comment}")
+
+	set(${opt} ${ARG_DEFAULT} CACHE BOOL "${ARG_DOC}")
 
 	if(DEFINED ARG_REQUIRES)
 		om_option_requires(${opt} ${ARG_REQUIRES})
