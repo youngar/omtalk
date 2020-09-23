@@ -25,6 +25,7 @@ list(APPEND CMAKE_MODULE_PATH ${omtalk_SOURCE_DIR}/cmake/modules)
 
 include(AddOmtalk)
 include(OmOptions)
+include(OmPlatform)
 include(CMakeFindDependencyMacro)
 
 find_dependency(Threads)
