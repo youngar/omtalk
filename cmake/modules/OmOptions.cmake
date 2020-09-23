@@ -1,7 +1,7 @@
-if(OM_OPTIONS)
+if(OM_OPTIONS_)
 	return()
 endif()
-set(OM_OPTIONS TRUE)
+set(OM_OPTIONS_ TRUE)
 
 include(OmAssert)
 include(OmUtil)

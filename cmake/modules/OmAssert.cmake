@@ -1,7 +1,7 @@
-if(OM_ASSERT)
+if(OM_ASSERT_)
 	return()
 endif()
-set(OM_ASSERT TRUE)
+set(OM_ASSERT_ TRUE)
 
 include(OmUtil)
 
