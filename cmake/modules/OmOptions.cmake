@@ -1,7 +1,7 @@
 if(OM_OPTIONS)
 	return()
 endif()
-set(OM_OPTIONS 1)
+set(OM_OPTIONS TRUE)
 
 include(OmAssert)
 include(OmUtil)
@@ -10,7 +10,7 @@ function(om_add_option_group)
 	foreach(group IN LISTS ARGN)
 		define_property(GLOBAL PROPERTY ${group}
 			BRIEF_DOCS "An option group."
-			FULL_DOCS "An option group"
+			FULL_DOCS "A list of options which may need to be validated."
 		)
 		set_property(GLOBAL PROPERTY ${group} "")
 	endforeach(group)
