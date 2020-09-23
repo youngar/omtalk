@@ -54,8 +54,7 @@ set(LLVM_ENABLE_WERROR off)
 
 if(OMTALK_SAN_ASAN)
 	list(APPEND OMTALK_COMPILE_OPTIONS 
-		$<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=address>
-		$<$<COMPILE_LANGUAGE:CXX,C>:-fno-omit-frame-pointer>
+		$<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=address -fno-omit-frame-pointer>
 	)
 	list(APPEND OMTALK_LINK_OPTIONS
 		-fsanitize=address
