@@ -2,6 +2,7 @@
 #define OMTALK_GLOBALCOLLECTOR_H
 
 #include <cstddef>
+#include <omtalk/Copy.h>
 #include <omtalk/Handle.h>
 #include <omtalk/Heap.h>
 #include <omtalk/Mark.h>
@@ -74,6 +75,7 @@ public:
   void preMark(Context &context) noexcept;
 
   /// Scan all roots.
+  // requires GC safepoint
   void markRoots(Context &context) noexcept;
 
   /// Concurrent collection helpers
@@ -85,6 +87,11 @@ public:
   void preCompact(Context &context) noexcept;
   void compact(Context &context) noexcept;
   void postCompact(Context &context) noexcept;
+
+  // Requires GC safepoint
+  void fixupRoots(Context &context) noexcept;
+  void fixup(Context &context) noexcept;
+  void postFixup(Context &context) noexcept;
 
   void sweep(Context &context) noexcept;
   void evacuate(Context &context) noexcept;
@@ -204,12 +211,17 @@ void GlobalCollector<S>::preCompact(Context &context) noexcept {
     // regions less than half full are candidates for evacuation.
     auto liveData = region.getLiveDataSize();
     if (liveData == 0) {
+      std::cout << "!! precompact empty region: " << &region << " evacuate\n";
+      std::scoped_lock lock(regionManager);
       regionList.remove(&region);
       emptyList.push_front(&region);
     } else if (liveData < (REGION_SIZE / 2)) {
       std::cout << "!! precompact region: " << &region << " evacuate\n";
-      regionList.remove(&region);
-      evacList.push_front(&region);
+      {
+        std::scoped_lock lock(regionManager);
+        regionList.remove(&region);
+        evacList.push_front(&region);
+      }
       // populate the forwarding map
       auto liveObjects = RegionMarkedObjectsIterator<S>(region);
       region.getForwardingMap().rebuild(liveObjects,
@@ -222,7 +234,50 @@ void GlobalCollector<S>::preCompact(Context &context) noexcept {
 }
 
 template <typename S>
-void GlobalCollector<S>::compact(Context &context) noexcept {}
+void GlobalCollector<S>::compact(Context &context) noexcept {
+  auto &regionManager = memoryManager->getRegionManager();
+  // auto regionList = regionManager.getRegions();
+  // auto emptyList = regionManager.getEmptyRegions();
+  auto evacList = regionManager.getEvacuateRegions();
+
+  Region *toRegion;
+  {
+    std::scoped_lock lock(regionManager);
+    toRegion = regionManager.getEmptyOrNewRegion();
+  }
+  auto *to = toRegion->heapBegin();
+  auto size = toRegion->size();
+
+  for (auto &fromRegion : evacList) {
+    std::cout << "!!! compact fromRegion " << &fromRegion << std::endl;
+    ForwardingMap &map = fromRegion.getForwardingMap();
+
+    for (auto object : RegionMarkedObjects<S>(fromRegion)) {
+      std::cout << "!!! compact object " << object.asRef() << std::endl;
+      auto &entry = map[object];
+      if (!entry.tryLock()) {
+        // object has already been copied
+        continue;
+      }
+      auto result = copy(context, object, to, size);
+      if (!result) {
+        // get a new region and copy again
+        {
+          std::scoped_lock lock(regionManager);
+          toRegion = regionManager.getEmptyOrNewRegion();
+          OMTALK_ASSERT(toRegion);
+        }
+        to = toRegion->heapBegin();
+        size = toRegion->size();
+        result = copy(context, object, to, size);
+        OMTALK_ASSERT(result == true);
+      }
+      entry.set(to);
+      to += result.getCopySize();
+      size -= result.getCopySize();
+    }
+  }
+}
 
 template <typename S>
 void GlobalCollector<S>::postCompact(Context &context) noexcept {
@@ -231,6 +286,41 @@ void GlobalCollector<S>::postCompact(Context &context) noexcept {
     region.getForwardingMap().clear();
     region.setEvacuating(false);
   }
+}
+
+template <typename S>
+void GlobalCollector<S>::fixupRoots(Context &context) noexcept {
+  // FixupVisitor<S> visitor;
+  // memoryManager->getRootWalker().walk(context, visitor);
+}
+
+template <typename S>
+void GlobalCollector<S>::fixup(Context &context) noexcept {
+
+  // Regular region fixup
+  // RegionManager &regionManager = memoryManager->getRegionManager();
+  // auto &regionList = regionManager.getRegions();
+  // for (auto &region : regionList) {
+  //   for (auto object : RegionMarkedObjects(*region)) {
+  //     fixup(context, object);
+  //   }
+  // }
+
+  // Evacuate regions do not have an up to date markmap, and must be walked
+  // using the contiguous heap iterator.
+  // auto &evacList = regionManager.getEvacuateRegions();
+  // for (auto &region : evacList) {
+  //   for (auto object : RegionContiguousObjects(*region)) {
+  //     fixup(context, object);
+  //   }
+  // }
+}
+
+template <typename S>
+void GlobalCollector<S>::postFixup(Context &context) noexcept {
+  // Move evacuate regions into the regular region list
+  RegionManager &regionManager = memoryManager->getRegionManager();
+  std::scoped_lock lock(regionManager);
   regionManager.getEmptyRegions().splice(regionManager.getEvacuateRegions());
 }
 

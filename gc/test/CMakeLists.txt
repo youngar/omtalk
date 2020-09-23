@@ -5,6 +5,7 @@ add_omtalk_executable(omtalk-gc-test
     test-forwarding.cpp
     test-gc.cpp
     test-handle.cpp
+    test-mark.cpp
     test-regions.cpp
     test-startup.cpp
 )

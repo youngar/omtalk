@@ -78,16 +78,21 @@ private:
   }
 
   void collect() {
-    std::cout << "### background scanning\n";
+    std::cout << "### background start\n";
+    std::cout << "### background mark\n";
     gc->mark(context);
-    std::cout << "### background scanning complete\n";
-    std::cout << "### background pre-compact\n";
+    std::cout << "### background post-mark\n";
     gc->postMark(context);
+    std::cout << "### background pre-compact\n";
     gc->preCompact(context);
     std::cout << "### background compact\n";
     gc->compact(context);
     std::cout << "### background post-compact\n";
     gc->postCompact(context);
+    std::cout << "### backgound fixup\n";
+    gc->fixup(context);
+    std::cout << "### backgound GC post-fixup\n";
+    gc->postFixup(context);
     std::cout << "### backgound GC complete\n";
   }
 
