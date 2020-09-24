@@ -45,13 +45,13 @@ TEST_CASE("multiple elements", "[FowardingMap]") {
   map.rebuild(from.begin(), from.end());
   REQUIRE(map.size() == 3);
 
-  for (int i = 0; i < from.size(); i++) {
+  for (std::size_t i = 0; i < from.size(); i++) {
     auto &entry = map[from[i]];
     entry.tryLock();
     entry.set(to[i]);
   }
 
-  for (int i = 0; i < from.size(); i++) {
+  for (std::size_t i = 0; i < from.size(); i++) {
     auto &entry = map[from[i]];
     REQUIRE(entry.get() == to[i]);
   }

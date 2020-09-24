@@ -113,7 +113,7 @@ private:
   }
 
   std::size_t lower_bound(const K &key) const noexcept {
-    unsigned i = 1;
+    std::size_t i = 1;
     while (i <= size_) {
       prefetch(data_ + i * BLOCK_SIZE);
       i = 2 * i + (data_[i].first < key);
@@ -131,7 +131,7 @@ private:
   }
 
   template <typename Iter>
-  void eytzinger(Iter &i, int k = 1) {
+  void eytzinger(Iter &i, std::size_t k = 1) {
     if (k < size_) {
       eytzinger(i, 2 * k);
       data_[k].first = *i;

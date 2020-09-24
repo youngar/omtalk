@@ -24,7 +24,7 @@ TEST_CASE("Insertion and Set test", "[eytzinger]") {
   EytzingerTree<int, int> tree;
   tree.rebuild(values.begin(), values.end());
 
-  for (int i = 0; i < values.size(); i++) {
+  for (std::size_t i = 0; i < values.size(); i++) {
     tree[values[i]] = values[i];
   }
 
@@ -42,7 +42,7 @@ TEST_CASE("Non-full binary tree", "[eytzinger]") {
   EytzingerTree<int, int> tree;
   tree.rebuild(values.begin(), values.end());
 
-  for (int i = 0; i < values.size(); i++) {
+  for (std::size_t i = 0; i < values.size(); i++) {
     tree[values[i]] = values[i];
   }
 
@@ -65,7 +65,7 @@ TEST_CASE("eytzinger2", "[eytzinger]") {
     for (auto i = 0; i < n; ++i) {
       tree[i] = i;
     }
-    for (auto i = 0ul; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
       REQUIRE(tree[i] == i);
     }
   }

@@ -289,7 +289,7 @@ MemoryManager<S>::MemoryManager(MemoryManagerBuilder<S> &&builder)
       rootWalker(std::move(builder.rootWalker)) {
   // round up the initial heap size to the number of regions.
   auto regionCount = ceilingDivide(config.initialMemory, REGION_SIZE);
-  for (int i = 0; i < regionCount; i++) {
+  for (std::size_t i = 0; i < regionCount; i++) {
     regionManager.allocateEmptyRegion();
   }
 }

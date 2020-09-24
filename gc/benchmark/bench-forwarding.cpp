@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <benchmark/benchmark.h>
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <iterator>
@@ -23,7 +24,7 @@ static void BM_ForwardingMapRandomLookup(benchmark::State &state) {
     map = new ForwardingMap;
     // std::vector<int> vec(state.range(0));
     vec = new std::vector<void *>(state.range(0));
-    for (int i = 0; i < vec->size(); i++) {
+    for (std::size_t i = 0; i < vec->size(); i++) {
       (*vec)[i] = reinterpret_cast<void *>(0x1000 + 16 * i);
     }
     map->rebuild(vec->begin(), vec->size());
