@@ -56,3 +56,39 @@ TEST_CASE("Initial memory allocation", "[garbage collector]") {
     REQUIRE(mm.getHeapSize() >= config.initialMemory);
   }
 }
+
+TEST_CASE("New Contexts", "[garbage collector]") {
+  auto mm =
+      MemoryManagerBuilder<TestCollectorScheme>()
+          .withRootWalker(std::make_unique<RootWalker<TestCollectorScheme>>())
+          .build();
+  Context<TestCollectorScheme> context(mm);
+
+  mm.enableWriteBarrier();
+  CHECK(context.writeBarrierEnabled());
+  {
+    Context<TestCollectorScheme> context(mm);
+    CHECK(context.writeBarrierEnabled());
+  }
+
+  mm.disableWriteBarrier();
+  CHECK(!context.writeBarrierEnabled());
+  {
+    Context<TestCollectorScheme> context(mm);
+    CHECK(!context.writeBarrierEnabled());
+  }
+
+  mm.enableLoadBarrier();
+  CHECK(context.loadBarrierEnabled());
+  {
+    Context<TestCollectorScheme> context(mm);
+    CHECK(context.loadBarrierEnabled());
+  }
+
+  mm.disableLoadBarrier();
+  CHECK(!context.loadBarrierEnabled());
+  {
+    Context<TestCollectorScheme> context(mm);
+    CHECK(!context.loadBarrierEnabled());
+  }
+}

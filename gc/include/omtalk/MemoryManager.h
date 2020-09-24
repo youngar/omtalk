@@ -170,7 +170,7 @@ public:
   void enableLoadBarrier();
 
   /// Disables the concurrent compaction load barrier on all threads.
-  void diableLoadBarrier();
+  void disableLoadBarrier();
 
 private:
   /// Attach a context to the context list. Gives access to the context.
@@ -200,6 +200,9 @@ private:
   std::atomic<Context<S> *> exclusiveContext = nullptr;
   std::atomic<unsigned> contextCount = 0;
   std::atomic<unsigned> contextAccessCount = 0;
+
+  std::atomic<bool> writeBarrier = false;
+  std::atomic<bool> loadBarrier = false;
 
   /// Guards access to the global free list
   std::mutex freeListMutex;
@@ -297,6 +300,13 @@ MemoryManager<S>::~MemoryManager() {}
 template <typename S>
 void MemoryManager<S>::attach(Context<S> &cx) {
   std::scoped_lock<std::mutex> lock(yieldForGcMutex);
+  if (loadBarrier) {
+    cx.enableLoadBarrier();
+  }
+  if (writeBarrier) {
+    cx.enableWriteBarrier();
+  }
+  
   contextCount++;
   contextAccessCount++;
   contexts.push_front(&cx);
@@ -435,6 +445,7 @@ void MemoryManager<S>::kickoff(Context<S> &context) {
 
 template <typename S>
 void MemoryManager<S>::enableWriteBarrier() {
+  writeBarrier = true;
   for (auto &context : contexts) {
     context.enableWriteBarrier();
   }
@@ -442,6 +453,7 @@ void MemoryManager<S>::enableWriteBarrier() {
 
 template <typename S>
 void MemoryManager<S>::disableWriteBarrier() {
+  writeBarrier = false;
   for (auto &context : contexts) {
     context.disableWriteBarrier();
   }
@@ -449,13 +461,15 @@ void MemoryManager<S>::disableWriteBarrier() {
 
 template <typename S>
 void MemoryManager<S>::enableLoadBarrier() {
+  loadBarrier = true;
   for (auto &context : contexts) {
     context.enableLoadBarrier();
   }
 }
 
 template <typename S>
-void MemoryManager<S>::diableLoadBarrier() {
+void MemoryManager<S>::disableLoadBarrier() {
+  loadBarrier = false;
   for (auto &context : contexts) {
     context.diableLoadBarrier();
   }
