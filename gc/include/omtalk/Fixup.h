@@ -1,10 +1,18 @@
 #ifndef OMTALK_FIXUP_H
 #define OMTALK_FIXUP_H
 
+#include <omtalk/Heap.h>
+#include <omtalk/Record.h>
+#include <omtalk/Ref.h>
+
 namespace omtalk::gc {
 
+template <typename S>
+class GlobalCollector;
+
 template <typename S, typename SlotProxyT>
-void fixupSlot(GlobalCollector<S> &context, SlotProxyT slot, Ref<void> to) {
+void fixupSlot(GlobalCollectorContext<S> &context, SlotProxyT slot,
+               Ref<void> to) {
   proxy::store<RELAXED>(slot, to);
 }
 
@@ -13,14 +21,15 @@ void fixupSlot(GlobalCollector<S> &context, SlotProxyT slot, Ref<void> to) {
 template <typename S, typename SlotProxyT>
 void fixupSlot(GlobalCollectorContext<S> &context, SlotProxyT slot) noexcept {
   auto ref = proxy::load<RELAXED>(slot);
-  std::cout << "!!! fixup slot " << ref;
-  if (inEvacuatedRegion(ref)) {
-    auto forwardedAddress =
-        ForwardedObject::at(ref)->getForwardedAddress();
-    std::cout << " to " << forwardedAddress;
-    fixupSlot(context, slot, forwardedAddress);
+  auto address = ref.get();
+  auto *region = Region::get(ref);
+  if (region->isEvacuating()) {
+    auto &entry = region->getForwardingMap()[address];
+    auto forwardedAddress = entry.get();
+    std::cout << "!!! fixup slot " << ref << " to " << forwardedAddress
+              << std::endl;
+    fixupSlot(context, slot, makeRef(forwardedAddress));
   }
-  std::cout << std::endl;
 }
 
 /// Call fixupSlot on every slot visited.
@@ -38,6 +47,7 @@ struct Fixup {
   void operator()(GlobalCollectorContext<S> &context,
                   ObjectProxy<S> target) const noexcept {
     FixupVisitor<S> visitor;
+    record<S>(context, target);
     walk<S>(context, target, visitor);
   }
 };
@@ -46,15 +56,6 @@ struct Fixup {
 template <typename S>
 void fixup(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
   return Fixup<S>()(context, target);
-}
-
-/// Fix up all objects starting at the beginning of a region.
-template <typename S>
-void fixup(GlobalCollectorContext<S> &context, Region &region, std::byte *begin,
-           std::byte *end) noexcept {
-  for (auto object : RegionContiguousObjects<S>(region, begin, end)) {
-    fixup<S>(context, object);
-  }
 }
 
 } // namespace omtalk::gc
