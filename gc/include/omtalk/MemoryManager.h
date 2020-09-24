@@ -149,6 +149,10 @@ public:
   /// paying or garbage collection work to be done.
   bool refreshBuffer(Context<S> &context, std::size_t minimumSize);
 
+  // Return the old region.  Remove it from the alloc list and put it into the
+  // region list.
+  void flushBuffer(Context<S> &context);
+
   /// Check if another thread is attempting to garbage collect.  Will yield
   /// access to the memory manager so another thread can collect.
   bool yieldForGC(Context<S> &context);
@@ -160,17 +164,14 @@ public:
   /// Start a global collection if one is not already occuring.
   void kickoff(Context<S> &context);
 
-  /// Enables the concurrent marking write barrier on all threads.
-  void enableWriteBarrier();
+  /// Returns if we are in the marking phase of the GC.
+  bool isMarking(const Context<S> &context) const;
 
-  /// Disables the concurrent marking write barrier on all threads.
-  void disableWriteBarrier();
+  /// Enable the marking phase.
+  void enableMarking();
 
-  /// Enables the concurrent compaction load barrier on all threads.
-  void enableLoadBarrier();
-
-  /// Disables the concurrent compaction load barrier on all threads.
-  void disableLoadBarrier();
+  /// Disable the marking phase.
+  void disableMarking();
 
 private:
   /// Attach a context to the context list. Gives access to the context.
@@ -201,8 +202,7 @@ private:
   std::atomic<unsigned> contextCount = 0;
   std::atomic<unsigned> contextAccessCount = 0;
 
-  std::atomic<bool> writeBarrier = false;
-  std::atomic<bool> loadBarrier = false;
+  std::atomic<bool> inMarkingPhase = false;
 
   /// Guards access to the global free list
   std::mutex freeListMutex;
@@ -252,31 +252,14 @@ public:
   /// paying or garbage collection work to be done.
   bool refreshBuffer(std::size_t minimumSize);
 
-  /// Enables the concurrent marking write barrier.
-  void enableWriteBarrier() { writeBarrier = true; }
-
-  /// Disables the concurrent marking write barrier
-  void disableWriteBarrier() { writeBarrier = false; }
-
-  /// Returns true if the concurrent marking write barrier is enabled
-  bool writeBarrierEnabled() { return writeBarrier; }
-
-  /// Enables the concurrent compaction load barrier.
-  void enableLoadBarrier() { loadBarrier = true; }
-
-  /// Disables the concurrent compaction load barrier.
-  void diableLoadBarrier() { loadBarrier = false; }
-
-  /// Returns true if the  the concurrent compaction load barrier is enabled
-  bool loadBarrierEnabled() { return loadBarrier; }
+  /// Return true if we are in the marking phase of the GC.
+  bool isMarking() const;
 
 private:
   MemoryManager<S> *memoryManager;
   GlobalCollectorContext<S> gcContext;
   ContextListNode<S> listNode;
   AllocationBuffer ab;
-  std::atomic<bool> writeBarrier = false;
-  std::atomic<bool> loadBarrier = false;
 };
 
 //===----------------------------------------------------------------------===//
@@ -300,13 +283,6 @@ MemoryManager<S>::~MemoryManager() {}
 template <typename S>
 void MemoryManager<S>::attach(Context<S> &cx) {
   std::scoped_lock<std::mutex> lock(yieldForGcMutex);
-  if (loadBarrier) {
-    cx.enableLoadBarrier();
-  }
-  if (writeBarrier) {
-    cx.enableWriteBarrier();
-  }
-  
   contextCount++;
   contextAccessCount++;
   contexts.push_front(&cx);
@@ -321,65 +297,31 @@ void MemoryManager<S>::detach(Context<S> &cx) {
 }
 
 template <typename S>
+void MemoryManager<S>::flushBuffer(Context<S> &context) {
+  auto &buffer = context.buffer();
+  if (buffer.begin != nullptr) {
+    auto *region = Region::get(static_cast<void *>(buffer.begin));
+    region->setFreeSpacePointer(buffer.begin);
+    auto &allocRegionList = regionManager.getAllocateRegions();
+    allocRegionList.remove(region);
+    auto &regionList = regionManager.getRegions();
+    regionList.push_front(region);
+  }
+  buffer.begin = nullptr;
+  buffer.end = nullptr;
+}
+
+template <typename S>
 bool MemoryManager<S>::refreshBuffer(Context<S> &context,
                                      std::size_t minimumSize) {
-
-  // Get an empty region
   {
     std::scoped_lock lock(regionManager);
 
-    // Return the old region.  Remove it from the alloc list and put it into the
-    // region list.
-    auto &buffer = context.buffer();
-    if (buffer.begin != nullptr) {
-      auto *region = Region::get(static_cast<void *>(buffer.begin));
-      region->setFree(buffer.begin);
-      auto &allocRegionList = regionManager.getAllocateRegions();
-      allocRegionList.remove(region);
-      auto &regionList = regionManager.getRegions();
-      regionList.push_front(region);
-    }
+    flushBuffer(context);
 
-    // Get a new region
-    auto *region = regionManager.getEmptyRegion();
-    regionManager.getAllocateRegions().push_front(region);
+    auto *region = regionManager.getEmptyOrNewRegion();
     if (region != nullptr) {
-      context.buffer().begin = region->heapBegin();
-      context.buffer().end = region->heapEnd();
-      return true;
-    }
-  }
-
-  // search the free list for an entry at least as big
-  {
-    std::scoped_lock freeListGuard(freeListMutex);
-    FreeBlock *block = freeList.firstFit(minimumSize);
-    if (block != nullptr) {
-      context.buffer().begin = reinterpret_cast<std::byte *>(block);
-      context.buffer().end = block->end();
-      return true;
-    }
-  }
-
-  // Collect and try again
-  collect(context);
-
-  {
-    std::scoped_lock freeListGuard(freeListMutex);
-    FreeBlock *block = freeList.firstFit(minimumSize);
-    if (block != nullptr) {
-      context.buffer().begin = reinterpret_cast<std::byte *>(block);
-      context.buffer().end = block->end();
-      return true;
-    }
-  }
-
-  {
-    // Get a new region
-    std::scoped_lock lock(regionManager);
-    auto *region = regionManager.allocateRegion();
-    regionManager.getAllocateRegions().push_front(region);
-    if (region != nullptr) {
+      regionManager.getAllocateRegions().push_front(region);
       context.buffer().begin = region->heapBegin();
       context.buffer().end = region->heapEnd();
       return true;
@@ -444,35 +386,18 @@ void MemoryManager<S>::kickoff(Context<S> &context) {
 }
 
 template <typename S>
-void MemoryManager<S>::enableWriteBarrier() {
-  writeBarrier = true;
-  for (auto &context : contexts) {
-    context.enableWriteBarrier();
-  }
+bool MemoryManager<S>::isMarking(const Context<S> &context) const {
+  return inMarkingPhase;
 }
 
 template <typename S>
-void MemoryManager<S>::disableWriteBarrier() {
-  writeBarrier = false;
-  for (auto &context : contexts) {
-    context.disableWriteBarrier();
-  }
+void MemoryManager<S>::enableMarking() {
+  inMarkingPhase = true;
 }
 
 template <typename S>
-void MemoryManager<S>::enableLoadBarrier() {
-  loadBarrier = true;
-  for (auto &context : contexts) {
-    context.enableLoadBarrier();
-  }
-}
-
-template <typename S>
-void MemoryManager<S>::disableLoadBarrier() {
-  loadBarrier = false;
-  for (auto &context : contexts) {
-    context.diableLoadBarrier();
-  }
+void MemoryManager<S>::disableMarking() {
+  inMarkingPhase = false;
 }
 
 //===----------------------------------------------------------------------===//
@@ -492,6 +417,11 @@ void Context<S>::collect() {
 template <typename S>
 bool Context<S>::refreshBuffer(std::size_t minimumSize) {
   return memoryManager->refreshBuffer(*this, minimumSize);
+}
+
+template <typename S>
+bool Context<S>::isMarking() const {
+  return memoryManager->isMarking(*this);
 }
 
 } // namespace omtalk::gc

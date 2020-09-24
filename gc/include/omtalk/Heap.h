@@ -227,7 +227,7 @@ public:
   std::byte *getFree() const noexcept { return free; }
 
   /// Set the address of the unused area of the region.
-  void setFree(std::byte *freeMark) noexcept { free = freeMark; }
+  void setFreeSpacePointer(std::byte *freeMark) noexcept { free = freeMark; }
 
   /// Get the size of the allocatable part of a region
   constexpr std::size_t size() noexcept {
