@@ -72,9 +72,6 @@ public:
   /// Wait for the current GC to finish.
   void wait(Context &context) noexcept;
 
-  /// Perform a garbage collection.  Will return as early as possible.
-  void concurrentCollect(Context &context) noexcept;
-
   /// Cancel an in-progress GC.  This is used to restart a garbage collection
   /// for a new global gc.
   void cancel(Context &context) noexcept;
