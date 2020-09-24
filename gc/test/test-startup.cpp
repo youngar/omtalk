@@ -1,4 +1,5 @@
 #include <catch2/catch.hpp>
+#include <cstring>
 #include <example/Object.h>
 #include <memory>
 #include <omtalk/GlobalCollector.h>
