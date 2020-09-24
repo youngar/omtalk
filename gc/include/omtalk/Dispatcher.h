@@ -2,6 +2,7 @@
 #define OMTALK_DISPATCHER_H
 
 #include <atomic>
+#include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <vector>

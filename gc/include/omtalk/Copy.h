@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstring>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 
