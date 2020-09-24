@@ -89,10 +89,6 @@ private:
     gc->compact(context);
     std::cout << "### background post-compact\n";
     gc->postCompact(context);
-    std::cout << "### backgound fixup\n";
-    gc->fixup(context);
-    std::cout << "### backgound GC post-fixup\n";
-    gc->postFixup(context);
     std::cout << "### backgound GC complete\n";
   }
 
