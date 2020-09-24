@@ -335,9 +335,9 @@ struct gc::RootWalker<TestCollectorScheme> {
 
   template <typename ContextT, typename VisitorT>
   void walk(ContextT &cx, VisitorT &visitor) noexcept {
-    for (auto *h : rootScope) {
-      std::cout << "!!! rootwalker: handle " << h << std::endl;
-      h->walk(visitor, cx);
+    for (auto *handle : rootScope) {
+      std::cout << "!!! rootwalker: handle " << handle << std::endl;
+      handle->walk(visitor, cx);
     }
   }
 
