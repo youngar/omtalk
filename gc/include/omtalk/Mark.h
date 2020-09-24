@@ -4,6 +4,7 @@
 #include <iostream>
 #include <mutex>
 #include <omtalk/GlobalCollector.h>
+#include <omtalk/Record.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Workstack.h>
@@ -65,17 +66,14 @@ struct Scan {
   void operator()(GlobalCollectorContext<S> &context,
                   ObjectProxy<S> target) const noexcept {
     ScanVisitor<S> visitor;
-    auto ref = target.asRef();
-    auto region = Region::get(ref);
-    region->addLiveObjectCount(1);
-    region->addLiveDataSize(target.getSize());
+    record<S>(context, target);
     walk<S>(context, target, visitor);
   }
 };
 
 template <typename S>
 void scan(GlobalCollectorContext<S> &context, ObjectProxy<S> target) noexcept {
-  return Scan<S>()(context, target);
+  Scan<S>()(context, target);
 }
 
 } // namespace omtalk::gc
