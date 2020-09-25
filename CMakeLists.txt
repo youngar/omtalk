@@ -166,18 +166,16 @@ om_add_option(OMTALK_STATIC_CLANG_TIDY OMTALK_OPTIONS
 	REQUIRES OMTALK_TOOL_CLANG_TIDY
 )
 
-find_program(OMTALK_TOOL_IWYU include-what-you-use)
+find_program(OMTALK_IWYU_EXECUTABLE include-what-you-use)
 
 om_add_option(OMTALK_STATIC_IWYU OMTALK_OPTIONS
 	DOC "Build with the include-what-you-use static analyzer"
-	DEFAULT  OMTALK_TOOL_IWYU
-	REQUIRES OMTALK_TOOL_IWYU
+	DEFAULT  OMTALK_IWYU_EXECUTABLE
+	REQUIRES OMTALK_IWYU_EXECUTABLE
 )
 
 om_add_option(OMTALK_STATIC_LWYU OMTALK_OPTIONS
 	DOC "Build with the link-what-you-use static analyzer"
-	DEFAULT  OMTALK_TOOL_IWYU
-	REQUIRES OMTALK_TOOL_IWYU
 )
 
 om_validate_option_group(OMTALK_OPTIONS)
