@@ -23,11 +23,10 @@ function(add_omtalk_target target)
   endif()
 
   if(OMTALK_STATIC_IWYU)
-    set_target_properties(
-      ${target}
+    set_target_properties(${target}
       PROPERTIES
-        C_INCLUDE_WHAT_YOU_USE ${OMTALK_TOOL_IWYU}
-        CXX_INCLUDE_WHAT_YOU_USE ${OMTALK_TOOL_IWYU} 
+        C_INCLUDE_WHAT_YOU_USE ${OMTALK_IWYU_EXECUTABLE}
+        CXX_INCLUDE_WHAT_YOU_USE ${OMTALK_IWYU_EXECUTABLE}
     )
   endif()
 
