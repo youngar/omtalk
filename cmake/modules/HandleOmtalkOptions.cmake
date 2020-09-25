@@ -1,3 +1,7 @@
+if(HANDLE_OMTALK_OPTIONS_)
+	return()
+endif()
+set(HANDLE_OMTALK_OPTIONS_ TRUE)
 
 set(LLVM_ENABLE_PROJECTS "" CACHE STRING "LLVM projects to enable")
 set(OMTALK_COMPILE_OPTIONS  "" CACHE STRING "Options passed to the compiler")
