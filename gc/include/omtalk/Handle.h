@@ -105,6 +105,8 @@ public:
     visitor.visit(value.proxy(), std::forward<Ts>(xs)...);
   }
 
+  RefProxy proxy() noexcept { return value.proxy(); }
+
 protected:
   HandleBase(Ref<void> value) : value(value) {}
 

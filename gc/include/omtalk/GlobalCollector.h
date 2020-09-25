@@ -90,6 +90,10 @@ public:
 
   void postMark(Context &context) noexcept;
 
+  /// Prepare a region for evacuation and move it to the evacuating list.  After
+  /// this the load barrier may evacuate objects from the region.
+  void selectForEvacuate(Context &context, Region &region);
+
   void preCompact(Context &context) noexcept;
   void compact(Context &context) noexcept;
   void postCompact(Context &context) noexcept;
@@ -147,6 +151,7 @@ void GlobalCollector<S>::wait(Context &context) noexcept {
 template <typename S>
 void GlobalCollector<S>::preMark(Context &context) noexcept {
   OMTALK_ASSERT(stack.empty());
+
   auto &regionManager = memoryManager->getRegionManager();
 
   for (auto &region : regionManager.getRegions()) {
@@ -170,7 +175,7 @@ void GlobalCollector<S>::preMark(Context &context) noexcept {
     region.clearStatistics();
   }
 
-  memoryManager->enableWriteBarrier();
+  memoryManager->enableMarking();
 }
 
 template <typename S>
@@ -190,7 +195,7 @@ void GlobalCollector<S>::mark(Context &context) noexcept {
 
 template <typename S>
 void GlobalCollector<S>::postMark(Context &context) noexcept {
-  memoryManager->disableWriteBarrier();
+  memoryManager->disableMarking();
 }
 
 template <typename S>
@@ -200,6 +205,33 @@ void GlobalCollector<S>::sweep(Context &context) noexcept {
     omtalk::gc::sweep<S>(context, region, freeList);
   }
   memoryManager->setFreeList(freeList);
+}
+
+// template <typename S>
+// void GlobalCollecot<S>::returnEmptyRegion(Context &context, Region &region) {
+
+// }
+
+template <typename S>
+void GlobalCollector<S>::selectForEvacuate(Context &context, Region &region) {
+  auto &regionManager = memoryManager->getRegionManager();
+  auto &regionList = regionManager.getRegions();
+  auto &evacList = regionManager.getEvacuateRegions();
+
+  std::cout << "!! select for compact region: " << &region << "\n";
+  {
+    std::scoped_lock lock(regionManager);
+    regionList.remove(&region);
+    evacList.push_front(&region);
+  }
+
+  // populate the forwarding map
+  auto liveObjects = RegionMarkedObjectsIterator<S>(region);
+  region.getForwardingMap().rebuild(liveObjects, region.getLiveObjectCount());
+
+  // As soon as this bit is set, mutator threads will start evacuating
+  // objects.
+  region.setEvacuating(true);
 }
 
 template <typename S>
@@ -232,19 +264,7 @@ void GlobalCollector<S>::preCompact(Context &context) noexcept {
       regionList.remove(&region);
       emptyList.push_front(&region);
     } else if (liveData < (REGION_SIZE / 2)) {
-      std::cout << "!! precompact select region: " << &region << " evacuate\n";
-      {
-        std::scoped_lock lock(regionManager);
-        regionList.remove(&region);
-        evacList.push_front(&region);
-      }
-      // populate the forwarding map
-      auto liveObjects = RegionMarkedObjectsIterator<S>(region);
-      region.getForwardingMap().rebuild(liveObjects,
-                                        region.getLiveObjectCount());
-      // As soon as this bit is set, mutator threads will start evacuating
-      // objects.
-      region.setEvacuating(true);
+      selectForEvacuate(context, region);
     } else {
       std::cout << "!!! precompact clear forwarding map " << &region
                 << " evacuate\n";

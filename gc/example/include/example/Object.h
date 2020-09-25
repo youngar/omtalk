@@ -38,6 +38,19 @@ struct TestValue {
   TestValue(RefTag, TestObject *x) : asRef(x), kind(Kind::REF) {}
   TestValue(RefTag, gc::Ref<TestObject> x) : asRef(x.get()), kind(Kind::REF) {}
 
+  bool operator==(const TestValue &other) const noexcept {
+    if (kind == Kind::INT) {
+      if (other.kind == Kind::INT) {
+        return asInt == other.asInt;
+      }
+    } else if (kind == Kind::REF) {
+      if (other.kind == Kind::REF) {
+        return asRef == other.asRef;
+      }
+    }
+    return false;
+  }
+
   union {
     TestObject *asRef;
     int asInt;
@@ -124,7 +137,7 @@ struct TestStructObject : public TestObject {
 
   void setSlot(unsigned slot, TestValue value) noexcept { slots[slot] = value; }
 
-  TestValue getSlot(unsigned slot) const noexcept { return slots[slot]; }
+  TestValue &getSlot(unsigned slot) noexcept { return slots[slot]; }
 
   template <typename C, typename V>
   void walk(C &cx, V &visitor) {
@@ -347,6 +360,24 @@ struct gc::RootWalker<TestCollectorScheme> {
 //===----------------------------------------------------------------------===//
 // Test Allocator
 //===----------------------------------------------------------------------===//
+
+/// Load a field at `index` from object. A load barrier.
+inline gc::Ref<TestObject> load(gc::Context<TestCollectorScheme> &context,
+                                gc::Ref<TestStructObject> object,
+                                std::size_t index) {
+  return omtalk::gc::load<TestCollectorScheme>(
+             context, TestSlotProxy(&object->getSlot(index)))
+      .cast<TestObject>();
+}
+
+// Store a field
+inline void store(gc::Context<TestCollectorScheme> &context,
+                  gc::Ref<TestStructObject> object, std::size_t index,
+                  gc::Ref<void> value) {
+  omtalk::gc::store<TestCollectorScheme>(context, TestObjectProxy(object),
+                                         TestSlotProxy(&object->getSlot(index)),
+                                         value);
+}
 
 inline gc::Ref<TestStructObject>
 allocateTestStructObject(gc::Context<TestCollectorScheme> &cx,

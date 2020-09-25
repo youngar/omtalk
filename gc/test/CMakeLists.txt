@@ -7,6 +7,7 @@ add_omtalk_executable(omtalk-gc-test
 	test-mark.cpp
 	test-regions.cpp
 	test-startup.cpp
+	test-compact.cpp
 )
 
 target_link_libraries(omtalk-gc-test

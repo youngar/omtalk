@@ -143,7 +143,6 @@ TEST_CASE("Object Allocation", "[garbage collector]") {
   }
 
   SECTION("Object is allocated black") {
-    // premark enables black allocation
     gc.preMark(gcContext);
     auto ref = allocateTestStructObject(context, nslots);
     auto *region = Region::get(ref);
