@@ -1,3 +1,8 @@
+if(BUILD_LLVM_)
+	return()
+endif()
+set(BUILD_LLVM_ TRUE)
+
 ###
 ### LLVM CMake Integration
 ###

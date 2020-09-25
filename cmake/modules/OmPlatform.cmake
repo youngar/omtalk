@@ -1,3 +1,8 @@
+if(OM_PLATFORM_)
+	return()
+endif()
+set(OM_PLATFORM_ TRUE)
+
 include (CheckCCompilerFlag)
 
 # Note we are assuming that if the c compiler accepts the flag, the cxx compiler will as well

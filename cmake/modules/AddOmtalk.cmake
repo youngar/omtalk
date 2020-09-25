@@ -1,3 +1,7 @@
+if(ADD_OMTALK_)
+	return()
+endif()
+set(ADD_OMTALK_ TRUE)
 
 # Add omtalk specific build options to a target.
 function(add_omtalk_target target)
