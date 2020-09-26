@@ -83,6 +83,9 @@ template <typename S>
 class MemoryManager;
 
 template <typename S>
+class AuxMemoryManagerData {};
+
+template <typename S>
 struct MemoryManagerBuilder final {
   friend MemoryManager<S>;
 
@@ -101,9 +104,15 @@ struct MemoryManagerBuilder final {
     return *this;
   }
 
+  MemoryManagerBuilder &withAuxData(AuxMemoryManagerData<S> &&auxData) {
+    this->auxData = std::move(auxData);
+    return *this;
+  }
+
 private:
   std::unique_ptr<RootWalker<S>> rootWalker;
   MemoryManagerConfig config;
+  AuxMemoryManagerData<S> auxData;
 };
 
 template <typename S>
@@ -115,13 +124,20 @@ public:
 
   ~MemoryManager();
 
-  RootWalker<S> &getRootWalker() { return *rootWalker; }
+  RootWalker<S> &getRootWalker() noexcept { return *rootWalker; }
 
-  RegionManager &getRegionManager() { return regionManager; }
+  RegionManager &getRegionManager() noexcept { return regionManager; }
 
-  GlobalCollector<S> &getGlobalCollector() { return globalCollector; }
+  GlobalCollector<S> &getGlobalCollector() noexcept { return globalCollector; }
+
+  AuxMemoryManagerData<S> &getAuxData() noexcept { return auxData; }
+
+  const AuxMemoryManagerData<S> &getAuxData() const noexcept { return auxData; }
 
   void setFreeList(FreeList list) { freeList = list; }
+
+  /// Get the list of contexts
+  ContextList<S> &getContexts() { return contexts; }
 
   /// Get the number of contexts currently attached to the MM
   unsigned getContextCount() { return contextCount.load(); }
@@ -188,6 +204,8 @@ private:
   /// paused.
   void performGC(Context<S> &context);
 
+  AuxMemoryManagerData<S> auxData;
+
   MemoryManagerConfig config;
   RegionManager regionManager;
   GlobalCollector<S> globalCollector;
@@ -214,15 +232,22 @@ private:
 //===----------------------------------------------------------------------===//
 
 template <typename S>
+class AuxContextData {};
+
+template <typename S>
 class Context final {
 public:
   friend MemoryManager<S>;
 
-  Context(MemoryManager<S> &memoryManager)
+  explicit Context(MemoryManager<S> &memoryManager)
       : memoryManager(&memoryManager),
         gcContext(&memoryManager.getGlobalCollector()) {
     memoryManager.attach(*this);
   }
+
+  Context(const Context &) = delete;
+
+  Context(const Context &&) = delete;
 
   ~Context() { memoryManager->detach(*this); }
 
@@ -237,6 +262,10 @@ public:
   GlobalCollectorContext<S> &getCollectorContext() noexcept {
     return gcContext;
   }
+
+  AuxContextData<S> &getAuxData() noexcept { return auxData; }
+
+  const AuxContextData<S> &getAuxData() const noexcept { return auxData; }
 
   // GC Notification
 
@@ -256,6 +285,7 @@ public:
   bool isMarking() const;
 
 private:
+  AuxContextData<S> auxData;
   MemoryManager<S> *memoryManager;
   GlobalCollectorContext<S> gcContext;
   ContextListNode<S> listNode;
@@ -268,8 +298,8 @@ private:
 
 template <typename S>
 MemoryManager<S>::MemoryManager(MemoryManagerBuilder<S> &&builder)
-    : config(builder.config), globalCollector(this),
-      rootWalker(std::move(builder.rootWalker)) {
+    : auxData(std::move(builder.auxData)), config(builder.config),
+      globalCollector(this), rootWalker(std::move(builder.rootWalker)) {
   // round up the initial heap size to the number of regions.
   auto regionCount = ceilingDivide(config.initialMemory, REGION_SIZE);
   for (std::size_t i = 0; i < regionCount; i++) {
@@ -300,7 +330,7 @@ template <typename S>
 void MemoryManager<S>::flushBuffer(Context<S> &context) {
   auto &buffer = context.buffer();
   if (buffer.begin != nullptr) {
-    auto *region = Region::get(static_cast<void *>(buffer.begin));
+    auto *region = Region::get(buffer.end - 1);
     region->setFreeSpacePointer(buffer.begin);
     auto &allocRegionList = regionManager.getAllocateRegions();
     allocRegionList.remove(region);
@@ -345,7 +375,6 @@ void MemoryManager<S>::releaseExclusive(Context<S> &context) {
 
 template <typename S>
 void MemoryManager<S>::waitOrGC(Context<S> &context) {
-
   std::unique_lock yieldLock(yieldForGcMutex);
   contextAccessCount--;
   // If we are not the last thread, wait

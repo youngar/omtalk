@@ -2,7 +2,6 @@
 #define EXAMPLE_OBJECT_H
 
 #include <cassert>
-#include <catch2/catch.hpp>
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
@@ -335,6 +334,12 @@ struct TestCollectorScheme {
 };
 
 template <>
+class gc::AuxContextData<TestCollectorScheme> {
+public:
+  gc::RootHandleScope rootScope;
+};
+
+template <>
 struct gc::GetProxy<TestCollectorScheme> {
   TestObjectProxy operator()(Ref<void> target) const noexcept {
     return TestObjectProxy(target.reinterpret<TestObject>());
@@ -348,13 +353,16 @@ struct gc::RootWalker<TestCollectorScheme> {
 
   template <typename ContextT, typename VisitorT>
   void walk(ContextT &cx, VisitorT &visitor) noexcept {
-    for (auto *handle : rootScope) {
-      std::cout << "!!! rootwalker: handle " << handle << std::endl;
-      handle->walk(visitor, cx);
+    auto &mm = cx.getMemoryManager();
+
+    for (auto &context : mm.getContexts()) {
+      auto &scope = context.getAuxData().rootScope;
+      for (auto *handle : scope) {
+        std::cout << "!!! rootwalker: handle " << handle << std::endl;
+        handle->walk(visitor, cx);
+      }
     }
   }
-
-  gc::RootHandleScope rootScope;
 };
 
 //===----------------------------------------------------------------------===//
