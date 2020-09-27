@@ -24,7 +24,7 @@ TEST_CASE("Mark Roots", "[garbage collector]") {
   auto &gcContext = context.getCollectorContext();
 
   // get the region where the object was allocated
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   auto ref = allocateTestStructObject(context, 1);
   Handle<TestStructObject> handle(scope, ref);
   auto *region = Region::get(handle.get());
@@ -59,7 +59,7 @@ TEST_CASE("Mark Object Graph", "[garbage collector]") {
   auto &gcContext = context.getCollectorContext();
 
   // Allocate root
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   auto ref = allocateTestStructObject(context, 1);
   Handle<TestStructObject> root(scope, ref);
 
@@ -95,7 +95,7 @@ TEST_CASE("Check live data", "[garbage collector]") {
   Context<TestCollectorScheme> context(mm);
   auto &gcContext = context.getCollectorContext();
 
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   unsigned nslots = 10;
   auto allocSize = TestStructObject::allocSize(nslots);
 
@@ -132,7 +132,7 @@ TEST_CASE("Object Allocation", "[garbage collector]") {
   Context<TestCollectorScheme> context(mm);
   auto &gcContext = context.getCollectorContext();
 
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   unsigned nslots = 10;
   auto allocSize = TestStructObject::allocSize(nslots);
 

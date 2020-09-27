@@ -101,6 +101,9 @@ public:
   void sweep(Context &context) noexcept;
   // @}
 
+  /// Get the MemoryManager
+  MemoryManager<S> *getMemoryManager() { return memoryManager; }
+
   /// Get the global workstack.
   WorkStack<S> &getStack() { return stack; }
 
@@ -116,6 +119,8 @@ class GlobalCollectorContext {
 public:
   explicit GlobalCollectorContext(GlobalCollector<S> *collector)
       : collector(collector) {}
+
+  MemoryManager<S> &getMemoryManager() { return *collector->getMemoryManager(); }
 
   GlobalCollector<S> &getCollector() { return *collector; }
 

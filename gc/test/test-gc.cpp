@@ -38,7 +38,7 @@ TEST_CASE("Allocate single root", "[garbage collector]") {
           .build();
 
   Context<TestCollectorScheme> context(mm);
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   auto ref = allocateTestStructObject(context, 10);
   Handle<TestStructObject> handle(scope, ref);
 }
@@ -50,7 +50,7 @@ TEST_CASE("Allocate Cache Flushing", "[garbage collector]") {
           .build();
 
   Context<TestCollectorScheme> context(mm);
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   auto allocSize = TestStructObject::allocSize(10);
   auto ref = allocateTestStructObject(context, 10);
   auto *region = Region::get(ref);
@@ -83,7 +83,7 @@ TEST_CASE("Allocate single root and gc", "[garbage collector]") {
           .withRootWalker(std::make_unique<RootWalker<TestCollectorScheme>>())
           .build();
   Context<TestCollectorScheme> context(mm);
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   auto ref = allocateTestStructObject(context, 10);
   Handle<TestStructObject> handle(scope, ref);
   mm.collect(context);
@@ -95,7 +95,7 @@ TEST_CASE("Allocate object tree and gc", "[garbage collector]") {
           .withRootWalker(std::make_unique<RootWalker<TestCollectorScheme>>())
           .build();
   Context<TestCollectorScheme> context(mm);
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   Handle<TestStructObject> handle(scope, allocateTestStructObject(context, 10));
 
   auto ref = allocateTestStructObject(context, 10);
@@ -111,9 +111,8 @@ TEST_CASE("Root scanning", "[garbage collector]") {
           .withRootWalker(std::make_unique<RootWalker<TestCollectorScheme>>())
           .build();
 
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
-
   Context<TestCollectorScheme> context(mm);
+  HandleScope scope = context.getAuxData().rootScope.createScope();
 
   for (int i = 0; i < 1; i++) {
     auto ref = allocateTestStructObject(context, 10);
@@ -132,7 +131,7 @@ TEST_CASE("Concurrent", "[garbage collector]") {
   Context<TestCollectorScheme> context(mm);
   auto &gcContext = context.getCollectorContext();
 
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   unsigned nslots = 10;
   auto ref = allocateTestStructObject(context, nslots);
   Handle<TestStructObject> handle(scope, ref);

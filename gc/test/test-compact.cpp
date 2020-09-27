@@ -26,7 +26,8 @@ TEST_CASE("Compact Root Fixup", "[garbage collector]") {
   auto &gcContext = context.getCollectorContext();
 
   // get the region where the object was allocated
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   auto ref = allocateTestStructObject(context, 3);
   ref->setSlot(0, {INT, 4});
   ref->setSlot(1, {INT, 5});
@@ -60,7 +61,7 @@ TEST_CASE("Compact Load Barrier", "[garbage collector]") {
   Context<TestCollectorScheme> context(mm);
   auto &gcContext = context.getCollectorContext();
 
-  HandleScope scope = mm.getRootWalker().rootScope.createScope();
+  HandleScope scope = context.getAuxData().rootScope.createScope();
   auto ref = allocateTestStructObject(context, 1);
   Handle<TestStructObject> handle(scope, ref);
 
