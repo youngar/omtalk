@@ -45,11 +45,6 @@ inline void check(bool value, const char *location, const char *function,
 
 } // namespace omtalk
 
-/// Designate a statement as unreachable. This pseudo-function acts as a hint to
-/// the compiler that a point in the program cannot be reached. It is undefined
-/// behaviour to execute this function. If you just want to trigger a crash, use
-/// OMTALK_ASSERT_UNREACHABLE instead.
-#define OMTALK_UNREACHABLE() __builtin_unreachable();
 
 /// Assert that x is true.
 #define OMTALK_ASSERT(x)                                                       \
