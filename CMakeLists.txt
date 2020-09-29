@@ -127,6 +127,10 @@ om_add_option(OMTALK_SAN_TSAN OMTALK_OPTIONS
 	CONFLICTS OMTALK_SAN_ASAN
 )
 
+om_add_option(OMTALK_SAN_THREADSAFETY OMTALK_OPTIONS
+	DOC "Build with clang thread safety annotations enabled."
+)
+
 om_add_option(OMTALK_SAN_UBSAN OMTALK_OPTIONS
 	DOC "Build with clang undefined behaviour sanitizer."
 	REQUIRES OM_HAVE_UBSAN
