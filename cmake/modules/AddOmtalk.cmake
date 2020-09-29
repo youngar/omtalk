@@ -5,6 +5,11 @@ set(ADD_OMTALK_ TRUE)
 
 # Add omtalk specific build options to a target.
 function(add_omtalk_target target)
+	target_compile_definitions(${target}
+		PUBLIC
+			${OMTALK_COMPILE_DEFINITIONS}
+	)
+
 	target_compile_options(${target}
 		PUBLIC
 			${OMTALK_COMPILE_OPTIONS}

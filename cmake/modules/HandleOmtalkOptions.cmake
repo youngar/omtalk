@@ -83,6 +83,19 @@ if(OMTALK_SAN_UBSAN)
 	)
 endif()
 
+if(OMTALK_SAN_THREADSAFETY)
+	list(APPEND OMTALK_COMPILE_OPTIONS
+		$<$<COMPILE_LANGUAGE:CXX,C>:-Wthread-safety>
+	)
+	# TODO: Not all of the standard library has been annoted, only certain
+	# pieces.  This creates false errors which are impossible to fix.  In
+	# particular we need std::unique_lock to receive annotations.
+	#
+	# list(APPEND OMTALK_COMPILE_DEFINITIONS
+	# 	_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS
+	# )
+endif()
+
 ###
 ### RTTI and Exceptions
 ###
