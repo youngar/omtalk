@@ -5,6 +5,7 @@
 #include <functional>
 #include <omtalk/Util/Assert.h>
 #include <omtalk/Util/Eytzinger.h>
+#include <thread>
 
 namespace omtalk::gc {
 
@@ -32,7 +33,7 @@ public:
   void *get() {
     // Wait if the entry is locked.
     while (to == LOCKED) {
-      // spin
+      std::this_thread::yield();
     }
     return reinterpret_cast<void *>(to.load());
   }
