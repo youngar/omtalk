@@ -34,22 +34,22 @@ class HandleScope {
   friend class Handle;
 
 public:
-  HandleScope createScope() { return HandleScope(*this); }
+  HandleScope createScope() noexcept { return HandleScope(*this); }
 
-  ~HandleScope() { data->resize(oldSize); }
+  ~HandleScope() noexcept { data->resize(oldSize); }
 
-  std::size_t handleCount() { return data->size(); }
+  std::size_t handleCount() const noexcept { return data->size(); }
 
 protected:
-  HandleScope() {}
+  HandleScope() noexcept {}
 
-  HandleScope(HandleScope &other)
+  HandleScope(HandleScope &other) noexcept
       : oldSize(other.data->size()), data(other.data) {}
 
-  HandleScope(std::vector<HandleBase *> *data)
+  HandleScope(std::vector<HandleBase *> *data) noexcept
       : oldSize(data->size()), data(data) {}
 
-  void attach(HandleBase *handle) { data->push_back(handle); }
+  void attach(HandleBase *handle) noexcept { data->push_back(handle); }
 
   std::size_t oldSize;
   std::vector<HandleBase *> *data;
@@ -62,7 +62,7 @@ public:
   using Iterator = std::vector<HandleBase *>::iterator;
   using ConstIterator = std::vector<HandleBase *>::const_iterator;
 
-  RootHandleScope() : HandleScope() {
+  RootHandleScope() noexcept : HandleScope() {
     oldSize = 0;
     data = &handles;
   }
@@ -108,7 +108,7 @@ public:
   RefProxy proxy() noexcept { return value.proxy(); }
 
 protected:
-  HandleBase(Ref<void> value) : value(value) {}
+  HandleBase(Ref<void> value) noexcept : value(value) {}
 
   Ref<void> value;
 };
@@ -127,19 +127,19 @@ void RootHandleScope::walk(V &visitor, Ts &&... xs) {
 template <typename T = void>
 class Handle final : public HandleBase {
 public:
-  Handle(HandleScope &scope, std::nullptr_t) : HandleBase(nullptr) {
+  Handle(HandleScope &scope, std::nullptr_t) noexcept : HandleBase(nullptr) {
     scope.attach(this);
   }
 
   template <typename U,
             typename = std::enable_if_t<std::is_convertible_v<U *, T *>>>
-  Handle(HandleScope &scope, U *value) : HandleBase(value) {
+  Handle(HandleScope &scope, U *value) noexcept : HandleBase(value) {
     scope.attach(this);
   }
 
   template <typename U,
             typename = std::enable_if_t<std::is_convertible_v<U *, T *>>>
-  Handle(HandleScope &scope, Ref<U> value) : HandleBase(value) {
+  Handle(HandleScope &scope, Ref<U> value) noexcept : HandleBase(value) {
     scope.attach(this);
   }
 
@@ -163,11 +163,11 @@ public:
 template <>
 class Handle<void> final : public HandleBase {
 public:
-  Handle(HandleScope &scope, std::nullptr_t) : HandleBase(nullptr) {}
+  Handle(HandleScope &scope, std::nullptr_t) noexcept : HandleBase(nullptr) {}
 
-  Handle(HandleScope &scope, void *value) : HandleBase(value) {}
+  Handle(HandleScope &scope, void *value) noexcept : HandleBase(value) {}
 
-  Handle(HandleScope &scope, Ref<void> value) : HandleBase(value) {}
+  Handle(HandleScope &scope, Ref<void> value) noexcept : HandleBase(value) {}
 
   Ref<void> get() const noexcept { return value; }
 
