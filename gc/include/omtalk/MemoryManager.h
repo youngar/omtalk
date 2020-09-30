@@ -9,6 +9,7 @@
 #include <mutex>
 #include <omtalk/GlobalCollector.h>
 #include <omtalk/Heap.h>
+#include <omtalk/MutatorMutex.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Util/Atomic.h>
@@ -34,7 +35,7 @@ public:
     assert(aligned(begin, OBJECT_ALIGNMENT));
   }
 
-  Ref<void> tryAllocate(std::size_t size) {
+  Ref<void> tryAllocate(std::size_t size) noexcept {
 
     assert(aligned(size, OBJECT_ALIGNMENT));
 
@@ -46,9 +47,9 @@ public:
     return allocation;
   }
 
-  std::size_t available() const { return end - begin; }
+  std::size_t available() const noexcept { return end - begin; }
 
-  bool empty() const { return available() == 0; }
+  bool empty() const noexcept { return available() == 0; }
 
   std::byte *begin = nullptr;
 
@@ -140,23 +141,23 @@ public:
   ContextList<S> &getContexts() { return contexts; }
 
   /// Get the number of contexts currently attached to the MM
-  unsigned getContextCount() { return contextCount.load(); }
+  unsigned getContextCount() {
+    std::scoped_lock lock(contextMutex);
+    return contextCount;
+  }
 
   /// Get the number of threads which have access to the MM.  All threads must
   /// yield access to the MM before a GC can happen.
-  unsigned getContextAccessCount() { return contextAccessCount.load(); }
+  unsigned getContextAccessCount() { return mutatorMutex.count(); }
 
   /// Get the current size of the heap in bytes.
   std::size_t getHeapSize() noexcept { return regionManager.getHeapSize(); }
 
-  /// Signal to other threads that this thread wants exclusive access. Returns
-  /// false if another thread has already requested it.  This will yield to
-  /// another thread.
-  bool requestExclusive(Context<S> &context);
+  /// Release exclusive access.  All mutator threads will unpause.
+  void releaseExclusive();
 
-  /// Remove request for exclusive access.  Must be called from the context
-  /// which already hold exclusive access.
-  void releaseExclusive(Context<S> &context);
+  /// Acquire exclusive access. All mutator threads will pause.
+  void acquireExclusive();
 
   /// Returns if a thread has requested exclusive access
   bool exclusiveRequested();
@@ -196,29 +197,20 @@ private:
   /// Remove a context from the context list. Removes access from the context.
   void detach(Context<S> &context);
 
-  /// Pause the context while waiting for the GC to complete.  If this
-  /// context is the last active context, perform the GC.
-  void waitOrGC(Context<S> &context);
-
-  /// Perform a stop the world garbage collection.  All mutator threads must be
-  /// paused.
-  void performGC(Context<S> &context);
-
   AuxMemoryManagerData<S> auxData;
 
   MemoryManagerConfig config;
   RegionManager regionManager;
   GlobalCollector<S> globalCollector;
   std::unique_ptr<RootWalker<S>> rootWalker;
+
+  // Context List
+  std::mutex contextMutex;
+  std::size_t contextCount = 0;
   ContextList<S> contexts;
 
-  // If exclusive access is held, this points to the context
-  std::mutex yieldForGcMutex;
-  std::condition_variable yieldForGcCv;
-
-  std::atomic<Context<S> *> exclusiveContext = nullptr;
-  std::atomic<unsigned> contextCount = 0;
-  std::atomic<unsigned> contextAccessCount = 0;
+  // Mutator
+  MutatorMutex mutatorMutex;
 
   std::atomic<bool> inMarkingPhase = false;
 
@@ -312,17 +304,17 @@ MemoryManager<S>::~MemoryManager() {}
 
 template <typename S>
 void MemoryManager<S>::attach(Context<S> &cx) {
-  std::scoped_lock<std::mutex> lock(yieldForGcMutex);
+  std::scoped_lock lock(contextMutex);
+  mutatorMutex.attach();
   contextCount++;
-  contextAccessCount++;
   contexts.push_front(&cx);
 }
 
 template <typename S>
 void MemoryManager<S>::detach(Context<S> &cx) {
-  std::scoped_lock<std::mutex> lock(yieldForGcMutex);
+  std::scoped_lock lock(contextMutex);
+  mutatorMutex.detach();
   contextCount--;
-  contextAccessCount--;
   contexts.remove(&cx);
 }
 
@@ -364,54 +356,40 @@ bool MemoryManager<S>::refreshBuffer(Context<S> &context,
 
 template <typename S>
 bool MemoryManager<S>::exclusiveRequested() {
-  return exclusiveContext != nullptr;
+  return mutatorMutex.requested();
 }
 
 template <typename S>
-void MemoryManager<S>::releaseExclusive(Context<S> &context) {
-  contextAccessCount = contextCount.load();
-  exclusiveContext = nullptr;
+void MemoryManager<S>::acquireExclusive() {
+  mutatorMutex.lock();
 }
 
 template <typename S>
-void MemoryManager<S>::waitOrGC(Context<S> &context) {
-  std::unique_lock yieldLock(yieldForGcMutex);
-  contextAccessCount--;
-  // If we are not the last thread, wait
-  if (contextAccessCount != 0) {
-    yieldForGcCv.wait(yieldLock, [this] { return exclusiveRequested(); });
-  } else {
-    globalCollector.collect(context.getCollectorContext());
-
-    // Must remove exclusive request before waking up other threads
-    releaseExclusive(context);
-
-    // Wake up other threads
-    yieldLock.unlock();
-    yieldForGcCv.notify_all();
-  }
+void MemoryManager<S>::releaseExclusive() {
+  mutatorMutex.unlock();
 }
 
 template <typename S>
 bool MemoryManager<S>::yieldForGC(Context<S> &context) {
-  if (exclusiveRequested()) {
-    waitOrGC(context);
-    return true;
-  }
-  return false;
+  return mutatorMutex.yield();
 }
 
 template <typename S>
 void MemoryManager<S>::collect(Context<S> &context) {
-  // If no other thread has requested exclusive, take it
-  Context<S> *expected = nullptr;
-  exclusiveContext.compare_exchange_strong(expected, &context);
-  waitOrGC(context);
+  mutatorMutex.detach();
+  mutatorMutex.lock();
+  globalCollector.collect(context.getCollectorContext());
+  mutatorMutex.unlock();
+  mutatorMutex.attach();
 }
 
 template <typename S>
 void MemoryManager<S>::kickoff(Context<S> &context) {
+  mutatorMutex.detach();
+  mutatorMutex.lock();
   globalCollector.kickoff(context.getCollectorContext());
+  mutatorMutex.unlock();
+  mutatorMutex.attach();
 }
 
 template <typename S>
