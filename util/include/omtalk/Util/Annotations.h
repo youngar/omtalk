@@ -66,6 +66,10 @@
 #define OMTALK_CAPABILITY(x)
 #endif
 
+/// OMTALK_MUTEX_CAPABILITY
+/// Mark a class as having the mutex capability for thread safety annotations.
+#define OMTALK_MUTEX_CAPABILITY OMTALK_CAPABILITY("mutex")
+
 /// OMTALK_SCOPED_CAPABILITY
 #if OMTALK_HAS_ATTRIBUTE(scoped_lockable)
 #define OMTALK_SCOPED_CAPABILITY OMTALK_THREAD_ANNOTATION(scoped_lockable)
