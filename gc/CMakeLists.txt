@@ -1,6 +1,7 @@
 
 add_omtalk_library(omtalk-gc
     src/MemoryManager.cpp
+    src/MutatorMutex.cpp
 )
 
 target_include_directories(omtalk-gc
