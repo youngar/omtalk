@@ -53,23 +53,22 @@ namespace mem {
 
 template <MemoryOrder M, typename T>
 T load(T *addr) {
-  return __atomic_load_n(addr, int(M));
+  return atomicLoad<T>(addr, M);
 }
 
 template <MemoryOrder M, typename T>
 void store(T *addr, T value) {
-  __atomic_store_n(addr, value, int(M));
+  atomicStore<T>(addr, value, M);
 }
 
 template <MemoryOrder M, typename T>
 T exchange(T *addr, T value) {
-  return __atomic_exchange_n(addr, value, int(M));
+  return atomicExchange<T>(addr, value, M);
 }
 
 template <MemoryOrder S, MemoryOrder F, typename T>
 bool compareExchange(T *addr, T expected, T desired) {
-  return __atomic_compare_exchange_n(addr, &expected, desired, int(S), int(F),
-                                     false);
+  return atomicCompareExchange<T>(addr, &expected, desired, S, F, false);
 }
 
 } // namespace mem
@@ -78,24 +77,24 @@ namespace proxy {
 
 /// Call target.load<M>(). Useful when target is a templated type.
 template <MemoryOrder M, typename T>
-auto load(T&& target) noexcept {
+auto load(T &&target) noexcept {
   return target.template load<M>();
 }
 
 /// Call target.store<M>(value). Useful when target is a templated type.
 template <MemoryOrder M, typename T, typename U>
-auto store(T&& target, U&& value) noexcept {
+auto store(T &&target, U &&value) noexcept {
   return target.template store<M>(std::forward<U>(value));
 }
 
 /// Call target.exchange<M>(value). Useful when target is a templated type.
 template <MemoryOrder M, typename T, typename U>
-auto exchange(T& target, U& value) noexcept {
+auto exchange(T &target, U &value) noexcept {
   return target.template exchange<M>(value);
 }
 
 template <MemoryOrder M, typename T, typename U, typename V>
-auto compareExchange(T& target, U& expected, V& desired) noexcept {
+auto compareExchange(T &target, U &expected, V &desired) noexcept {
   return target.template compareExchange<M>(expected, desired);
 }
 
