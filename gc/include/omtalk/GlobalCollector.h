@@ -92,7 +92,7 @@ public:
 
   /// Prepare a region for evacuation and move it to the evacuating list.  After
   /// this the load barrier may evacuate objects from the region.
-  void selectForEvacuate(Context &context, Region &region);
+  void selectForEvacuate(Context &context, Region &region) noexcept;
 
   void preCompact(Context &context) noexcept;
   void compact(Context &context) noexcept;
@@ -102,10 +102,10 @@ public:
   // @}
 
   /// Get the MemoryManager
-  MemoryManager<S> *getMemoryManager() { return memoryManager; }
+  MemoryManager<S> *getMemoryManager() noexcept { return memoryManager; }
 
   /// Get the global workstack.
-  WorkStack<S> &getStack() { return stack; }
+  WorkStack<S> &getStack() noexcept { return stack; }
 
 private:
   MemoryManager<S> *memoryManager;
@@ -117,12 +117,14 @@ private:
 template <typename S>
 class GlobalCollectorContext {
 public:
-  explicit GlobalCollectorContext(GlobalCollector<S> *collector)
+  explicit GlobalCollectorContext(GlobalCollector<S> *collector) noexcept
       : collector(collector) {}
 
-  MemoryManager<S> &getMemoryManager() { return *collector->getMemoryManager(); }
+  MemoryManager<S> &getMemoryManager() noexcept {
+    return *collector->getMemoryManager();
+  }
 
-  GlobalCollector<S> &getCollector() { return *collector; }
+  GlobalCollector<S> &getCollector() const { return *collector; }
 
 private:
   GlobalCollector<S> *collector;
@@ -212,13 +214,8 @@ void GlobalCollector<S>::sweep(Context &context) noexcept {
   memoryManager->setFreeList(freeList);
 }
 
-// template <typename S>
-// void GlobalCollecot<S>::returnEmptyRegion(Context &context, Region &region) {
-
-// }
-
 template <typename S>
-void GlobalCollector<S>::selectForEvacuate(Context &context, Region &region) {
+void GlobalCollector<S>::selectForEvacuate(Context &context, Region &region) noexcept {
   auto &regionManager = memoryManager->getRegionManager();
   auto &regionList = regionManager.getRegions();
   auto &evacList = regionManager.getEvacuateRegions();
