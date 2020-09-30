@@ -18,10 +18,10 @@ class GlobalCollector;
 template <typename S>
 class MarkCompactWorker {
 public:
-  MarkCompactWorker(GlobalCollector<S> *gc)
+  MarkCompactWorker(GlobalCollector<S> *gc) noexcept
       : context(gc), gc(gc), thread(staticEntry, this) {}
 
-  ~MarkCompactWorker() {
+  ~MarkCompactWorker() noexcept {
     // Signal to the thread to shutdown and wake it up.
     std::unique_lock lock(stateMutex);
     state = State::SHUTDOWN;
@@ -31,14 +31,14 @@ public:
   }
 
   /// Wait for the completion of a GC cycle
-  void wait() {
+  void wait() noexcept {
     std::unique_lock lock(stateMutex);
     completeCondition.wait(lock, [&] { return state != State::ACTIVE; });
   }
 
   /// Execute a garbage collection.  Returns true if a new collection was
   /// started. Returns false if a collection is already in progress.
-  bool run() {
+  bool run() noexcept {
     std::unique_lock lock(stateMutex);
     if (state == State::INACTIVE) {
       state = State::ACTIVE;
@@ -52,9 +52,9 @@ public:
 private:
   enum class State { INACTIVE, ACTIVE, SHUTDOWN };
 
-  static void staticEntry(MarkCompactWorker *t) { t->entry(); }
+  static void staticEntry(MarkCompactWorker *t) noexcept { t->entry(); }
 
-  void entry() {
+  void entry() noexcept {
     std::unique_lock lock(stateMutex);
     while (true) {
       // wait for more work to appear
@@ -77,7 +77,7 @@ private:
     }
   }
 
-  void collect() {
+  void collect() noexcept {
     std::cout << "### background start\n";
     std::cout << "### background mark\n";
     gc->mark(context);
