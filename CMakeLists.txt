@@ -129,6 +129,7 @@ om_add_option(OMTALK_SAN_TSAN OMTALK_OPTIONS
 
 om_add_option(OMTALK_SAN_THREADSAFETY OMTALK_OPTIONS
 	DOC "Build with clang thread safety annotations enabled."
+	DEFAULT ON
 )
 
 om_add_option(OMTALK_SAN_UBSAN OMTALK_OPTIONS
