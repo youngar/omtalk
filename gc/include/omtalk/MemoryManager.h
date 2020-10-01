@@ -12,6 +12,7 @@
 #include <omtalk/MutatorMutex.h>
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
+#include <omtalk/Util/Annotations.h>
 #include <omtalk/Util/Atomic.h>
 #include <omtalk/Util/Bytes.h>
 #include <omtalk/Util/IntrusiveList.h>
@@ -117,7 +118,7 @@ private:
 };
 
 template <typename S>
-class MemoryManager final {
+class OMTALK_MUTEX_CAPABILITY MemoryManager final {
 public:
   friend Context<S>;
 
@@ -141,23 +142,14 @@ public:
   ContextList<S> &getContexts() { return contexts; }
 
   /// Get the number of contexts currently attached to the MM
-  unsigned getContextCount() {
-    std::scoped_lock lock(contextMutex);
-    return contextCount;
-  }
+  unsigned getContextCount();
 
   /// Get the number of threads which have access to the MM.  All threads must
   /// yield access to the MM before a GC can happen.
-  unsigned getContextAccessCount() { return mutatorMutex.count(); }
+  unsigned getContextAccessCount();
 
   /// Get the current size of the heap in bytes.
-  std::size_t getHeapSize() noexcept { return regionManager.getHeapSize(); }
-
-  /// Release exclusive access.  All mutator threads will unpause.
-  void releaseExclusive();
-
-  /// Acquire exclusive access. All mutator threads will pause.
-  void acquireExclusive();
+  std::size_t getHeapSize() noexcept;
 
   /// Returns if a thread has requested exclusive access
   bool exclusiveRequested();
@@ -197,6 +189,10 @@ private:
   /// Remove a context from the context list. Removes access from the context.
   void detach(Context<S> &context);
 
+  void unlockGC(Context<S> &context) OMTALK_ACQUIRE_SHARED();
+
+  void lockGC(Context<S> &context) OMTALK_RELEASE_SHARED();
+
   AuxMemoryManagerData<S> auxData;
 
   MemoryManagerConfig config;
@@ -206,8 +202,8 @@ private:
 
   // Context List
   std::mutex contextMutex;
-  std::size_t contextCount = 0;
-  ContextList<S> contexts;
+  std::size_t contextCount OMTALK_GUARDED_BY(contextMutex) = 0;
+  ContextList<S> contexts OMTALK_GUARDED_BY(contextMutex);
 
   // Mutator
   MutatorMutex mutatorMutex;
@@ -227,21 +223,17 @@ template <typename S>
 class AuxContextData {};
 
 template <typename S>
-class Context final {
+class OMTALK_SCOPED_CAPABILITY Context final {
 public:
   friend MemoryManager<S>;
 
-  explicit Context(MemoryManager<S> &memoryManager)
-      : memoryManager(&memoryManager),
-        gcContext(&memoryManager.getGlobalCollector()) {
-    memoryManager.attach(*this);
-  }
+  explicit Context(MemoryManager<S> &memoryManager) OMTALK_ACQUIRE_SHARED(memoryManager);
 
   Context(const Context &) = delete;
 
   Context(const Context &&) = delete;
 
-  ~Context() { memoryManager->detach(*this); }
+  ~Context() OMTALK_RELEASE_SHARED();
 
   ContextListNode<S> &getListNode() noexcept { return listNode; }
 
@@ -255,11 +247,23 @@ public:
     return gcContext;
   }
 
+  /// Get the scheme specific auxiliary data
   AuxContextData<S> &getAuxData() noexcept { return auxData; }
 
+  /// Get the scheme specific auxiliary data
   const AuxContextData<S> &getAuxData() const noexcept { return auxData; }
 
   // GC Notification
+
+  /// Obtain shared access to the MemoryManager. This means that the
+  /// MemoryManager will wait for this thread to yield or unlock before
+  /// performing a garbage collection. All contexts start with shared access.
+  void lockGC() OMTALK_ACQUIRE_SHARED();
+
+  /// Detach this context from the MemoryManager.  When a context is detached
+  /// the MemoryManager will not wait for this context to yield before
+  /// performing a GC.
+  void unlockGC() OMTALK_RELEASE_SHARED();
 
   /// If another thread has requested a collection, allow it to proceed.  All
   /// active contexts must yield before a collection can happen.
@@ -268,6 +272,9 @@ public:
   /// Perform a global garbage collection.  This will wait for all attached
   /// threads to reach GC safe points and yield.
   void collect();
+
+  /// Start a new GC cycle if there is currently no GC running.
+  void kickoff();
 
   /// Refresh the allocation buffer associated with a thread.  May cause tax
   /// paying or garbage collection work to be done.
@@ -282,6 +289,7 @@ private:
   GlobalCollectorContext<S> gcContext;
   ContextListNode<S> listNode;
   AllocationBuffer ab;
+  bool isLocked = false;
 };
 
 //===----------------------------------------------------------------------===//
@@ -303,9 +311,24 @@ template <typename S>
 MemoryManager<S>::~MemoryManager() {}
 
 template <typename S>
+std::size_t MemoryManager<S>::getHeapSize() noexcept {
+  return regionManager.getHeapSize();
+}
+
+template <typename S>
+unsigned MemoryManager<S>::getContextCount() {
+  std::scoped_lock lock(contextMutex);
+  return contextCount;
+}
+
+template <typename S>
+unsigned MemoryManager<S>::getContextAccessCount() {
+  return mutatorMutex.count();
+}
+
+template <typename S>
 void MemoryManager<S>::attach(Context<S> &cx) {
   std::scoped_lock lock(contextMutex);
-  mutatorMutex.attach();
   contextCount++;
   contexts.push_front(&cx);
 }
@@ -313,7 +336,6 @@ void MemoryManager<S>::attach(Context<S> &cx) {
 template <typename S>
 void MemoryManager<S>::detach(Context<S> &cx) {
   std::scoped_lock lock(contextMutex);
-  mutatorMutex.detach();
   contextCount--;
   contexts.remove(&cx);
 }
@@ -360,13 +382,13 @@ bool MemoryManager<S>::exclusiveRequested() {
 }
 
 template <typename S>
-void MemoryManager<S>::acquireExclusive() {
-  mutatorMutex.lock();
+void MemoryManager<S>::lockGC(Context<S> &context) {
+  mutatorMutex.lockShared();
 }
 
 template <typename S>
-void MemoryManager<S>::releaseExclusive() {
-  mutatorMutex.unlock();
+void MemoryManager<S>::unlockGC(Context<S> &context) {
+  mutatorMutex.unlockShared();
 }
 
 template <typename S>
@@ -376,20 +398,20 @@ bool MemoryManager<S>::yieldForGC(Context<S> &context) {
 
 template <typename S>
 void MemoryManager<S>::collect(Context<S> &context) {
-  mutatorMutex.detach();
+  mutatorMutex.unlockShared();
   mutatorMutex.lock();
   globalCollector.collect(context.getCollectorContext());
   mutatorMutex.unlock();
-  mutatorMutex.attach();
+  mutatorMutex.lockShared();
 }
 
 template <typename S>
 void MemoryManager<S>::kickoff(Context<S> &context) {
-  mutatorMutex.detach();
+  mutatorMutex.unlockShared();
   mutatorMutex.lock();
   globalCollector.kickoff(context.getCollectorContext());
   mutatorMutex.unlock();
-  mutatorMutex.attach();
+  mutatorMutex.lockShared();
 }
 
 template <typename S>
@@ -412,6 +434,36 @@ void MemoryManager<S>::disableMarking() {
 //===----------------------------------------------------------------------===//
 
 template <typename S>
+Context<S>::Context(MemoryManager<S> &memoryManager)
+    : memoryManager(&memoryManager),
+      gcContext(&memoryManager.getGlobalCollector()) {
+  lockGC();
+  memoryManager.attach(*this);
+}
+
+template <typename S>
+Context<S>::~Context() {
+  memoryManager->detach(*this);
+  if (isLocked) {
+    unlockGC();
+  }
+}
+
+template <typename S>
+void Context<S>::lockGC() {
+  OMTALK_ASSERT(isLocked == false);
+  isLocked = true;
+  return memoryManager->lockGC(*this);
+}
+
+template <typename S>
+void Context<S>::unlockGC() {
+  OMTALK_ASSERT(isLocked == true);
+  isLocked = false;
+  return memoryManager->unlockGC(*this);
+}
+
+template <typename S>
 bool Context<S>::yieldForGC() {
   return memoryManager->yieldForGC(*this);
 }
@@ -419,6 +471,11 @@ bool Context<S>::yieldForGC() {
 template <typename S>
 void Context<S>::collect() {
   memoryManager->collect(*this);
+}
+
+template <typename S>
+void Context<S>::kickoff() {
+  memoryManager->kickoff(*this);
 }
 
 template <typename S>

@@ -26,7 +26,7 @@ public:
   ~MutatorMutex() noexcept {}
 
   /// Attach a running mutator
-  void attach() noexcept OMTALK_ACQUIRE_SHARED() {
+  void lockShared() noexcept OMTALK_ACQUIRE_SHARED() {
     std::unique_lock lock(mutex);
     auto check = [this] { return data.state == 0; };
     yieldCV.wait(lock, check);
@@ -34,7 +34,7 @@ public:
   }
 
   /// Detach a running mutator
-  void detach() noexcept OMTALK_RELEASE_SHARED() {
+  void unlockShared() noexcept OMTALK_RELEASE_SHARED() {
     std::unique_lock lock(mutex);
     data.count--;
     if (data.count == 0) {
