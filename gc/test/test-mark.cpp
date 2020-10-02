@@ -168,7 +168,7 @@ TEST_CASE("Object Allocation", "[garbage collector]") {
     CHECK(region->marked(ref));
     CHECK(region->getLiveObjectCount() == 1);
     CHECK(region->getLiveDataSize() == allocSize);
-    gc.collect(gcContext);
+    context.collect();
     CHECK(region->unmarked(ref));
     CHECK(region->getLiveObjectCount() == 0);
     CHECK(region->getLiveDataSize() == 0);

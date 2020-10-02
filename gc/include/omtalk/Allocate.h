@@ -63,20 +63,23 @@ constexpr std::size_t MINIMUM_OBJECT_SIZE = 32;
 
 /// Fast-path byte allocator. Will NOT collect. Memory is NOT zeroed.
 template <typename S>
-Ref<void> allocateBytesFast(Context<S> &cx, std::size_t size) noexcept {
+Ref<void> allocateBytesFast(Context<S> &cx, std::size_t size) noexcept
+    OMTALK_REQUIRES_CONTEXT(cx) {
   return cx.buffer().tryAllocate(size);
 }
 
 /// Fast-path byte allocator. Will NOT collect. Memory is zeroed.
 template <typename S>
-Ref<void> allocateBytesZeroFast(Context<S> &cx, std::size_t size) noexcept {
+Ref<void> allocateBytesZeroFast(Context<S> &cx, std::size_t size) noexcept
+    OMTALK_REQUIRES_CONTEXT(cx) {
   return cx.buffer().tryAllocate(size);
 }
 
 /// Slow-path byte allocator. MAY collect. Memory is NOT zeroed.
 template <typename S>
-AllocationResult allocateBytesSlow(Context<S> &cx, std::size_t size) noexcept {
-  cx.getCollector()->refreshBuffer(cx, size);
+AllocationResult allocateBytesSlow(Context<S> &cx, std::size_t size) noexcept
+    OMTALK_REQUIRES_CONTEXT(cx) {
+  cx.getMemoryManager()->refreshBuffer(cx, size);
   auto allocation = allocateBytesFast<S>(cx, size);
   return {allocation, Tax()};
 }
@@ -84,25 +87,27 @@ AllocationResult allocateBytesSlow(Context<S> &cx, std::size_t size) noexcept {
 /// Slow-path byte allocator. MAY collect. Memory IS zeroed.
 template <typename S>
 AllocationResult allocateBytesZeroSlow(Context<S> &cx,
-                                       std::size_t size) noexcept {
-  cx.getCollector()->refreshBuffer(cx, size);
+                                       std::size_t size) noexcept
+    OMTALK_REQUIRES_CONTEXT(cx) {
+  cx.getMemoryManager()->refreshBuffer(cx, size);
   auto allocation = allocateBytesFast<S>(cx, size);
   return {allocation, Tax()};
 }
 
 /// Slow-path byte allocator. WILL NOT collect. Memory is NOT zeroed.
 template <typename S>
-Ref<void> allocateBytesNoCollectSlow(Context<S> &cx,
-                                     std::size_t size) noexcept {
-  cx.getCollector()->refreshBuffer(cx, size);
+Ref<void> allocateBytesNoCollectSlow(Context<S> &cx, std::size_t size) noexcept
+    OMTALK_REQUIRES_CONTEXT(cx) {
+  cx.getMemoryManager()->refreshBuffer(cx, size);
   return allocateBytesFast<S>(cx, size);
 }
 
 /// Slow-path byte allocator. Will NOT collect. Memory IS zeroed.
 template <typename S>
 Ref<void> allocateBytesZeroNoCollectSlow(Context<S> &cx,
-                                         std::size_t size) noexcept {
-  cx.getCollector()->refreshBuffer(cx, size);
+                                         std::size_t size) noexcept
+    OMTALK_REQUIRES_CONTEXT(cx) {
+  cx.getMemoryManager()->refreshBuffer(cx, size);
   return allocateBytesFast<S>(cx, size);
 }
 
@@ -113,7 +118,7 @@ Ref<void> allocateBytesZeroNoCollectSlow(Context<S> &cx,
 /// Fast-path object allocator. Will NOT collect. Memory is NOT zeroed.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocateFast(Context<S> &cx, std::size_t size, Init &&init,
-                    Args &&... args) noexcept {
+                    Args &&... args) noexcept OMTALK_REQUIRES_CONTEXT(cx) {
   auto object = cast<T>(allocateBytesFast<S>(cx, size));
 
   if (object) {
@@ -126,7 +131,7 @@ Ref<T> allocateFast(Context<S> &cx, std::size_t size, Init &&init,
 /// Fast-path object allocator. Will NOT collect. Memory IS zeroed.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocateZeroFast(Context<S> &cx, std::size_t size, Init &&init,
-                        Args &&... args) noexcept {
+                        Args &&... args) noexcept OMTALK_REQUIRES_CONTEXT(cx) {
   auto object = cast<T>(allocateBytesZeroFast<S>(cx, size));
   if (object) {
     init(object, std::forward<Args>(args)...);
@@ -138,7 +143,7 @@ Ref<T> allocateZeroFast(Context<S> &cx, std::size_t size, Init &&init,
 /// Slow-path object allocator. MAY collect. Memory is NOT zeroed.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocateSlow(Context<S> &cx, std::size_t size, Init &&init,
-                    Args &&... args) noexcept {
+                    Args &&... args) noexcept OMTALK_REQUIRES_CONTEXT(cx) {
   auto [allocation, tax] = allocateBytesSlow<S>(cx, size);
   auto object = cast<T>(allocation);
   if (object) {
@@ -154,7 +159,7 @@ Ref<T> allocateSlow(Context<S> &cx, std::size_t size, Init &&init,
 /// Slow-path object allocator. MAY collect. Memory IS zeroed.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocateZeroSlow(Context<S> &cx, std::size_t size, Init &&init,
-                        Args &&... args) noexcept {
+                        Args &&... args) noexcept OMTALK_REQUIRES_CONTEXT(cx) {
   auto [allocation, tax] = allocateBytesZeroSlow<S>(cx, size);
   auto object = cast<T>(allocation);
   if (object) {
@@ -170,7 +175,8 @@ Ref<T> allocateZeroSlow(Context<S> &cx, std::size_t size, Init &&init,
 /// Slow-path object allocator. Will NOT collect. Memory is NOT zeroed.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocateNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
-                             Args &&... args) noexcept {
+                             Args &&... args) noexcept
+    OMTALK_REQUIRES_CONTEXT(cx) {
   auto object = cast<T>(allocateBytesNoCollectSlow<S>(cx, size));
   if (object) {
     init(object, std::forward<Args>(args)...);
@@ -182,7 +188,8 @@ Ref<T> allocateNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
 /// Slow-path object allocator. Will NOT collect. Memory IS zeroed.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocateZeroNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
-                                 Args &&... args) noexcept {
+                                 Args &&... args) noexcept
+    OMTALK_REQUIRES_CONTEXT(cx) {
   auto object = cast<T>(allocateBytesZeroNoCollectSlow<S>(cx, size));
   if (object) {
     init(object, std::forward<Args>(args)...);
@@ -198,7 +205,7 @@ Ref<T> allocateZeroNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
 /// Allocate an object and initialize it.  May cause a garbage collection.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocate(Context<S> &cx, std::size_t size, Init &&init,
-                Args &&... args) noexcept {
+                Args &&... args) noexcept OMTALK_REQUIRES_CONTEXT(cx) {
   auto object = allocateFast<S, T>(cx, size, std::forward<Init>(init),
                                    std::forward<Args>(args)...);
   if (object) {
@@ -213,7 +220,7 @@ Ref<T> allocate(Context<S> &cx, std::size_t size, Init &&init,
 /// underlying memory will be initialized to zero.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocateZero(Context<S> &cx, std::size_t size, Init &&init,
-                    Args &&... args) noexcept {
+                    Args &&... args) noexcept OMTALK_REQUIRES_CONTEXT(cx) {
   auto object = allocateZeroFast<S, T>(cx, size, std::forward<Init>(init),
                                        std::forward<Args>(args)...);
   if (object) {
@@ -227,7 +234,7 @@ Ref<T> allocateZero(Context<S> &cx, std::size_t size, Init &&init,
 /// Allocate an object and initalize it.  Will not garbage collect.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocateNoCollect(Context<S> &cx, std::size_t size, Init &&init,
-                         Args &&... args) noexcept {
+                         Args &&... args) noexcept OMTALK_REQUIRES_CONTEXT(cx) {
   auto object = allocateFast<S, T>(cx, size, std::forward<Init>(init),
                                    std::forward<Args>(args)...);
   if (object) {
@@ -242,7 +249,8 @@ Ref<T> allocateNoCollect(Context<S> &cx, std::size_t size, Init &&init,
 /// underlying memory will be initialized to zero.
 template <typename S, typename T = void, typename Init, typename... Args>
 Ref<T> allocateZeroNoCollect(Context<S> &cx, std::size_t size, Init &&init,
-                             Args &&... args) noexcept {
+                             Args &&... args) noexcept
+    OMTALK_REQUIRES_CONTEXT(cx) {
   auto object = allocateZeroFast<S, T>(cx, size, std::forward<Init>(init),
                                        std::forward<Args>(args)...);
   if (object) {

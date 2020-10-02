@@ -372,7 +372,8 @@ struct gc::RootWalker<TestCollectorScheme> {
 /// Load a field at `index` from object. A load barrier.
 inline gc::Ref<TestObject> load(gc::Context<TestCollectorScheme> &context,
                                 gc::Ref<TestStructObject> object,
-                                std::size_t index) {
+                                std::size_t index) noexcept
+    OMTALK_REQUIRES_CONTEXT(context) {
   return omtalk::gc::load<TestCollectorScheme>(
              context, TestSlotProxy(&object->getSlot(index)))
       .cast<TestObject>();
@@ -381,18 +382,20 @@ inline gc::Ref<TestObject> load(gc::Context<TestCollectorScheme> &context,
 // Store a field
 inline void store(gc::Context<TestCollectorScheme> &context,
                   gc::Ref<TestStructObject> object, std::size_t index,
-                  gc::Ref<void> value) {
+                  gc::Ref<void> value) noexcept
+    OMTALK_REQUIRES_CONTEXT(context) {
   omtalk::gc::store<TestCollectorScheme>(context, TestObjectProxy(object),
                                          TestSlotProxy(&object->getSlot(index)),
                                          value);
 }
 
 inline gc::Ref<TestStructObject>
-allocateTestStructObject(gc::Context<TestCollectorScheme> &cx,
-                         std::size_t nslots) noexcept {
+allocateTestStructObject(gc::Context<TestCollectorScheme> &context,
+                         std::size_t nslots) noexcept
+    OMTALK_REQUIRES_CONTEXT(context) {
   auto size = TestStructObject::allocSize(nslots);
   return gc::allocate<TestCollectorScheme, TestStructObject>(
-      cx, size, [=](auto object) {
+      context, size, [=](auto object) {
         object->kind = TestObjectKind::STRUCT;
         object->length = nslots;
         for (unsigned i = 0; i < nslots; i++) {

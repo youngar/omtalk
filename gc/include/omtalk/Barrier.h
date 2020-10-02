@@ -11,7 +11,8 @@ namespace omtalk::gc {
 
 /// Called after an object has been allocated and initialized.
 template <typename S, typename ObjectProxyT>
-void allocateBarrier(Context<S> &context, ObjectProxyT object) {
+void allocateBarrier(Context<S> &context, ObjectProxyT object)
+    OMTALK_REQUIRES_CONTEXT(context) {
   // Newly allocated objects must be marked black and scanned by the GC.
   if (context.isMarking()) {
     mark<S>(context.getCollectorContext(), object);
@@ -19,7 +20,8 @@ void allocateBarrier(Context<S> &context, ObjectProxyT object) {
 }
 
 template <typename S, typename SlotProxyT>
-auto load(Context<S> &context, SlotProxyT slot) {
+auto load(Context<S> &context, SlotProxyT slot)
+    OMTALK_REQUIRES_CONTEXT(context) {
 
   // if the slot points to an evactuate region, copy the object into the current
   // allocation region.
@@ -69,17 +71,19 @@ auto load(Context<S> &context, SlotProxyT slot) {
 template <typename S, typename ObjectProxyT, typename SlotProxyT,
           typename ValueT>
 void store(Context<S> &context, ObjectProxyT object, SlotProxyT slot,
-           ValueT value) {
+           ValueT value) noexcept OMTALK_REQUIRES_CONTEXT(context) {
   proxy::store<SEQ_CST>(slot, value);
 }
 
 template <typename S, typename T>
-auto load(Context<S> &context, Handle<T> &handle) noexcept {
+auto load(Context<S> &context, Handle<T> &handle) noexcept
+    OMTALK_REQUIRES_CONTEXT(context) {
   return load(context, handle.proxy());
 }
 
 template <typename S, typename T, typename V>
-auto store(Context<S> &context, Handle<T> &handle, V value) noexcept {
+auto store(Context<S> &context, Handle<T> &handle, V value) noexcept
+    OMTALK_REQUIRES_CONTEXT(context) {
   return store(context, handle.proxy());
 }
 

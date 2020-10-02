@@ -24,19 +24,19 @@ TEST_CASE("MutatorMutex request", "[garbage collector]") {
   thread.join();
 }
 
-TEST_CASE("MutatorLock requested", "[garbage collector]") {
-  MutatorMutex m;
-  MutatorLock l(m);
-  REQUIRE(m.requested());
-}
+// TEST_CASE("MutatorLock requested", "[garbage collector]") {
+//   MutatorMutex m;
+//   MutatorLock l(m);
+//   REQUIRE(m.requested());
+// }
 
-TEST_CASE("MutatorLock request", "[garbage collector]") {
-  MutatorMutex m;
-  MutatorLock l(m);
-  std::thread thread([&m] {
-    m.lockShared();
-    m.unlockShared();
-  });
-  l.unlock();
-  thread.join();
-}
+// TEST_CASE("MutatorLock request", "[garbage collector]") {
+//   MutatorMutex m;
+//   MutatorLock l(m);
+//   std::thread thread([&m] {
+//     m.lockShared();
+//     m.unlockShared();
+//   });
+//   l.unlock();
+//   thread.join();
+// }

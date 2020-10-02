@@ -21,12 +21,7 @@ TEST_CASE("Compact Root Fixup", "[garbage collector]") {
       MemoryManagerBuilder<TestCollectorScheme>()
           .withRootWalker(std::make_unique<RootWalker<TestCollectorScheme>>())
           .build();
-  auto &gc = mm.getGlobalCollector();
   Context<TestCollectorScheme> context(mm);
-  auto &gcContext = context.getCollectorContext();
-
-  // get the region where the object was allocated
-  
   HandleScope scope = context.getAuxData().rootScope.createScope();
   auto ref = allocateTestStructObject(context, 3);
   ref->setSlot(0, {INT, 4});
@@ -39,8 +34,8 @@ TEST_CASE("Compact Root Fixup", "[garbage collector]") {
 
   // return the allocation region to be evacuated
   context.refreshBuffer(0);
-  gc.collect(gcContext);
-  gc.collect(gcContext);
+  context.collect();
+  context.collect();
 
   // make sure the object was actually moved
   CHECK(ref != handle.get());
@@ -68,10 +63,8 @@ TEST_CASE("Compact Load Barrier", "[garbage collector]") {
   ref = allocateTestStructObject(context, 1);
   handle->setSlot(0, {REF, ref});
 
-  std::cout << "\n\nGOOD TEST\n";
   context.refreshBuffer(0);
 
-  //   gc.collect(gcContext);
   gc.preMark(gcContext);
   gc.markRoots(gcContext);
   gc.mark(gcContext);

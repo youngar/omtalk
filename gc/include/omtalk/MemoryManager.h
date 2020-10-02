@@ -17,6 +17,7 @@
 #include <omtalk/Util/Bytes.h>
 #include <omtalk/Util/IntrusiveList.h>
 #include <omtalk/Util/Math.h>
+#include <omtalk/Util/Mutex.h>
 #include <sys/mman.h>
 #include <thread>
 #include <vector>
@@ -156,31 +157,41 @@ public:
 
   /// Refresh the allocation buffer associated with a thread.  May cause tax
   /// paying or garbage collection work to be done.
-  bool refreshBuffer(Context<S> &context, std::size_t minimumSize);
+  bool refreshBuffer(Context<S> &context, std::size_t minimumSize)
+      OMTALK_REQUIRES_SHARED(this);
 
   // Return the old region.  Remove it from the alloc list and put it into the
   // region list.
-  void flushBuffer(Context<S> &context);
+  void flushBuffer(Context<S> &context) OMTALK_REQUIRES_SHARED(this);
 
   /// Check if another thread is attempting to garbage collect.  Will yield
   /// access to the memory manager so another thread can collect.
-  bool yieldForGC(Context<S> &context);
+  bool yieldForGC(Context<S> &context) OMTALK_REQUIRES_SHARED(this);
 
   /// Perform a global garbage collection.  This will wait for all attached
   /// threads to reach GC safe points.
-  void collect(Context<S> &context);
+  void collect(Context<S> &context) OMTALK_REQUIRES_SHARED(this);
 
   /// Start a global collection if one is not already occuring.
-  void kickoff(Context<S> &context);
+  void kickoff(Context<S> &context) OMTALK_REQUIRES_SHARED(this);
+
+  /// Wait for the GC to finish if it is currently running.
+  void wait(Context<S> &context) OMTALK_REQUIRES_SHARED(this);
 
   /// Returns if we are in the marking phase of the GC.
-  bool isMarking(const Context<S> &context) const;
+  bool isMarking(const Context<S> &context) const OMTALK_REQUIRES_SHARED(this);
 
   /// Enable the marking phase.
   void enableMarking();
 
   /// Disable the marking phase.
   void disableMarking();
+
+  /// Request all mutators to be paused.
+  void pauseMutators() OMTALK_ACQUIRE();
+
+  /// Unpause all mutators.
+  void unpauseMutators() OMTALK_RELEASE();
 
 private:
   /// Attach a context to the context list. Gives access to the context.
@@ -194,14 +205,13 @@ private:
   void lockGC(Context<S> &context) OMTALK_RELEASE_SHARED();
 
   AuxMemoryManagerData<S> auxData;
-
   MemoryManagerConfig config;
   RegionManager regionManager;
   GlobalCollector<S> globalCollector;
   std::unique_ptr<RootWalker<S>> rootWalker;
 
   // Context List
-  std::mutex contextMutex;
+  Mutex contextMutex;
   std::size_t contextCount OMTALK_GUARDED_BY(contextMutex) = 0;
   ContextList<S> contexts OMTALK_GUARDED_BY(contextMutex);
 
@@ -222,24 +232,35 @@ private:
 template <typename S>
 class AuxContextData {};
 
+/// Thread safety annotation.  Functions with this annotation require that the
+/// they have shared access to the memory manager through the context.
+#define OMTALK_REQUIRES_CONTEXT(context)                                       \
+  OMTALK_REQUIRES_SHARED(context.getMemoryManager())
+
+/// Thread safety annotation.  Function with this annotation require that there
+/// is no shared access to the memory manager.  This is used to prevent
+/// deadlocking.  It can be used to make sure that a thread is not waiting for
+/// all threads to release access while it itself has access.
+#define OMTALK_EXCLUDES_CONTEXT(context)                                       \
+  OMTALK_REQUIRES(!context.getMemoryManager())
+
 template <typename S>
 class OMTALK_SCOPED_CAPABILITY Context final {
 public:
   friend MemoryManager<S>;
 
-  explicit Context(MemoryManager<S> &memoryManager) OMTALK_ACQUIRE_SHARED(memoryManager);
+  explicit Context(MemoryManager<S> &memoryManager)
+      OMTALK_ACQUIRE_SHARED(memoryManager);
 
   Context(const Context &) = delete;
 
   Context(const Context &&) = delete;
 
-  ~Context() OMTALK_RELEASE_SHARED();
+  ~Context() OMTALK_RELEASE();
 
   ContextListNode<S> &getListNode() noexcept { return listNode; }
 
   const ContextListNode<S> &getListNode() const noexcept { return listNode; }
-
-  MemoryManager<S> *getCollector() { return memoryManager; }
 
   AllocationBuffer &buffer() { return ab; }
 
@@ -267,21 +288,28 @@ public:
 
   /// If another thread has requested a collection, allow it to proceed.  All
   /// active contexts must yield before a collection can happen.
-  bool yieldForGC();
+  bool yieldForGC() OMTALK_REQUIRES_SHARED(memoryManager);
 
   /// Perform a global garbage collection.  This will wait for all attached
   /// threads to reach GC safe points and yield.
-  void collect();
+  void collect() OMTALK_REQUIRES_SHARED(memoryManager);
 
   /// Start a new GC cycle if there is currently no GC running.
-  void kickoff();
+  void kickoff() OMTALK_REQUIRES_SHARED(memoryManager);
 
   /// Refresh the allocation buffer associated with a thread.  May cause tax
   /// paying or garbage collection work to be done.
-  bool refreshBuffer(std::size_t minimumSize);
+  bool refreshBuffer(std::size_t minimumSize)
+      OMTALK_REQUIRES_SHARED(memoryManager);
 
   /// Return true if we are in the marking phase of the GC.
-  bool isMarking() const;
+  bool isMarking() const OMTALK_REQUIRES_SHARED(memoryManager);
+
+  /// Get the memory manager associated with this context.
+  MemoryManager<S> *getMemoryManager() const noexcept
+      OMTALK_RETURN_CAPABILITY(memoryManager) {
+    return memoryManager;
+  }
 
 private:
   AuxContextData<S> auxData;
@@ -317,7 +345,7 @@ std::size_t MemoryManager<S>::getHeapSize() noexcept {
 
 template <typename S>
 unsigned MemoryManager<S>::getContextCount() {
-  std::scoped_lock lock(contextMutex);
+  Lock lock(contextMutex);
   return contextCount;
 }
 
@@ -328,14 +356,14 @@ unsigned MemoryManager<S>::getContextAccessCount() {
 
 template <typename S>
 void MemoryManager<S>::attach(Context<S> &cx) {
-  std::scoped_lock lock(contextMutex);
+  Lock lock(contextMutex);
   contextCount++;
   contexts.push_front(&cx);
 }
 
 template <typename S>
 void MemoryManager<S>::detach(Context<S> &cx) {
-  std::scoped_lock lock(contextMutex);
+  Lock lock(contextMutex);
   contextCount--;
   contexts.remove(&cx);
 }
@@ -392,25 +420,38 @@ void MemoryManager<S>::unlockGC(Context<S> &context) {
 }
 
 template <typename S>
+void MemoryManager<S>::pauseMutators() {
+  mutatorMutex.lock();
+}
+
+template <typename S>
+void MemoryManager<S>::unpauseMutators() {
+  mutatorMutex.unlock();
+}
+
+template <typename S>
 bool MemoryManager<S>::yieldForGC(Context<S> &context) {
   return mutatorMutex.yield();
 }
 
 template <typename S>
 void MemoryManager<S>::collect(Context<S> &context) {
-  mutatorMutex.unlockShared();
-  mutatorMutex.lock();
-  globalCollector.collect(context.getCollectorContext());
-  mutatorMutex.unlock();
-  mutatorMutex.lockShared();
+  kickoff(context);
+  wait(context);
 }
 
 template <typename S>
 void MemoryManager<S>::kickoff(Context<S> &context) {
   mutatorMutex.unlockShared();
-  mutatorMutex.lock();
   globalCollector.kickoff(context.getCollectorContext());
-  mutatorMutex.unlock();
+  globalCollector.wait(context.getCollectorContext());
+  mutatorMutex.lockShared();
+}
+
+template <typename S>
+void MemoryManager<S>::wait(Context<S> &context) {
+  mutatorMutex.unlockShared();
+  globalCollector.wait(context.getCollectorContext());
   mutatorMutex.lockShared();
 }
 
@@ -453,14 +494,14 @@ template <typename S>
 void Context<S>::lockGC() {
   OMTALK_ASSERT(isLocked == false);
   isLocked = true;
-  return memoryManager->lockGC(*this);
+  memoryManager->lockGC(*this);
 }
 
 template <typename S>
 void Context<S>::unlockGC() {
   OMTALK_ASSERT(isLocked == true);
   isLocked = false;
-  return memoryManager->unlockGC(*this);
+  memoryManager->unlockGC(*this);
 }
 
 template <typename S>

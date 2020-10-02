@@ -12,6 +12,7 @@
 #include <omtalk/Ref.h>
 #include <omtalk/Scheme.h>
 #include <omtalk/Sweep.h>
+#include <omtalk/Util/Annotations.h>
 #include <omtalk/Util/Assert.h>
 #include <omtalk/Workstack.h>
 #include <stack>
@@ -78,11 +79,11 @@ public:
 
   /// Set up for the next garbage collection. Must only be called after the
   /// previous GC has finished.
-  void preMark(Context &context) noexcept;
+  void preMark(Context &context) noexcept OMTALK_REQUIRES(memoryManager);
 
   /// Scan all roots.
   // requires GC safepoint
-  void markRoots(Context &context) noexcept;
+  void markRoots(Context &context) noexcept OMTALK_REQUIRES(memoryManager);
 
   /// Concurrent collection helpers
   // @{
@@ -94,7 +95,7 @@ public:
   /// this the load barrier may evacuate objects from the region.
   void selectForEvacuate(Context &context, Region &region) noexcept;
 
-  void preCompact(Context &context) noexcept;
+  void preCompact(Context &context) noexcept OMTALK_REQUIRES(memoryManager);
   void compact(Context &context) noexcept;
   void postCompact(Context &context) noexcept;
 
@@ -102,7 +103,10 @@ public:
   // @}
 
   /// Get the MemoryManager
-  MemoryManager<S> *getMemoryManager() noexcept { return memoryManager; }
+  MemoryManager<S> *getMemoryManager() const noexcept
+      OMTALK_RETURN_CAPABILITY(memoryManager) {
+    return memoryManager;
+  }
 
   /// Get the global workstack.
   WorkStack<S> &getStack() noexcept { return stack; }
@@ -137,16 +141,11 @@ private:
 template <typename S>
 void GlobalCollector<S>::collect(Context &context) noexcept {
   kickoff(context);
-  worker.wait();
-  std::cout << "@@@ GC End\n";
+  wait(context);
 }
 
 template <typename S>
 void GlobalCollector<S>::kickoff(Context &context) noexcept {
-  std::cout << "@@@ GC Roots\n";
-  preMark(context);
-  markRoots(context);
-  std::cout << "@@@ starting concurrent\n";
   worker.run();
 }
 
@@ -215,7 +214,8 @@ void GlobalCollector<S>::sweep(Context &context) noexcept {
 }
 
 template <typename S>
-void GlobalCollector<S>::selectForEvacuate(Context &context, Region &region) noexcept {
+void GlobalCollector<S>::selectForEvacuate(Context &context,
+                                           Region &region) noexcept {
   auto &regionManager = memoryManager->getRegionManager();
   auto &regionList = regionManager.getRegions();
   auto &evacList = regionManager.getEvacuateRegions();

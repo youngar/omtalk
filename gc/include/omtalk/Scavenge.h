@@ -78,7 +78,7 @@ CopyForwardResult evacuate(GlobalCollectorContext<S> &context,
   if (!result) {
     // if we ran out of space in the current region, grab a new region to copy
     // in to.
-    auto collector = context.getCollector();
+    auto collector = context.getMemoryManager();
     auto regionManager = collector.getRegionManager();
     auto evacuateRegion = collector.getEvacuateRegion();
     regionManager.addRegion(region);
@@ -97,7 +97,7 @@ CopyForwardResult evacuate(GlobalCollectorContext<S> &context,
 template <typename S>
 CopyForwardResult evacuate(GlobalCollectorContext<S> &context, Region &from,
                            Region &to) {
-  auto collector = context.getCollector();
+  auto collector = context.getMemoryManager();
   from.setEvacuating();
   auto result = copyForward<S>(context, from, to);
   fixup<S>(context, to, to.heapBegin(), result.get());
@@ -175,7 +175,7 @@ void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion, Region *to
 
 template <typename S>
 void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion) {
-  auto collector = context.getCollector();
+  auto collector = context.getMemoryManager();
   auto regionManager = collector.getRegionManager();
   auto toRegion = regionManager.getFreeRegion();
   auto to = toRegion.heapBegin();
@@ -206,7 +206,7 @@ void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion) {
 /// Scavenge all regions
 template <typename S>
 void scavenge(GlobalCollectorContext<S> &context) {
-  auto collector = context.getCollector();
+  auto collector = context.getMemoryManager();
   auto regionManager = collector.getRegionManager();
   auto scanRegion = regionManager.getScanRegion();
   scavenge(context, scanRegion);

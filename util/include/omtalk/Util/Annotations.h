@@ -53,7 +53,7 @@
 // then we will generate a lot of false warning about improper use of mutex when
 // we use annotations.  This means we have to disable all thread safety
 // annotations if they are disabled in libc++.
-#if defined(_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS)
+#if defined(OMTALK_ENABLE_THREAD_SAFETY_ANNOTATIONS)
 #define OMTALK_THREAD_ANNOTATION(x) OMTALK_ATTRIBUTE(x)
 #else
 #define OMTALK_THREAD_ANNOTATION(x)
@@ -144,7 +144,6 @@
 #define OMTALK_RELEASE(...)                                                    \
   OMTALK_THREAD_ANNOTATION(release_capability(__VA_ARGS__))
 #else
-#error asdfafa
 #define OMTALK_RELEASE(...)
 #endif
 

@@ -5,7 +5,9 @@
 #include <iostream>
 #include <mutex>
 #include <omtalk/GlobalCollector.h>
+#include <omtalk/MutatorLock.h>
 #include <thread>
+
 
 namespace omtalk::gc {
 
@@ -78,13 +80,23 @@ private:
   }
 
   void collect() noexcept {
+    {
+      MutatorLock lock(* gc->getMemoryManager());
+      std::cout << "@@@ GC Roots\n";
+      gc->preMark(context);
+      gc->markRoots(context);
+      std::cout << "@@@ starting concurrent\n";
+    }
     std::cout << "### background start\n";
     std::cout << "### background mark\n";
     gc->mark(context);
     std::cout << "### background post-mark\n";
     gc->postMark(context);
-    std::cout << "### background pre-compact\n";
-    gc->preCompact(context);
+    {
+      MutatorLock lock(* gc->getMemoryManager());
+      std::cout << "### background pre-compact\n";
+      gc->preCompact(context);
+    }
     std::cout << "### background compact\n";
     gc->compact(context);
     std::cout << "### background post-compact\n";

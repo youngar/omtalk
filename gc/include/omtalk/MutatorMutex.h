@@ -94,24 +94,6 @@ private:
   std::condition_variable requestCV;
 };
 
-/// Requests to pause all mutator threads.
-class OMTALK_SCOPED_CAPABILITY MutatorLock {
-public:
-  MutatorLock(MutatorMutex &mutex) noexcept OMTALK_ACQUIRE(mutex)
-      : mutex(mutex) {
-    lock();
-  }
-
-  ~MutatorLock() noexcept OMTALK_RELEASE() { unlock(); }
-
-  void lock() noexcept OMTALK_ACQUIRE() { mutex.lock(); }
-
-  void unlock() noexcept OMTALK_RELEASE() { mutex.unlock(); }
-
-private:
-  MutatorMutex &mutex;
-};
-
 } // namespace omtalk::gc
 
 #endif
