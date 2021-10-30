@@ -207,7 +207,7 @@ endif()
 
 # tools/omtalk-tblgen must be added from this directory. This is because of the
 # way tablegen cmake helpers modify the parent scope.
-if(OMTALK_COMP_OM)
+if(OMTALK_COMP_OM AND OMTALK_LLVM)
 	add_subdirectory(tools/omtalk-tblgen)
 endif()
 
@@ -230,7 +230,7 @@ add_subdirectory(parser)
 endif()
 
 if(OMTALK_COMP_TEST)
-add_subdirectory(test)
+	add_subdirectory(test)
 endif()
 
 add_subdirectory(tools)
