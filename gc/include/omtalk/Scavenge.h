@@ -11,7 +11,7 @@ namespace omtalk::gc {
 // CopyForward
 //===----------------------------------------------------------------------===//
 
-/// Default copy forward implemenation.  Assumes that it is safe to memcpy the
+/// Default copy forward implementation.  Assumes that it is safe to memcpy the
 /// object and that the object size will not change after copy forward.
 template <typename S>
 class CopyForward {
@@ -164,14 +164,11 @@ void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion,
 }
 
 template <typename S>
-scavenge(GlobalCollectorContext<S> &context, Region *scanRegion) {
-
-}
+scavenge(GlobalCollectorContext<S> &context, Region *scanRegion) {}
 
 template <typename S>
-void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion, Region *toRegion) {
-
-}
+void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion,
+              Region *toRegion) {}
 
 template <typename S>
 void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion) {
@@ -181,25 +178,24 @@ void scavenge(GlobalCollectorContext<S> &context, Region *scanRegion) {
   auto to = toRegion.heapBegin();
   auto available = toRegion.getSize();
   for (object : RegionContiguousObjects(scanRegion)) {
-    
-      // Copy and forward every field if it has not been forwarded
-      if (!isForwarded(context, object)) {
-          auto copyResult = copy(context, object, to, available);
-          if (!copyResult) {
-              // get a new region
-              regionManager.addScanRegion(toRegion);
-              toRegion = regionManager.getFreeRegion();
-              to = toRegion.heapBegin();
-              available = toRegion.getSize();
-              copy(context, object, to, available);
-              assert(copyResult);
-          }
-          available -= copyResult.getCopySize();
-          to += copyResult.getCopySize();
 
-          forward(context, object, to);
+    // Copy and forward every field if it has not been forwarded
+    if (!isForwarded(context, object)) {
+      auto copyResult = copy(context, object, to, available);
+      if (!copyResult) {
+        // get a new region
+        regionManager.addScanRegion(toRegion);
+        toRegion = regionManager.getFreeRegion();
+        to = toRegion.heapBegin();
+        available = toRegion.getSize();
+        copy(context, object, to, available);
+        assert(copyResult);
       }
+      available -= copyResult.getCopySize();
+      to += copyResult.getCopySize();
 
+      forward(context, object, to);
+    }
   }
 }
 

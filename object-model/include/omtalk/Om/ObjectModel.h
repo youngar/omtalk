@@ -6,30 +6,13 @@
 
 namespace omtalk {
 
+#if 0 ////////////////////////////////////
+
 //===----------------------------------------------------------------------===//
 // Types
 //===----------------------------------------------------------------------===//
 
-using TypeTag = std::uint8_t;
 
-namespace CoreTypes {
-enum Types {
-  /// integer types
-  I8, I16, I32, I64,
-  /// float types
-  F32, F64,
-  /// special types
-  REF, PLY,
-  // Marker for last type
-  LAST_TYPE
-};
-}
-
-class Type {
-  virtual std::size_t getSize();
-  virtual std::vector<std::size_t> &getOffsets();
-  virtual std::vector<TypeTag> &getSlotDescription();
-};
 
 ///
 /// TODO: We can support automatically generated typetags if we support
@@ -176,6 +159,8 @@ class KlassHeader {
 };
 
 class MetaKlass {};
+
+#endif //////////////////////////////////// if 0
 
 } // namespace omtalk
 

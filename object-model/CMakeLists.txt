@@ -1,50 +1,51 @@
-
 add_library(omtalk-objectmodel
-    src/ObjectModel.cpp
+  src/ObjectModel.cpp
 )
 
 target_include_directories(omtalk-objectmodel
-    PUBLIC
-        include
+  PUBLIC
+    include
 )
 
 target_link_libraries(omtalk-objectmodel
-PUBLIC
+  PUBLIC
     omtalk-gc
     omtalk-util
 )
 
 if(OMTALK_WARNINGS)
-target_compile_options(omtalk-objectmodel
+  target_compile_options(omtalk-objectmodel
     PRIVATE
-        -Werror
-        -Wall
-        # -Wextra
-        -Wno-unused-parameter
-        -Wno-unused-function
-)
+      -Werror
+      -Wall
+      # -Wextra
+      -Wno-unused-parameter
+      -Wno-unused-function
+  )
 endif()
 
 add_executable(omtalk-objectmodel-test
     test/test-objectmodel.cpp
+    test/test-type.cpp
 )
 
 target_link_libraries(omtalk-objectmodel-test
-PRIVATE
+  PRIVATE
     omtalk-gc
+    omtalk-objectmodel
     Catch2::Catch2
     catch2-main
 )
 
 if(OMTALK_WARNINGS)
-target_compile_options(omtalk-objectmodel-test
+  target_compile_options(omtalk-objectmodel-test
     PRIVATE
-        -Werror
-        -Wall
-        # -Wextra
-        -Wno-unused-parameter
-        -Wno-unused-function
-)
+      -Werror
+      -Wall
+      # -Wextra
+      -Wno-unused-parameter
+      -Wno-unused-function
+  )
 endif()
 
 add_test(omtalk-objectmodel-test omtalk-objectmodel-test)
