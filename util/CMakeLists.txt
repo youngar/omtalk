@@ -8,20 +8,24 @@ target_include_directories(omtalk-util
         include
 )
 
-add_omtalk_executable(omtalk-util-test
+
+if(OMTALK_TESTS)
+  add_omtalk_executable(omtalk-util-test
     test/test-atomic.cpp
     test/test-bitarray.cpp
     test/test-bits.cpp
     test/test-eytzinger.cpp
     test/test-intrusivelist.cpp
     test/test-math.cpp
-)
+  )
 
-target_link_libraries(omtalk-util-test
+  target_link_libraries(omtalk-util-test
     PRIVATE
-        omtalk-util
-        Catch2::Catch2
-        catch2-main
-)
+      omtalk-util
+      Catch2::Catch2
+      catch2-main
+  )
 
-add_test(omtalk-util-test omtalk-util-test)
+  add_test(omtalk-util-test omtalk-util-test)
+endif()
+

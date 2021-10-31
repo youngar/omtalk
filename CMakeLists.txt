@@ -83,7 +83,12 @@ om_add_option(OMTALK_COMP_PARSER OMTALK_OPTIONS
 
 om_add_option(OMTALK_TESTS OMTALK_OPTIONS
   DOC "Build and run the tests"
-  DEFAULT CMAKE_BUILD_TYPE STREQUAL "Debug"
+  DEFAULT PROJECT_IS_TOP_LEVEL
+)
+
+om_add_option(OMTALK_BENCHMARKS OMTALK_OPTIONS
+  DOC "Build and run the benchmarks"
+  DEFAULT PROJECT_IS_TOP_LEVEL
 )
 
 om_add_option(OMTALK_LLVM OMTALK_OPTIONS
@@ -149,7 +154,7 @@ find_program(OMTALK_TOOL_LLD ld.lld)
 
 om_add_option(OMTALK_LLD OMTALK_OPTIONS
   DOC "Use the LLVM linker ld.lld"
-  DEFAULT  OMTALK_TOOL_LLD
+  DEFAULT  OFF
   REQUIRES OMTALK_TOOL_LLD
 )
 
