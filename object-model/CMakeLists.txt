@@ -26,6 +26,7 @@ endif()
 
 add_executable(omtalk-objectmodel-test
     test/test-objectmodel.cpp
+    test/test-structbuilder.cpp
     test/test-type.cpp
 )
 

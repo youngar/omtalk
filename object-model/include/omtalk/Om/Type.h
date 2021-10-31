@@ -72,6 +72,7 @@ template <> struct CTypeFor<Type::i64> : TypeAlias<i64> {};
 template <> struct CTypeFor<Type::f32> : TypeAlias<f32> {};
 template <> struct CTypeFor<Type::f64> : TypeAlias<f64> {};
 template <> struct CTypeFor<Type::ref> : TypeAlias<ref> {};
+template <> struct CTypeFor<Type::ply> : TypeAlias<ply> {};
 
 template <Type T>
 using ctype = CTypeFor<T>;
