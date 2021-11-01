@@ -1,11 +1,11 @@
 %ifndef OMTALK_VMSTRUCTS_NASM_
 %define OMTALK_VMSTRUCTS_NASM_
 
-# OmtalkVM
+; OmtalkVM
 struc vm
 endstruc
 
-# OmtalkThread
+; OmtalkThread
 struc thread
     .vm:   resq 1
     .pc:   resq 1
