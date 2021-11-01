@@ -1,4 +1,4 @@
-if(OM_COMP_GC)
+if(OM_COMP_OM_GC)
   add_subdirectory(gc)
 endif()
 #add_subdirectory(ir)

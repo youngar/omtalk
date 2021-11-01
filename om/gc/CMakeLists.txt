@@ -14,12 +14,12 @@ target_link_libraries(omtalk-gc
         ${CMAKE_THREAD_LIBS_INIT}
 )
 
-if(OMTALK_BENCHMARKS)
+if(OM_BENCHMARKS)
   add_subdirectory(benchmark)
 endif()
 
 add_subdirectory(example)
 
-if(OMTALK_TESTS)
+if(OM_TESTS)
   add_subdirectory(test)
 endif()

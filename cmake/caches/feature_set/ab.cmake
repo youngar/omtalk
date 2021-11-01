@@ -1,0 +1,1 @@
+set(OM_COMP_AB ON CACHE BOOL "")

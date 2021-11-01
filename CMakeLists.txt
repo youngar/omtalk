@@ -59,57 +59,14 @@ om_add_option(OMTALK_WARNINGS_AS_ERRORS OM_OPTIONS
   DEFAULT CMAKE_BUILD_TYPE STREQUAL "Debug"
 )
 
-## High Level Components
+## Global Settings
 
-# om_add_option(OM_COMP_AB OM_OPTIONS
-#   DOC "Build the AB utility library"
-# )
-
-# om_add_option(OM_COMP_OM OM_OPTIONS
-#   DOC "Build the OM object model"
-#   REQUIRES
-#     OM_COMP_AB
-# )
-
-# om_add_option(OM_COMP_OMTALK OM_OPTIONS
-#   DOC "Build the omtalk language"
-#   REQUIRES
-#     OM_COMP_OM
-# )
-
-om_add_option(OMTALK_COMP_COMPILER OM_OPTIONS
-  DOC "Build with compiler support"
-)
-
-om_add_option(OMTALK_COMP_CORE OM_OPTIONS
-  DOC "Build the Omtalk core libraries.  This is the main language VM."
-  REQUIRES
-    OMTALK_COMP_COMPILER
-    OM_COMP_GC
-    OM_COMP_OM
-    OMTALK_COMP_PARSER
-)
-
-om_add_option(OM_COMP_GC OM_OPTIONS
-  DOC "Build the Omtalk garbage collector"
-)
-
-om_add_option(OM_COMP_OM OM_OPTIONS
-  DOC "Build the Omtalk Om object model."
-  REQUIRES
-    OM_COMP_GC
-)
-
-om_add_option(OMTALK_COMP_PARSER OM_OPTIONS
-  DOC "Build the Omtalk SOM parser.  A parsing library for the Simple Object Machine language."
-)
-
-om_add_option(OMTALK_TESTS OM_OPTIONS
+om_add_option(OM_TESTS OM_OPTIONS
   DOC "Build and run the tests"
   DEFAULT PROJECT_IS_TOP_LEVEL
 )
 
-om_add_option(OMTALK_BENCHMARKS OM_OPTIONS
+om_add_option(OM_BENCHMARKS OM_OPTIONS
   DOC "Build and run the benchmarks"
   DEFAULT PROJECT_IS_TOP_LEVEL
 )
@@ -122,8 +79,6 @@ om_add_option(OMTALK_BUILD_LLVM OM_OPTIONS
   DOC "Build the included LLVM submodule"
   REQUIRES OMTALK_LLVM
 )
-
-set(OMTALK_PATH ${omtalk_SOURCE_DIR}/external/SOM/Smalltalk CACHE STRING "The core library class path")
 
 ## Checks and Assertions
 
@@ -212,6 +167,67 @@ om_add_option(OMTALK_STATIC_LWYU OM_OPTIONS
   DOC "Build with the link-what-you-use static analyzer"
 )
 
+## High Level Components
+
+# All component flags are disabled by default, and should be enabled using 
+# CMake caches.
+
+## AB
+
+om_add_option(OM_COMP_AB OM_OPTIONS
+  DOC "Build the AB utility library"
+)
+
+## Om
+
+om_add_option(OM_COMP_OM_OM OM_OPTIONS
+  DOC "Build the OM object model"
+  REQUIRES
+    OM_COMP_AB
+)
+
+om_add_option(OM_COMP_OM_GC OM_OPTIONS
+  DOC "Build the Omtalk garbage collector"
+  REQUIRES
+    OM_COMP_OM
+)
+
+om_add_option(OM_COMP_OM_OM OM_OPTIONS
+  DOC "Build the Omtalk Om object model."
+  REQUIRES
+    OM_COMP_OM_GC
+)
+
+## Omtalk
+
+om_add_option(OM_COMP_OMTALK OM_OPTIONS
+  DOC "Build the omtalk language"
+  REQUIRES
+    OM_COMP_OM_OM
+)
+
+om_add_option(OM_COMP_OMTALK_COMPILER OM_OPTIONS
+  DOC "Build with compiler support"
+  REQUIRES
+    OM_COMP_OMTALK
+)
+
+om_add_option(OM_COMP_OMTALK_CORE OM_OPTIONS
+  DOC "Build the Omtalk core libraries.  This is the main language VM."
+  REQUIRES
+    OM_COMP_OM_GC
+    OM_COMP_OM_OM
+    OM_COMP_OMTALK
+    OM_COMP_OMTALK_COMPILER
+    OM_COMP_OMTALK_PARSER
+)
+
+om_add_option(OM_COMP_OMTALK_PARSER OM_OPTIONS
+  DOC "Build the Omtalk SOM parser.  A parsing library for the Simple Object Machine language."
+)
+
+set(OMTALK_PATH ${omtalk_SOURCE_DIR}/external/SOM/Smalltalk CACHE STRING "The core library class path")
+
 om_validate_option_group(OM_OPTIONS)
 
 ###
@@ -234,21 +250,16 @@ endif()
 ### Subdirectories
 ###
 
-# if(OM_COMP_AB)
-#   add_subdirectory(ab)
-# endif()
+if(OM_COMP_AB)
+  add_subdirectory(ab)
+endif()
 
-# add_subdirectory(external)
-
-# if(OM_COMP_OM)
-#   add_subdirectory(om)
-# endif()
-
-# if(OM_COMP_OMTALK)
-#   add_subdirectory(omtalk)
-# endif()
-
-add_subdirectory(ab)
 add_subdirectory(external)
-add_subdirectory(om)
-add_subdirectory(omtalk)
+
+if(OM_COMP_OM_OM)
+  add_subdirectory(om)
+endif()
+
+if(OM_COMP_OMTALK)
+  add_subdirectory(omtalk)
+endif()

@@ -7,7 +7,7 @@ target_include_directories(ab-util
         include
 )
 
-if(OMTALK_TESTS)
+if(OM_TESTS)
   add_omtalk_executable(ab-util-test
     test/test-atomic.cpp
     test/test-bitarray.cpp
