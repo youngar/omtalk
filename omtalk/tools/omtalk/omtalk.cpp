@@ -10,8 +10,8 @@
 #include <mlir/Pass/Pass.h>
 #include <mlir/Pass/PassManager.h>
 #include <mlir/Transforms/Passes.h>
-#include <om/Dialect/Omtalk/IR/OmtalkDialect.h>
-#include <om/Dialect/Omtalk/IR/OmtalkOps.h>
+#include <omtalk/IR/OmtalkDialect.h>
+#include <omtalk/IR/OmtalkOps.h>
 #include <omtalk/IRGen/IRGen.h>
 #include <omtalk/Omtalk.h>
 #include <omtalk/Parser/AST.h>

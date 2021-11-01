@@ -1,7 +1,7 @@
 #ifndef OMTALK_OBJECTMODEL_H
 #define OMTALK_OBJECTMODEL_H
 
-#include <omtalk/Ref.h>
+#include <om/GC/Ref.h>
 
 struct VMKlass;
 

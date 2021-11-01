@@ -1,3 +1,11 @@
-add_mlir_dialect(Omtalk omtalk)
+set(LLVM_TARGET_DEFINITIONS Omtalk.td)
+mlir_tablegen(Omtalk.h.inc -gen-op-decls)
+mlir_tablegen(Omtalk.cpp.inc -gen-op-defs)
+mlir_tablegen(OmtalkTypes.h.inc -gen-typedef-decls)
+mlir_tablegen(OmtalkTypes.cpp.inc -gen-typedef-defs)
+mlir_tablegen(OmtalkDialect.h.inc -gen-dialect-decls -dialect=omtalk)
+mlir_tablegen(OmtalkDialect.cpp.inc -gen-dialect-defs -dialect=omtalk)
+add_public_tablegen_target(omtalk-ir-incgen)
+
 add_mlir_doc(OmtalkDialect -gen-dialect-doc OmtalkDialect Omtalk/)
 add_mlir_doc(OmtalkOps -gen-op-doc OmtalkOps Omtalk/)

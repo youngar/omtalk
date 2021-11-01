@@ -16,7 +16,7 @@ target_link_libraries(omtalk-parser-bin
 	PRIVATE
 		omtalk-core
 		omtalk-parser
-		MLIROmtalk
+		omtalk-ir
 		LLVMCore
 		LLVMSupport
 		${dialect_libs}

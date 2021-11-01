@@ -13,6 +13,6 @@
 #include "mlir/IR/Dialect.h"
 #include "om/Support/LLVM.h"
 
-#include "om/Dialect/Om/IR/OmDialect.h.inc"
+#include "om/IR/OmDialect.h.inc"
 
 #endif // MLIR_DIALECT_OM_IR_OMDIALECT_H

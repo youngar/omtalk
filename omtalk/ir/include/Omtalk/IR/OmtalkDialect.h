@@ -11,9 +11,9 @@
 
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Dialect.h"
-#include "om/Support/LLVM.h"
+#include "omtalk/IR/LLVM.h"
 
-#include "om/Dialect/Omtalk/IR/OmtalkDialect.h.inc"
+#include "omtalk/IR/OmtalkDialect.h.inc"
 
 ///
 /// Omtalk Dialect

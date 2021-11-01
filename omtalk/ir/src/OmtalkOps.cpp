@@ -6,13 +6,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "om/Dialect/Omtalk/IR/OmtalkOps.h"
+#include "omtalk/IR/OmtalkOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/FunctionSupport.h"
 #include "mlir/Transforms/InliningUtils.h"
-#include "om/Dialect/Omtalk/IR/OmtalkDialect.h"
+#include "omtalk/IR/OmtalkDialect.h"
 #include "om/Support/LLVM.h"
 
 using namespace mlir;

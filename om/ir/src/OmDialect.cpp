@@ -6,11 +6,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "om/Dialect/Om/IR/OmDialect.h"
+#include "om/IR/OmDialect.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Transforms/InliningUtils.h"
-#include "om/Dialect/Om/IR/OmOps.h"
+#include "om/IR/OmOps.h"
 #include "om/Support/LLVM.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
@@ -22,6 +22,6 @@ OmDialect::OmDialect(MLIRContext *context)
     : Dialect(getDialectNamespace(), context) {
   addOperations<
 #define GET_OP_LIST
-#include "om/Dialect/Om/IR/Om.cpp.inc"
+#include "om/IR/Om.cpp.inc"
       >();
 }

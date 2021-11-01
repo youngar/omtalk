@@ -3,6 +3,6 @@ target_link_libraries(omtalk-opt
 	PRIVATE
 	MLIRMlirOptMain
 	MLIROm
-	MLIROmtalk
+	omtalk-ir
 )
 

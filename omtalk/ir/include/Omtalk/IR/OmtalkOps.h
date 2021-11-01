@@ -14,9 +14,9 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include "om/Support/LLVM.h"
+#include "omtalk/IR/LLVM.h"
 
 #define GET_OP_CLASSES
-#include "om/Dialect/Omtalk/IR/Omtalk.h.inc"
+#include "omtalk/IR/Omtalk.h.inc"
 
 #endif // MLIR_DIALECT_OMTALK_IR_OMTALKOPS_H

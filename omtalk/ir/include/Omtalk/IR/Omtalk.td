@@ -26,7 +26,7 @@ def Omtalk_Dialect : Dialect {
       This is a dialect for representing small talk objects. It is tightly
       coupled to the omtalk virtual machine.
   }];
-  let cppNamespace = "om::omtalk";
+  let cppNamespace = "omtalk";
 
   let extraClassDeclaration = [{
     mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
@@ -48,13 +48,13 @@ class Omtalk_Op<string mnemonic, list<OpTrait> traits = []> :
 //===----------------------------------------------------------------------===//
 
 def Omtalk_BoxUnkType :
-    Type<CPred<"$_self.isa<::mlir::omtalk::BoxUnkType>()">, "!omtalk.box<?>">;
+    Type<CPred<"$_self.isa<::omtalk::BoxUnkType>()">, "!omtalk.box<?>">;
 
 def Omtalk_BoxIntType :
-    Type<CPred<"$_self.isa<::mlir::omtalk::BoxIntType>()">, "!omtalk.box<int>">;
+    Type<CPred<"$_self.isa<::omtalk::BoxIntType>()">, "!omtalk.box<int>">;
 
 def Omtalk_BoxRefType :
-    Type<CPred<"$_self.isa<::mlir::omtalk::BoxRefType>()">, "!omtalk.box<ref>">;
+    Type<CPred<"$_self.isa<::omtalk::BoxRefType>()">, "!omtalk.box<ref>">;
 
 def Omtalk_AnyBoxType : AnyTypeOf<[Omtalk_BoxUnkType, Omtalk_BoxIntType, Omtalk_BoxRefType]>;
 
@@ -93,7 +93,7 @@ def Omtalk_KlassOp : Omtalk_Op<"klass", [
     }
 
     ensureTerminator(*body, parser.getBuilder(), result.location);
-    return success();
+    return mlir::success();
   }];
 
   let printer = [{
@@ -106,7 +106,7 @@ def Omtalk_KlassOp : Omtalk_Op<"klass", [
   }];
 
   let extraClassDeclaration = [{
-    void push_back(Operation *op) {
+    void push_back(mlir::Operation *op) {
       body().front().push_back(op);
     }
   }];
@@ -156,7 +156,7 @@ def Omtalk_MethodOp : Omtalk_Op<"method", [
       return getType().getNumResults();
     }
 
-    LogicalResult verifyType() const { return success(); }
+    mlir::LogicalResult verifyType() const { return mlir::success(); }
   }];
 }
 

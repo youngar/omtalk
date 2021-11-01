@@ -75,6 +75,11 @@ om_add_option(OMTALK_LLVM OM_OPTIONS
   DOC "Build with LLVM"
 )
 
+om_add_option(OM_LIT_TESTS OM_OPTIONS
+  DOC "Build and run the tests"
+  DEFAULT OMTALK_LLVM
+)
+
 om_add_option(OMTALK_BUILD_LLVM OM_OPTIONS
   DOC "Build the included LLVM submodule"
   REQUIRES OMTALK_LLVM

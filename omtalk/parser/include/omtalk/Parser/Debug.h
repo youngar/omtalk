@@ -362,45 +362,46 @@ inline void print(AstPrinter &p, const Expr &expr) {
     print(p, expr.cast<NonlocalReturnExpr>());
     break;
   }
+}
 
-  //===----------------------------------------------------------------------===//
-  // Declarations Printing
-  //===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
+// Declarations Printing
+//===----------------------------------------------------------------------===//
 
-  inline void print(AstPrinter & p, const Method &method) {
-    p.enter("Method");
-    p.field("location", method.location);
-    p.field("selector", method.selector);
-    p.field("parameters", method.parameters);
-    p.field("locals", method.locals);
-    p.field("body", method.body);
-    p.leave();
-  }
+inline void print(AstPrinter &p, const Method &method) {
+  p.enter("Method");
+  p.field("location", method.location);
+  p.field("selector", method.selector);
+  p.field("parameters", method.parameters);
+  p.field("locals", method.locals);
+  p.field("body", method.body);
+  p.leave();
+}
 
-  inline void print(AstPrinter & p, const Klass &klass) {
-    p.enter("Klass");
-    p.field("location", klass.location);
-    p.field("name", klass.name);
-    p.field("super", klass.super);
-    p.field("fields", klass.fields);
-    p.field("methods", klass.methods);
-    p.field("klassFields", klass.klassFields);
-    p.field("klassMethods", klass.klassMethods);
-    p.leave();
-  }
+inline void print(AstPrinter &p, const Klass &klass) {
+  p.enter("Klass");
+  p.field("location", klass.location);
+  p.field("name", klass.name);
+  p.field("super", klass.super);
+  p.field("fields", klass.fields);
+  p.field("methods", klass.methods);
+  p.field("klassFields", klass.klassFields);
+  p.field("klassMethods", klass.klassMethods);
+  p.leave();
+}
 
-  inline void print(AstPrinter & p, const Module &module) {
-    p.enter("Module");
-    p.field("location", module.location);
-    p.field("klasses", module.klasses);
-    p.leave();
-  }
+inline void print(AstPrinter &p, const Module &module) {
+  p.enter("Module");
+  p.field("location", module.location);
+  p.field("klasses", module.klasses);
+  p.leave();
+}
 
-  inline void print(std::ostream & out, const Module &module) {
-    AstPrinter p(out);
-    print(p, module);
-    print(p, "\n");
-  }
+inline void print(std::ostream &out, const Module &module) {
+  AstPrinter p(out);
+  print(p, module);
+  print(p, "\n");
+}
 
 } // namespace parser
 } // namespace omtalk

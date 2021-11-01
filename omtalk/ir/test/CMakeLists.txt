@@ -24,7 +24,7 @@
 # )
 
 # target_link_libraries(omtalk-test
-# 	libMLIROmtalk
+# 	libomtalk-ir
 # 	gtest
 # )
 

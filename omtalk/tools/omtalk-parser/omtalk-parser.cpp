@@ -12,8 +12,8 @@
 #include <mlir/Pass/Pass.h>
 #include <mlir/Pass/PassManager.h>
 #include <mlir/Transforms/Passes.h>
-#include <om/Dialect/Omtalk/IR/OmtalkDialect.h>
-#include <om/Dialect/Omtalk/IR/OmtalkOps.h>
+#include <omtalk/IR/OmtalkDialect.h>
+#include <omtalk/IR/OmtalkOps.h>
 #include <omtalk/IRGen/IRGen.h>
 #include <omtalk/KlassLoader.h>
 #include <omtalk/Parser/AST.h>
@@ -80,10 +80,8 @@ int main(int argc, char **argv) {
   }
 
   if (emitAction == Action::EmitMLIR) {
-    mlir::registerDialect<mlir::omtalk::OmtalkDialect>();
-    context.loadDialect<firrtl::FIRRTLDialect, hw::HWDialect, comb::CombDialect,
-                        sv::SVDialect>();
     mlir::MLIRContext context;
+    context.loadDialect<omtalk::OmtalkDialect>();
     mlir::OwningModuleRef module =
         ::omtalk::irgen::irGen(context, loader.getModules());
     module->print(llvm::outs());

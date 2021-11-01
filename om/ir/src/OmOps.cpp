@@ -6,14 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "om/Dialect/Om/IR/OmOps.h"
+#include "om/IR/OmOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/FunctionSupport.h"
 #include "mlir/Transforms/InliningUtils.h"
-#include "om/Dialect/Om/IR/OmDialect.h"
+#include "om/IR/OmDialect.h"
 #include "om/Support/LLVM.h"
 
 #define GET_OP_CLASSES
-#include "om/Dialect/Om/IR/Om.cpp.inc"
+#include "om/IR/Om.cpp.inc"

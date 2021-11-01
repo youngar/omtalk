@@ -6,12 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "om/Dialect/Omtalk/IR/OmtalkDialect.h"
+#include "omtalk/IR/OmtalkDialect.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Transforms/InliningUtils.h"
-#include "om/Dialect/Omtalk/IR/OmtalkOps.h"
+#include "omtalk/IR/OmtalkOps.h"
 #include "om/Support/LLVM.h"
 
 using namespace mlir;
@@ -26,7 +26,7 @@ OmtalkDialect::OmtalkDialect(MLIRContext *context)
     : Dialect(getDialectNamespace(), context) {
   addOperations<
 #define GET_OP_LIST
-#include "om/Dialect/Omtalk/IR/Omtalk.cpp.inc"
+#include "omtalk/IR/Omtalk.cpp.inc"
       >();
   addTypes<BoxUnkType, BoxIntType, BoxRefType>();
 }

@@ -28,14 +28,14 @@ private:
 // Virtual Machine
 //===----------------------------------------------------------------------===//
 
-using MemoryManager = gc::MemoryManager<OmtalkCollectorScheme>;
+using MemoryManager = om::gc::MemoryManager<OmtalkCollectorScheme>;
 
 struct VirtualMachineConfig {
-  gc::MemoryManagerConfig memoryManagerConfig;
+  om::gc::MemoryManagerConfig memoryManagerConfig;
 };
 
 inline MemoryManager createMemoryManager(VirtualMachineConfig &vmConfig) {
-  return gc::MemoryManagerBuilder<OmtalkCollectorScheme>()
+  return om::gc::MemoryManagerBuilder<OmtalkCollectorScheme>()
       .withConfig(vmConfig.memoryManagerConfig)
       .build();
 }
@@ -58,7 +58,7 @@ private:
 // Context
 //===----------------------------------------------------------------------===//
 
-using GCContext = gc::Context<OmtalkCollectorScheme>;
+using GCContext = om::gc::Context<OmtalkCollectorScheme>;
 
 class Context {
 public:

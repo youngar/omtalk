@@ -17,6 +17,6 @@
 #include "om/Support/LLVM.h"
 
 #define GET_OP_CLASSES
-#include "om/Dialect/Om/IR/Om.h.inc"
+#include "om/IR/Om.h.inc"
 
 #endif // MLIR_DIALECT_OM_IR_OMOPS_H

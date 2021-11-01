@@ -14,7 +14,7 @@ target_include_directories(omtalk-core
 
 target_link_libraries(omtalk-core
     PUBLIC
-        MLIROmtalk
         omtalk-gc
+        omtalk-ir
         omtalk-parser
 )
