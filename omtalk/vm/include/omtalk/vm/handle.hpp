@@ -50,7 +50,7 @@ protected:
     return *this;
   }
 
-  bool operator==(const Handle &rhs) { return this, get() == rhs.get(); }
+  bool operator==(const Handle &rhs) { return get() == rhs.get(); }
 
 private:
   HeapPtr _ptr;
