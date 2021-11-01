@@ -1,9 +1,0 @@
-#include <catch2/catch.hpp>
-#include <example/Object.h>
-#include <iostream>
-#include <omtalk/Allocate.h>
-#include <omtalk/Handle.h>
-#include <omtalk/Heap.h>
-#include <omtalk/MemoryManager.h>
-#include <omtalk/Ref.h>
-#include <omtalk/Util/BitArray.h>

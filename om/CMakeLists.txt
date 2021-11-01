@@ -1,0 +1,8 @@
+if(OM_COMP_GC)
+  add_subdirectory(gc)
+endif()
+#add_subdirectory(ir)
+if(OM_COMP_OM)
+  add_subdirectory(om)
+endif()
+#add_subdirectory(test)

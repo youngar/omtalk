@@ -1,0 +1,28 @@
+add_omtalk_library(ab-util
+    src/Empty.cpp
+)
+
+target_include_directories(ab-util
+    PUBLIC
+        include
+)
+
+if(OMTALK_TESTS)
+  add_omtalk_executable(ab-util-test
+    test/test-atomic.cpp
+    test/test-bitarray.cpp
+    test/test-bits.cpp
+    test/test-eytzinger.cpp
+    test/test-intrusivelist.cpp
+    test/test-math.cpp
+  )
+
+  target_link_libraries(ab-util-test
+    PRIVATE
+      ab-util
+      Catch2::Catch2
+      catch2-main
+  )
+
+  add_test(ab-util-test ab-util-test)
+endif()
