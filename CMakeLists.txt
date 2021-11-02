@@ -185,7 +185,7 @@ om_add_option(OM_COMP_AB OM_OPTIONS
 
 ## Om
 
-om_add_option(OM_COMP_OM_OM OM_OPTIONS
+om_add_option(OM_COMP_OM OM_OPTIONS
   DOC "Build the OM object model"
   REQUIRES
     OM_COMP_AB
