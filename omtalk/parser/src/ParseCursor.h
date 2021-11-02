@@ -19,10 +19,10 @@ public:
   using iterator_category = std::input_iterator_tag;
 
   ParseCursor(const std::string_view &in)
-      : filename(""), offset(0), position(1, 1), in(in) {}
+      : filename(""), in(in), offset(0), position(1, 1) {}
 
   ParseCursor(const std::string &filename, const std::string_view &in)
-      : filename(filename), offset(0), position(1, 1), in(in) {}
+      : filename(filename), in(in), offset(0), position(1, 1) {}
 
   ParseCursor(const ParseCursor &) = default;
 
@@ -64,7 +64,7 @@ public:
 
   Location loc() const { return {filename, position}; }
 
-  const std::size_t getOffset() const { return offset; }
+  std::size_t getOffset() const { return offset; }
 
   char get(std::size_t off = 0) const {
     if (atEnd())

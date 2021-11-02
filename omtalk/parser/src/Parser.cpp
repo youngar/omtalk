@@ -148,7 +148,7 @@ void expect(ParseCursor &cursor, const P &pattern) {
 
 /// Match pattern N times exactly.
 template <typename P>
-bool n_times(ParseCursor &cursor, int count, const P &pattern) {
+bool n_times(ParseCursor &cursor, unsigned count, const P &pattern) {
   auto start = cursor;
   for (unsigned i = 0; i < count; ++i) {
     if (!match(cursor, pattern)) {
@@ -978,8 +978,7 @@ std::optional<MethodPtr> parseMethod(ParseCursor &cursor) {
 
   auto method = makeMethod();
 
-  OptIdentifier id = std::nullopt;
-  if (id = parseKeywordSym(cursor)) {
+  if (auto id = parseKeywordSym(cursor)) {
     // keyword signature
     while (id) {
       OptIdentifier param = parseNameSym(cursor);
@@ -991,7 +990,7 @@ std::optional<MethodPtr> parseMethod(ParseCursor &cursor) {
 
       id = parseKeywordSym(cursor);
     }
-  } else if (id = parseOperatorSym(cursor)) {
+  } else if (auto id = parseOperatorSym(cursor)) {
     // binary signature
     OptIdentifier param = parseNameSym(cursor);
     if (!param) {
@@ -1000,7 +999,7 @@ std::optional<MethodPtr> parseMethod(ParseCursor &cursor) {
     method->selector.push_back(*id);
     method->parameters.push_back(*param);
 
-  } else if (id = parseNameSym(cursor)) {
+  } else if (auto id = parseNameSym(cursor)) {
     // unary signature
     method->selector.push_back(*id);
   } else {
