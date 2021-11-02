@@ -1,5 +1,5 @@
-#ifndef OM_GC_GC_REF_HPP_
-#define OM_GC_GC_REF_HPP_
+#ifndef OM_GC_REF_H
+#define OM_GC_REF_H
 
 #include <ab/Util/Atomic.h>
 #include <cstdint>
@@ -18,6 +18,10 @@ class Ref final {
 public:
   static Ref<T> fromAddr(std::uintptr_t addr) noexcept {
     return Ref<T>(reinterpret_cast<T *>(addr));
+  }
+
+  static Ref<T> fromPtr(void *ptr) noexcept {
+    return Ref<T>(reinterpret_cast<T *>(ptr));
   }
 
   Ref() noexcept = default;
@@ -112,6 +116,14 @@ private:
 template <>
 class Ref<void> final {
 public:
+  static Ref<void> fromAddr(std::uintptr_t addr) noexcept {
+    return Ref<void>(reinterpret_cast<void *>(addr));
+  }
+
+  static Ref<void> fromPtr(void *ptr) noexcept {
+    return Ref<void>(reinterpret_cast<void *>(ptr));
+  }
+
   Ref() noexcept = default;
 
   constexpr Ref(std::nullptr_t) : value_(nullptr) {}
@@ -254,4 +266,4 @@ inline RefProxy Ref<void>::proxy() noexcept { return RefProxy(this); }
 
 } // namespace om::gc
 
-#endif // OM_GC_GC_REF_HPP_
+#endif // OM_GC_REF_H
