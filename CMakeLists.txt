@@ -45,16 +45,16 @@ om_add_option_group(OM_OPTIONS)
 
 ## Language Edition + Features
 
-om_add_option(OMTALK_RTTI OM_OPTIONS
+om_add_option(OM_RTTI OM_OPTIONS
   DOC "Build with RTTI support."
 )
 
-om_add_option(OMTALK_WARNINGS OM_OPTIONS
+om_add_option(OM_WARNINGS OM_OPTIONS
   DOC "Build with extra warning enabled"
   DEFAULT CMAKE_BUILD_TYPE STREQUAL "Debug"
 )
 
-om_add_option(OMTALK_WARNINGS_AS_ERRORS OM_OPTIONS
+om_add_option(OM_WARNINGS_AS_ERRORS OM_OPTIONS
   DOC "Treat compiler warnings as errors"
   DEFAULT CMAKE_BUILD_TYPE STREQUAL "Debug"
 )
@@ -71,104 +71,104 @@ om_add_option(OM_BENCHMARKS OM_OPTIONS
   DEFAULT PROJECT_IS_TOP_LEVEL
 )
 
-om_add_option(OMTALK_LLVM OM_OPTIONS
+om_add_option(OM_LLVM OM_OPTIONS
   DOC "Build with LLVM"
 )
 
 om_add_option(OM_LIT_TESTS OM_OPTIONS
   DOC "Build and run the tests"
-  DEFAULT OMTALK_LLVM
+  DEFAULT OM_LLVM
 )
 
-om_add_option(OMTALK_BUILD_LLVM OM_OPTIONS
+om_add_option(OM_BUILD_LLVM OM_OPTIONS
   DOC "Build the included LLVM submodule"
-  REQUIRES OMTALK_LLVM
+  REQUIRES OM_LLVM
 )
 
 ## Checks and Assertions
 
-om_add_option(OMTALK_CHECKS OM_OPTIONS
+om_add_option(OM_CHECKS OM_OPTIONS
   DOC "Enable runtime assertions"
   DEFAULT CMAKE_BUILD_TYPE STREQUAL "Debug"
 )
 
-om_add_option(OMTALK_CHECKS_EXPENSIVE OM_OPTIONS
+om_add_option(OM_CHECKS_EXPENSIVE OM_OPTIONS
   DOC "Enable expensive runtime assertions"
-  REQUIRES OMTALK_CHECKS
+  REQUIRES OM_CHECKS
 )
 
 ##  LLVM-Specific Tooling
 
-om_add_option(OMTALK_LLVM_TOOLCHAIN OM_OPTIONS
+om_add_option(OM_LLVM_TOOLCHAIN OM_OPTIONS
   DOC "Enable if we are using the clang/llvm toolchain"
   DEFAULT CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang|ARMClang)$"
 )
 
-om_add_option(OMTALK_SAN_ASAN OM_OPTIONS
+om_add_option(OM_SAN_ASAN OM_OPTIONS
   DOC "Build with clang address sanitizer enabled."
   REQUIRES OM_HAVE_ASAN
-  CONFLICTS OMTALK_SAN_TSAN
+  CONFLICTS OM_SAN_TSAN
 )
 
-om_add_option(OMTALK_SAN_TSAN OM_OPTIONS
+om_add_option(OM_SAN_TSAN OM_OPTIONS
   DOC "Build with clang thread sanitizer enabled"
   REQUIRES OM_HAVE_TSAN
-  CONFLICTS OMTALK_SAN_ASAN
+  CONFLICTS OM_SAN_ASAN
 )
 
-om_add_option(OMTALK_SAN_THREADSAFETY OM_OPTIONS
+om_add_option(OM_SAN_THREADSAFETY OM_OPTIONS
   DOC "Build with clang thread safety annotations enabled."
   DEFAULT ON
 )
 
-om_add_option(OMTALK_SAN_UBSAN OM_OPTIONS
+om_add_option(OM_SAN_UBSAN OM_OPTIONS
   DOC "Build with clang undefined behaviour sanitizer."
   REQUIRES OM_HAVE_UBSAN
 )
 
-om_add_option(OMTALK_SPLIT_DEBUG OM_OPTIONS
+om_add_option(OM_SPLIT_DEBUG OM_OPTIONS
   DOC "Split debug information for faster link times."
   DEFAULT
     ( CMAKE_BUILD_TYPE STREQUAL "Debug" ) OR
     ( CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo" )
-  REQUIRES OMTALK_LLVM_TOOLCHAIN
+  REQUIRES OM_LLVM_TOOLCHAIN
 )
 
-find_program(OMTALK_TOOL_LLD ld.lld)
+find_program(OM_TOOL_LLD ld.lld)
 
-om_add_option(OMTALK_LLD OM_OPTIONS
+om_add_option(OM_LLD OM_OPTIONS
   DOC "Use the LLVM linker ld.lld"
   DEFAULT  OFF
-  REQUIRES OMTALK_TOOL_LLD
+  REQUIRES OM_TOOL_LLD
 )
 
 ## Misc Tooling and Linters
 
-find_program(OMTALK_TOOL_CCACHE ccache)
+find_program(OM_TOOL_CCACHE ccache)
 
 om_add_option(OMTALK_CCACHE OM_OPTIONS
   DOC "Build using ccache as a compiler launcher"
-  DEFAULT  OMTALK_TOOL_CCACHE
-  REQUIRES OMTALK_TOOL_CCACHE
+  DEFAULT  OM_TOOL_CCACHE
+  REQUIRES OM_TOOL_CCACHE
 )
 
-find_program(OMTALK_TOOL_CLANG_TIDY clang-tidy)
+find_program(OM_TOOL_CLANG_TIDY clang-tidy)
 
 om_add_option(OMTALK_STATIC_CLANG_TIDY OM_OPTIONS
   DOC "Build with the clang-tidy static analyzer"
-  DEFAULT  OMTALK_TOOL_CLANG_TIDY
-  REQUIRES OMTALK_TOOL_CLANG_TIDY
+  DEFAULT  OM_TOOL_CLANG_TIDY
+  REQUIRES OM_TOOL_CLANG_TIDY
 )
 
-find_program(OMTALK_IWYU_EXECUTABLE include-what-you-use)
+find_program(OM_IWYU_EXECUTABLE include-what-you-use)
 
-om_add_option(OMTALK_STATIC_IWYU OM_OPTIONS
+om_add_option(OM_STATIC_IWYU OM_OPTIONS
   DOC "Build with the include-what-you-use static analyzer"
-  DEFAULT  OMTALK_IWYU_EXECUTABLE
-  REQUIRES OMTALK_IWYU_EXECUTABLE
+  DEFAULT  OM_IWYU_EXECUTABLE
+  REQUIRES OM_IWYU_EXECUTABLE
 )
 
-om_add_option(OMTALK_STATIC_LWYU OM_OPTIONS
+om_add_option(OM_STATIC_LWYU OM_OPTIONS
   DOC "Build with the link-what-you-use static analyzer"
 )
 
@@ -206,7 +206,7 @@ om_add_option(OM_COMP_OM_OM OM_OPTIONS
 om_add_option(OM_COMP_OM_COMPILER OM_OPTIONS
   DOC "Build the Omtalk Om object model compiler support."
   REQUIRES
-    OMTALK_LLVM
+    OM_LLVM
     OM_COMP_OM_OM
 )
 
@@ -252,7 +252,7 @@ include(HandleOmtalkOptions)
 ### LLVM integration
 ###
 
-if(OMTALK_LLVM)
+if(OM_LLVM)
   # TODO: Including these files here causes LLVM to change how everything
   # is built across all of omtalk
   include(BuildLLVM)

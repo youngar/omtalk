@@ -6,13 +6,13 @@ set(HANDLE_OMTALK_OPTIONS_ TRUE)
 set(LLVM_ENABLE_PROJECTS "" CACHE STRING "LLVM projects to enable")
 set(OMTALK_COMPILE_OPTIONS  "" CACHE STRING "Options passed to the compiler")
 set(OMTALK_LINK_OPTIONS "" CACHE STRING "Options pass to the linker")
-set(OMTALK_LLVM_OPTIONS "" CACHE STRING "Options passed to LLVM")
+set(OM_LLVM_OPTIONS "" CACHE STRING "Options passed to LLVM")
 
 ###
 ### LLVM Configuration
 ###
 
-list(APPEND OMTALK_LLVM_OPTIONS
+list(APPEND OM_LLVM_OPTIONS
 	-DLLVM_PARALLEL_LINK_JOBS=2
 	-DLLVM_BUILD_EXAMPLES=on
 )
@@ -24,7 +24,7 @@ list(APPEND LLVM_ENABLE_PROJECTS
 	mlir
 )
 
-list(APPEND OMTALK_LLVM_OPTIONS
+list(APPEND OM_LLVM_OPTIONS
 	-DLLVM_TARGETS_TO_BUILD=X86
 	-DLLVM_OPTIMIZED_TABLEGEN=true
 	-DLLVM_CCACHE_BUILD=true
@@ -34,7 +34,7 @@ list(APPEND OMTALK_LLVM_OPTIONS
 ### Warnings and Errors
 ###
 
-if(OMTALK_WARNINGS)
+if(OM_WARNINGS)
 	list(APPEND OMTALK_COMPILE_OPTIONS 
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Wall>
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Wno-unused-parameter>
@@ -42,7 +42,7 @@ if(OMTALK_WARNINGS)
 	)
 endif()
 
-if(OMTALK_WARNINGS_AS_ERRORS)
+if(OM_WARNINGS_AS_ERRORS)
 	list(APPEND OMTALK_COMPILE_OPTIONS 
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Werror>
 	)
@@ -56,7 +56,7 @@ set(LLVM_ENABLE_WERROR off)
 ### Sanitizer Support
 ###
 
-if(OMTALK_SAN_ASAN)
+if(OM_SAN_ASAN)
 	list(APPEND OMTALK_COMPILE_OPTIONS 
 		$<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=address -fno-omit-frame-pointer>
 	)
@@ -65,7 +65,7 @@ if(OMTALK_SAN_ASAN)
 	)
 endif()
 
-if(OMTALK_SAN_TSAN)
+if(OM_SAN_TSAN)
 	list(APPEND OMTALK_COMPILE_OPTIONS
 		$<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=thread>
 	)
@@ -74,7 +74,7 @@ if(OMTALK_SAN_TSAN)
 	)
 endif()
 
-if(OMTALK_SAN_UBSAN)
+if(OM_SAN_UBSAN)
 	list(APPEND OMTALK_COMPILE_OPTIONS
 		$<$<COMPILE_LANGUAGE:CXX,C>:-fsanitize=undefined>
 	)
@@ -83,7 +83,7 @@ if(OMTALK_SAN_UBSAN)
 	)
 endif()
 
-if(OMTALK_SAN_THREADSAFETY)
+if(OM_SAN_THREADSAFETY)
 	list(APPEND OMTALK_COMPILE_OPTIONS
 		$<$<COMPILE_LANGUAGE:CXX,C>:-Wthread-safety>
 	)
@@ -100,21 +100,21 @@ endif()
 ### RTTI and Exceptions
 ###
 
-if(NOT OMTALK_RTTI)
+if(NOT OM_RTTI)
 	list(APPEND OMTALK_COMPILE_OPTIONS
 		$<$<COMPILE_LANGUAGE:CXX,C>:-fno-rtti>
 	)
-	list(APPEND OMTALK_LLVM_OPTIONS -DLLVM_ENABLE_RTTI=off)
+	list(APPEND OM_LLVM_OPTIONS -DLLVM_ENABLE_RTTI=off)
 else()
-	list(APPEND OMTALK_LLVM_OPTIONS -DLLVM_ENABLE_RTTI=on)
+	list(APPEND OM_LLVM_OPTIONS -DLLVM_ENABLE_RTTI=on)
 endif()
 
 ###
 ### Linker support
 ###
 
-if(OMTALK_LLD)
-	list(APPEND OMTALK_LLVM_OPTIONS -DLLVM_ENABLE_LLD=on)
+if(OM_LLD)
+	list(APPEND OM_LLVM_OPTIONS -DLLVM_ENABLE_LLD=on)
 	list(APPEND LLVM_ENABLE_PROJECTS lld)
 	# TODO is this line needed?
 	set(LLVM_ENABLE_LLD on)
@@ -125,7 +125,7 @@ endif()
 ### Split Debug Information
 ###
 
-if(OMTALK_SPLIT_DEBUG)
+if(OM_SPLIT_DEBUG)
 	add_compile_options(
 		$<$<COMPILE_LANGUAGE:CXX,C>:-gsplit-dwarf>
 	)
@@ -133,7 +133,7 @@ if(OMTALK_SPLIT_DEBUG)
 		$<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:GNU>>:-Wl,--gdb-index>
 		$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:-Wl,--gdb-index>
 	)
-	list(APPEND OMTALK_LLVM_OPTIONS
+	list(APPEND OM_LLVM_OPTIONS
 		-DLLVM_USE_SPLIT_DWARF=on
 	)
 endif()

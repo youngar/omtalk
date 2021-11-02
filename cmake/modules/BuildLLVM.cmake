@@ -6,24 +6,24 @@ set(BUILD_LLVM_ TRUE)
 ###
 ### LLVM CMake Integration
 ###
-if(OMTALK_BUILD_LLVM)
+if(OM_BUILD_LLVM)
 	message(STATUS "Using LLVM_ENABLE_PROJECTS:    ${LLVM_ENABLE_PROJECTS}")
-	message(STATUS "Using OMTALK_LLVM_OPTIONS:     ${OMTALK_LLVM_OPTIONS}")
+	message(STATUS "Using OM_LLVM_OPTIONS:     ${OM_LLVM_OPTIONS}")
 
-	set(OMTALK_LLVM_SOURCE_DIR "${omtalk_SOURCE_DIR}/external/llvm-project")
-	set(OMTALK_LLVM_BINARY_DIR "${omtalk_BINARY_DIR}/external/llvm-project")
+	set(OM_LLVM_SOURCE_DIR "${omtalk_SOURCE_DIR}/external/llvm-project")
+	set(OM_LLVM_BINARY_DIR "${omtalk_BINARY_DIR}/external/llvm-project")
 
-	file(MAKE_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}")
-	set(extra_find_args NO_DEFAULT_PATH PATHS "${OMTALK_LLVM_BINARY_DIR}")
+	file(MAKE_DIRECTORY "${OM_LLVM_BINARY_DIR}")
+	set(extra_find_args NO_DEFAULT_PATH PATHS "${OM_LLVM_BINARY_DIR}")
 
 	if(NOT OMTALK_RAN_LLVM_CMAKE)
 	message(STATUS "Building LLVM")
 		execute_process(
-			COMMAND "${CMAKE_COMMAND}" "${OMTALK_LLVM_SOURCE_DIR}/llvm"
+			COMMAND "${CMAKE_COMMAND}" "${OM_LLVM_SOURCE_DIR}/llvm"
 			-G "${CMAKE_GENERATOR}"
-			${OMTALK_LLVM_OPTIONS}
+			${OM_LLVM_OPTIONS}
 			"-DLLVM_ENABLE_PROJECTS=${LLVM_ENABLE_PROJECTS}"
-			WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
+			WORKING_DIRECTORY "${OM_LLVM_BINARY_DIR}"
 		)
 
 		# TODO: properly import targets from MLIR. mlir-tblgen is not an exported
@@ -31,11 +31,11 @@ if(OMTALK_BUILD_LLVM)
 		# build of LLVM at configure time to make sure tblgen is built.
 		execute_process(
 			COMMAND "${CMAKE_COMMAND}" --build .
-			WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
+			WORKING_DIRECTORY "${OM_LLVM_BINARY_DIR}"
 		)
 
 		set(OMTALK_RAN_LLVM_CMAKE ON CACHE INTERNAL "")
-		list(APPEND extra_find_args "PATHS" "${OMTALK_LLVM_BINARY_DIR}")
+		list(APPEND extra_find_args "PATHS" "${OM_LLVM_BINARY_DIR}")
 	endif()
 
 endif()
@@ -54,8 +54,8 @@ include(HandleLLVMOptions)
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
 
-set(LLVM_RUNTIME_OUTPUT_INTDIR ${OMTALK_LLVM_BINARY_DIR}/bin)
-set(LLVM_LIBRARY_OUTPUT_INTDIR ${OMTALK_LLVM_BINARY_DIR}/lib)
+set(LLVM_RUNTIME_OUTPUT_INTDIR ${OM_LLVM_BINARY_DIR}/bin)
+set(LLVM_LIBRARY_OUTPUT_INTDIR ${OM_LLVM_BINARY_DIR}/lib)
 set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
 message(STATUS "Using MLIRConfig.cmake in:     ${MLIR_DIR}")
@@ -74,7 +74,7 @@ message(STATUS "Using LLVM_DEFINITIONS:        ${LLVM_DEFINITIONS}")
 # TODO: I don't think there is any benefit to adding a custom target for llvm
 # add_custom_target(omtalk_llvm_project ALL
 # 	COMMAND "${CMAKE_COMMAND}" --build .
-# 	WORKING_DIRECTORY "${OMTALK_LLVM_BINARY_DIR}"
+# 	WORKING_DIRECTORY "${OM_LLVM_BINARY_DIR}"
 # 	COMMENT "Building LLVM"
 # 	USES_TERMINAL
 # )

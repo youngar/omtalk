@@ -13,7 +13,7 @@ target_link_libraries(om-objectmodel
     ab-util
 )
 
-if(OMTALK_WARNINGS)
+if(OM_WARNINGS)
   target_compile_options(om-objectmodel
     PRIVATE
       -Werror
@@ -39,7 +39,7 @@ if (OMTALK_TEST)
       catch2-main
   )
 
-  if(OMTALK_WARNINGS)
+  if(OM_WARNINGS)
     target_compile_options(om-objectmodel-test
       PRIVATE
         -Werror
