@@ -1,4 +1,4 @@
-add_omtalk_library(omtalk-parser
+add_om_library(omtalk-parser
     src/Parser.cpp
 )
 

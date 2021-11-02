@@ -1,4 +1,4 @@
-add_omtalk_library(omtalk-ir
+add_om_library(omtalk-ir
   src/OmtalkDialect.cpp
   src/OmtalkOps.cpp
   src/OmtalkTypes.cpp

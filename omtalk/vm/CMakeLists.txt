@@ -1,6 +1,6 @@
 enable_language(ASM_NASM)
 
-add_omtalk_library(omtalk-vm
+add_om_library(omtalk-vm
   interpreter.cpp
   interpreter.nasm
   omtalk.cpp

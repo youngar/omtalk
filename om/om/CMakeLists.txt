@@ -1,4 +1,4 @@
-add_omtalk_library(om-objectmodel
+add_om_library(om-objectmodel
   src/ObjectModel.cpp
 )
 

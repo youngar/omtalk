@@ -4,7 +4,7 @@ endif()
 set(ADD_OMTALK_ TRUE)
 
 # Add omtalk specific build options to a target.
-function(add_omtalk_target target)
+function(add_om_target target)
 	target_compile_definitions(${target}
 		PUBLIC
 			${OMTALK_COMPILE_DEFINITIONS}
@@ -54,14 +54,14 @@ endfunction()
 
 # Add an omtalk executable.  Will add build options depending on how the project
 # was configured.
-function(add_omtalk_executable target)
+function(add_om_executable target)
 	add_executable(${ARGV})
-	add_omtalk_target(${ARGV})
+	add_om_target(${ARGV})
 endfunction()
 
 # Add an omtalk library.  Will add build options depending on how the project
 # was configured.
-function(add_omtalk_library name)
+function(add_om_library name)
 	add_library(${ARGV})
-	add_omtalk_target(${ARGV})
+	add_om_target(${ARGV})
 endfunction()

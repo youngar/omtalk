@@ -1,4 +1,4 @@
-add_omtalk_library(ab-util
+add_om_library(ab-util
     src/Empty.cpp
 )
 
@@ -8,7 +8,7 @@ target_include_directories(ab-util
 )
 
 if(OM_TESTS)
-  add_omtalk_executable(ab-util-test
+  add_om_executable(ab-util-test
     test/test-atomic.cpp
     test/test-bitarray.cpp
     test/test-bits.cpp

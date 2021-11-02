@@ -1,4 +1,4 @@
-add_omtalk_library(om-gc
+add_om_library(om-gc
     src/MemoryManager.cpp
     src/MutatorMutex.cpp
 )

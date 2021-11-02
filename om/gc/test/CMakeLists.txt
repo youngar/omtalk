@@ -1,4 +1,4 @@
-add_omtalk_executable(om-gc-test
+add_om_executable(om-gc-test
 	test-compact.cpp
 	test-dispatcher.cpp
 	test-exclusive.cpp
