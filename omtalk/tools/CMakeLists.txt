@@ -1,11 +1,11 @@
-if(OM_COMP_OMTALK_CORE)
+if(OMTALK_COMPONENT_CORE)
     add_subdirectory(omtalk)
 endif()
 
-if(OM_COMP_OMTALK_COMPILER)
+if(OMTALK_COMPONENT_COMPILER)
     add_subdirectory(omtalk-opt)
 endif()
 
-if(OM_COMP_OMTALK_PARSER)
+if(OMTALK_COMPONENT_PARSER)
     add_subdirectory(omtalk-parser)
 endif()

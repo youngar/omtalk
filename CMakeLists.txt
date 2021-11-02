@@ -179,62 +179,62 @@ om_add_option(OM_STATIC_LWYU OM_OPTIONS
 
 ## AB
 
-om_add_option(OM_COMP_AB OM_OPTIONS
+om_add_option(AB_PROJECT OM_OPTIONS
   DOC "Build the AB utility library"
 )
 
 ## Om
 
-om_add_option(OM_COMP_OM OM_OPTIONS
+om_add_option(OM_PROJECT OM_OPTIONS
   DOC "Build the OM object model"
   REQUIRES
-    OM_COMP_AB
+    AB_PROJECT
 )
 
-om_add_option(OM_COMP_OM_GC OM_OPTIONS
+om_add_option(OM_COMPONENT_GC OM_OPTIONS
   DOC "Build the Omtalk garbage collector"
   REQUIRES
-    OM_COMP_OM
+    OM_PROJECT
 )
 
-om_add_option(OM_COMP_OM_OM OM_OPTIONS
+om_add_option(OM_COMPONENT_OM OM_OPTIONS
   DOC "Build the Omtalk Om object model."
   REQUIRES
-    OM_COMP_OM_GC
+    OM_COMPONENT_GC
 )
 
-om_add_option(OM_COMP_OM_COMPILER OM_OPTIONS
+om_add_option(OM_COMPONENT_COMPILER OM_OPTIONS
   DOC "Build the Omtalk Om object model compiler support."
   REQUIRES
     OM_LLVM
-    OM_COMP_OM_OM
+    OM_COMPONENT_OM
 )
 
 ## Omtalk
 
-om_add_option(OM_COMP_OMTALK OM_OPTIONS
+om_add_option(OMTALK_PROJECT OM_OPTIONS
   DOC "Build the omtalk language"
   REQUIRES
-    OM_COMP_OM_OM
+    OM_COMPONENT_OM
 )
 
-om_add_option(OM_COMP_OMTALK_COMPILER OM_OPTIONS
+om_add_option(OMTALK_COMPONENT_COMPILER OM_OPTIONS
   DOC "Build with compiler support"
   REQUIRES
-    OM_COMP_OMTALK
+    OMTALK_PROJECT
 )
 
-om_add_option(OM_COMP_OMTALK_CORE OM_OPTIONS
+om_add_option(OMTALK_COMPONENT_CORE OM_OPTIONS
   DOC "Build the Omtalk core libraries.  This is the main language VM."
   REQUIRES
-    OM_COMP_OM_GC
-    OM_COMP_OM_OM
-    OM_COMP_OMTALK
-    OM_COMP_OMTALK_COMPILER
-    OM_COMP_OMTALK_PARSER
+    OM_COMPONENT_GC
+    OM_COMPONENT_OM
+    OMTALK_PROJECT
+    OMTALK_COMPONENT_COMPILER
+    OMTALK_COMPONENT_PARSER
 )
 
-om_add_option(OM_COMP_OMTALK_PARSER OM_OPTIONS
+om_add_option(OMTALK_COMPONENT_PARSER OM_OPTIONS
   DOC "Build the Omtalk SOM parser.  A parsing library for the Simple Object Machine language."
 )
 
@@ -262,16 +262,16 @@ endif()
 ### Subdirectories
 ###
 
-if(OM_COMP_AB)
+if(AB_PROJECT)
   add_subdirectory(ab)
 endif()
 
 add_subdirectory(external)
 
-if(OM_COMP_OM_OM)
+if(OM_COMPONENT_OM)
   add_subdirectory(om)
 endif()
 
-if(OM_COMP_OMTALK)
+if(OMTALK_PROJECT)
   add_subdirectory(omtalk)
 endif()

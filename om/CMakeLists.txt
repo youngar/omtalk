@@ -1,8 +1,8 @@
-if(OM_COMP_OM_GC)
+if(OM_COMPONENT_GC)
   add_subdirectory(gc)
 endif()
 
-if(OM_COMP_OM_COMPILER)
+if(OM_COMPONENT_COMPILER)
   add_subdirectory(ir)
 endif()
 
@@ -10,6 +10,6 @@ if(OM_LIT_TESTS)
   add_subdirectory(lit-test)
 endif()
 
-if(OM_COMP_OM_OM)
+if(OM_COMPONENT_OM)
   add_subdirectory(om)
 endif()
