@@ -1,6 +1,6 @@
 enable_language(ASM_NASM)
 
-add_library(omtalk-core
+add_omtalk_library(omtalk-core
     include/omtalk/IRGen/IRGen.h
     src/IRGen/IRGen.cpp
     src/Runtime.cpp
