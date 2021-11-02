@@ -206,6 +206,7 @@ om_add_option(OM_COMP_OM_OM OM_OPTIONS
 om_add_option(OM_COMP_OM_COMPILER OM_OPTIONS
   DOC "Build the Omtalk Om object model compiler support."
   REQUIRES
+    OMTALK_LLVM
     OM_COMP_OM_OM
 )
 
