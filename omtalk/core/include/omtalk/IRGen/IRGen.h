@@ -1,6 +1,7 @@
 #ifndef OMTALK_IRGEN_IRGEN_H_
 #define OMTALK_IRGEN_IRGEN_H_
 
+#include "mlir/IR/BuiltinOps.h"
 #include <mlir/IR/MLIRContext.h>
 #include <omtalk/Parser/AST.h>
 

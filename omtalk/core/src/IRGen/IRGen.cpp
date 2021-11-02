@@ -1,3 +1,4 @@
+#include <ab/Util/Assert.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/ScopedHashTable.h>
 #include <mlir/IR/Builders.h>
@@ -5,6 +6,7 @@
 #include <mlir/IR/Verifier.h>
 #include <omtalk/IR/OmtalkDialect.h>
 #include <omtalk/IR/OmtalkOps.h>
+#include <omtalk/IR/OmtalkTypes.h>
 #include <omtalk/IRGen/IRGen.h>
 #include <omtalk/Parser/Location.h>
 
@@ -19,7 +21,7 @@ public:
   IRGen(mlir::MLIRContext &context) : builder(&context) {}
 
   mlir::Location loc(Location loc) {
-    return builder.getFileLineColLoc(builder.getIdentifier(loc.filename),
+    return mlir::FileLineColLoc::get(builder.getIdentifier(loc.filename),
                                      loc.start.line, loc.start.line);
   }
 
@@ -94,8 +96,8 @@ public:
       operands.push_back(irGenExpr(*(expr.parameters[i])));
     }
 
-    auto sendOp = builder.create<omtalk::SendOp>(location, ty, recv,
-                                                       message, operands);
+    auto sendOp =
+        builder.create<omtalk::SendOp>(location, ty, recv, message, operands);
 
     return sendOp;
   }
@@ -140,6 +142,8 @@ public:
       return irGen(expr.cast<SendExpr>());
     case ExprKind::Block:
       return irGen(expr.cast<BlockExpr>());
+    default:
+      AB_ASSERT_UNIMPLEMENTED();
     }
   }
 
