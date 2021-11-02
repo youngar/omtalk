@@ -1,4 +1,4 @@
-add_omtalk_executable(omtalk-gc-test
+add_omtalk_executable(om-gc-test
 	test-compact.cpp
 	test-dispatcher.cpp
 	test-exclusive.cpp
@@ -11,12 +11,12 @@ add_omtalk_executable(omtalk-gc-test
 	test-startup.cpp
 )
 
-target_link_libraries(omtalk-gc-test
+target_link_libraries(om-gc-test
 	PRIVATE
 	Catch2::Catch2
 	catch2-main
-	omtalk-gc
-	omtalk-gc-example
+	om-gc
+	om-gc-example
 )
 
-add_test(omtalk-gc-test omtalk-gc-test)
+add_test(om-gc-test om-gc-test)

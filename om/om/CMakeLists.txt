@@ -9,7 +9,7 @@ target_include_directories(omtalk-objectmodel
 
 target_link_libraries(omtalk-objectmodel
   PUBLIC
-    omtalk-gc
+    om-gc
     ab-util
 )
 
@@ -33,7 +33,7 @@ if (OMTALK_TEST)
 
   target_link_libraries(omtalk-objectmodel-test
     PRIVATE
-      omtalk-gc
+      om-gc
       omtalk-objectmodel
       Catch2::Catch2
       catch2-main
