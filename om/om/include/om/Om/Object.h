@@ -9,6 +9,8 @@ namespace om::om {
 /// This is the most generic representation of objects,
 /// providing basically no information.
 struct Object {
+  ObjectType type() const noexcept { return header.type(); }
+
   template <typename T>
   T &as() {
     assert(header.type() == T::TYPE);

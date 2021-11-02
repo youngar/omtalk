@@ -15,17 +15,17 @@ namespace om::om {
 
 struct ObjectModel {
   static std::size_t size(gc::Ref<Object> obj) {
-    switch (obj->header.type()) {
+    switch (obj->type()) {
     case ObjectType::STRUCT:
-      return obj.reinterpret<Struct>()->size();
+      return obj->as<Struct>().size();
     case ObjectType::ARRAY:
-      return obj.reinterpret<Array>()->size();
+      return obj->as<Array>().size();
     case ObjectType::STRUCT_LAYOUT:
-      return obj.reinterpret<StructLayout>()->size();
+      return obj->as<StructLayout>().size();
     case ObjectType::ARRAY_LAYOUT:
-      return obj.reinterpret<ArrayLayout>()->size();
+      return obj->as<ArrayLayout>().size();
     case ObjectType::META_LAYOUT:
-      return obj.reinterpret<MetaLayout>()->size();
+      return obj->as<MetaLayout>().size();
     }
   }
 };
