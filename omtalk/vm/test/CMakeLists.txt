@@ -12,7 +12,7 @@ add_executable(omtalk-test
 
 target_link_libraries(omtalk-test
     gtest_main
-    libomtalk
+    omtalk-vm
 )
 
 add_test(omtalk-test omtalk-test)
