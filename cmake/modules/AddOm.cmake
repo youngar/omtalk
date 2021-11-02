@@ -65,18 +65,3 @@ function(add_omtalk_library name)
 	add_library(${ARGV})
 	add_omtalk_target(${ARGV})
 endfunction()
-
-# Use omtalk tablegen to generate the code for a type universe.
-function(omtalk_tablegen ofn)
-	tablegen(OMTALK ${ARGV})
-	set(TABLEGEN_OUTPUT ${TABLEGEN_OUTPUT} ${CMAKE_CURRENT_BINARY_DIR}/${ofn}
-			PARENT_SCOPE)
-endfunction()
-
-# Add an omtalk universe target and generate all code necessary to use instances
-# of these types from C++.
-function(add_omtalk_universe file universe)
-	set(LLVM_TARGET_DEFINITIONS ${file}.td)
-	omtalk_tablegen(${file}.h.inc -gen-type-defs -universe=${universe})
-	add_public_tablegen_target(Omtalk${universe}IncGen)
-endfunction()
