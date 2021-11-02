@@ -1,20 +1,20 @@
-add_library(omtalk-objectmodel
+add_library(om-objectmodel
   src/ObjectModel.cpp
 )
 
-target_include_directories(omtalk-objectmodel
+target_include_directories(om-objectmodel
   PUBLIC
     include
 )
 
-target_link_libraries(omtalk-objectmodel
+target_link_libraries(om-objectmodel
   PUBLIC
     om-gc
     ab-util
 )
 
 if(OMTALK_WARNINGS)
-  target_compile_options(omtalk-objectmodel
+  target_compile_options(om-objectmodel
     PRIVATE
       -Werror
       -Wall
@@ -25,22 +25,22 @@ if(OMTALK_WARNINGS)
 endif()
 
 if (OMTALK_TEST)
-  add_executable(omtalk-objectmodel-test
+  add_executable(om-objectmodel-test
     test/test-objectmodel.cpp
     test/test-structbuilder.cpp
     test/test-type.cpp
   )
 
-  target_link_libraries(omtalk-objectmodel-test
+  target_link_libraries(om-objectmodel-test
     PRIVATE
       om-gc
-      omtalk-objectmodel
+      om-objectmodel
       Catch2::Catch2
       catch2-main
   )
 
   if(OMTALK_WARNINGS)
-    target_compile_options(omtalk-objectmodel-test
+    target_compile_options(om-objectmodel-test
       PRIVATE
         -Werror
         -Wall
@@ -50,5 +50,5 @@ if (OMTALK_TEST)
     )
   endif()
 
-  add_test(omtalk-objectmodel-test omtalk-objectmodel-test)
+  add_test(om-objectmodel-test om-objectmodel-test)
 endif()
