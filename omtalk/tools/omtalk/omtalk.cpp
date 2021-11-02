@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
 
   if (emitAction == Action::EmitMLIR) {
     mlir::MLIRContext context;
-    context.loadDialect<om::omtalk::OmtalkDialect>();
+    context.loadDialect<omtalk::OmtalkDialect>();
     mlir::OwningModuleRef module = omtalk::irgen::irGen(context, *ast);
     module->print(llvm::outs());
     llvm::outs() << "\n";

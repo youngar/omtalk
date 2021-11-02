@@ -1,5 +1,5 @@
-#ifndef OMTALK_PASSES_HPP_
-#define OMTALK_PASSES_HPP_
+#ifndef OMTALK_IR_OMTALKPASSES_H
+#define OMTALK_IR_OMTALKPASSES_H
 
 #include <memory>
 
@@ -13,4 +13,4 @@ std::unique_ptr<mlir::Pass> createLowerPass();
 std::unique_ptr<mlir::Pass> createToLlvmLoweringPass();
 } // namespace omtalk
 
-#endif // OMTALK_PASSES_HPP_
+#endif // OMTALK_IR_OMTALKPASSES_H

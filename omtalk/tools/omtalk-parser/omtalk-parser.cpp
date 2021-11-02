@@ -1,8 +1,6 @@
 #include <cstdlib>
 #include <llvm/Support/CommandLine.h>
 
-#include <mlir/Support/LLVM.h>
-
 #include <mlir/ExecutionEngine/ExecutionEngine.h>
 #include <mlir/ExecutionEngine/OptUtils.h>
 #include <mlir/IR/AsmState.h>
@@ -11,6 +9,7 @@
 #include <mlir/Parser.h>
 #include <mlir/Pass/Pass.h>
 #include <mlir/Pass/PassManager.h>
+#include <mlir/Support/LLVM.h>
 #include <mlir/Transforms/Passes.h>
 #include <omtalk/IR/OmtalkDialect.h>
 #include <omtalk/IR/OmtalkOps.h>

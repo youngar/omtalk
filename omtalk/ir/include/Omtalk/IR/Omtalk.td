@@ -1,13 +1,5 @@
-//===- OmtalkOps.td - Omtalk dialect ops -------------------*- tablegen -*-===//
-//
-// This file is licensed under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//===----------------------------------------------------------------------===//
-
-#ifndef OMTALK_OPS
-#define OMTALK_OPS
+#ifndef OMTALK_IR_OMTALKOPS_TD
+#define OMTALK_IR_OMTALKOPS_TD
 
 include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
@@ -27,13 +19,17 @@ def Omtalk_Dialect : Dialect {
       coupled to the omtalk virtual machine.
   }];
   let cppNamespace = "omtalk";
-
   let extraClassDeclaration = [{
+    /// Register all HW types.
+    void registerTypes();
+
+    /// Parse an instance of a type registered to the dialect.
     mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
+
+    /// Print an instance of a type registered to the dialect.
     void printType(mlir::Type type,
                    mlir::DialectAsmPrinter &printer) const override;
   }];
-
 }
 
 //===----------------------------------------------------------------------===//
@@ -129,23 +125,19 @@ def Omtalk_MethodOp : Omtalk_Op<"method", [
     HasParent<"KlassOp">, AutomaticAllocationScope, FunctionLike,
     IsolatedFromAbove, Symbol
   ]> {
-
   let summary = "Define a method on an instance";
-
+  
   let arguments = (ins
     TypeAttr:$type,
     StrAttr:$sym_name
   );
-
   let results = (outs);
-
   let regions = (region AnyRegion:$body);
-
-  //let skipDefaultBuilders = 1;
-
-  //let builders = [
-  //  OpBuilder<(ins "StringRef":$name, "unsigned":$argCount)>
-  //];
+  
+  let skipDefaultBuilders = 1;
+  let builders = [
+   OpBuilder<(ins "mlir::StringRef":$name, "unsigned":$argCount)>
+  ];
 
   let extraClassDeclaration = [{
     unsigned getNumFuncArguments() {
@@ -271,4 +263,4 @@ def Omtalk_NonlocalReturnOp : Omtalk_Op<"nonlocal_return", [Terminator]> {
   let arguments = (ins Omtalk_AnyBoxType:$value);
 }
 
-#endif // OMTALK_OPS
+#endif // OMTALK_IR_OMTALKOPS_TD

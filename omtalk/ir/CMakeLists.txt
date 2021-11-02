@@ -1,6 +1,7 @@
 add_omtalk_library(omtalk-ir
   src/OmtalkDialect.cpp
   src/OmtalkOps.cpp
+  src/OmtalkTypes.cpp
 )
 
 add_dependencies(omtalk-ir omtalk-ir-incgen)
