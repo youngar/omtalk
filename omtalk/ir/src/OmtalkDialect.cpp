@@ -7,10 +7,6 @@
 using namespace mlir;
 using namespace omtalk;
 
-//===----------------------------------------------------------------------===//
-// Omtalk dialect.
-//===----------------------------------------------------------------------===//
-
 void OmtalkDialect::initialize() {
   // Register operations.
   addOperations<

@@ -1,13 +1,5 @@
-//===- OmOps.td - Om dialect Ops         -------------------*- tablegen -*-===//
-//
-// This file is licensed under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//===----------------------------------------------------------------------===//
-
-#ifndef OM_OPS
-#define OM_OPS
+#ifndef OM_IR_OM_TD
+#define OM_IR_OM_TD
 
 include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
@@ -67,4 +59,4 @@ def Omtalk_FieldOp : Om_Op<"field", [
   let results = (outs);
 }
 
-#endif // OM_OPS
+#endif // OM_IR_OM_TD

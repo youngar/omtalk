@@ -1,4 +1,3 @@
-
 #include <numeric>
 
 #include "mlir/Dialect/Omtalk/IR/OmtalkDialect.h"
