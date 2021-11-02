@@ -8,27 +8,15 @@
 
 namespace om::om {
 
-/// A special layout that describes the shape of layouts.
-/// Rather than an object, MetaLayout is a static global.
-struct MetaLayout {};
+// enum class LayoutType : std::uint8_t {
+//   STRUCT = std::uint8_t(ObjectType::STRUCT_LAYOUT),
+//   ARRAY = std::uint8_t(ObjectType::ARRAY_LAYOUT),
+//   META = std::uint8_t(ObjectType::META_LAYOUT),
+// };
 
-struct SlotDescription {
-  std::size_t offset;
-  Type type;
-};
-
-/// Layouts describe the shape of other objects.
-struct Layout {
-  static constexpr std::size_t allocSize(std::size_t length) noexcept {
-    return sizeof(Layout) + sizeof(SlotDescription) * length;
-  }
-
-  std::size_t allocSize() const noexcept { return Layout::allocSize(length); }
-
-  ObjectHeader header;
-  std::size_t length;
-  SlotDescription slots[0];
-};
+// struct Layout {
+//   ObjectHeader header;
+// };
 
 } // namespace om::om
 

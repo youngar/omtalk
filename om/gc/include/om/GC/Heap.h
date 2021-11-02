@@ -90,6 +90,8 @@ private:
   FreeBlock *next = nullptr;
 };
 
+static_assert(sizeof(FreeBlock) == MIN_OBJECT_SIZE);
+
 class FreeList {
 public:
   void add(void *address, std::size_t size) noexcept {

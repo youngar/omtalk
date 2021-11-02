@@ -91,6 +91,20 @@ constexpr std::size_t size = Prop<T>::size;
 template <Type T>
 constexpr std::size_t alignment = Prop<T>::alignment;
 
+constexpr std::size_t
+getSize(Type type) noexcept {
+  switch (type) {
+  case Type::i8: return size<Type::i8>;
+  case Type::i16: return size<Type::i16>;
+  case Type::i32: return size<Type::i32>;
+  case Type::i64: return size<Type::i64>;
+  case Type::f32: return size<Type::f32>;
+  case Type::f64: return size<Type::f64>;
+  case Type::ref: return size<Type::ref>;
+  case Type::ply: return size<Type::ply>;
+  }
+}
+
 } // namespce om::om
 
 #endif // OM_OM_CORETYPES_H

@@ -7,8 +7,14 @@
 namespace om::om {
 
 /// This is the most generic representation of objects,
-/// providing basically no information about the data.
+/// providing basically no information.
 struct Object {
+  template <typename T>
+  T &as() {
+    assert(header.type() == T::TYPE);
+    return reinterpret_cast<T &>(*this);
+  }
+
   ObjectHeader header;
   std::uint8_t data[0];
 };
