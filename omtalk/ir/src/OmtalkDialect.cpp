@@ -17,3 +17,6 @@ void OmtalkDialect::initialize() {
   // Register types.
   registerTypes();
 }
+
+// ODS Dialect implementation.
+#include "omtalk/IR/OmtalkDialect.cpp.inc"

@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <map>
 #include <omtalk/bytecodes.hpp>
-#include <omtalk/symbol.hpp>
 #include <omtalk/vm/klass.hpp>
 #include <omtalk/vm/symbol.hpp>
 #include <vector>

@@ -16,3 +16,5 @@ void OmDialect::initialize() {
 #include "om/IR/OmOps.cpp.inc"
       >();
 }
+
+#include "om/IR/OmDialect.cpp.inc"
