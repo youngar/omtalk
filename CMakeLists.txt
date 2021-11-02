@@ -30,7 +30,7 @@ enable_testing()
 
 list(APPEND CMAKE_MODULE_PATH ${omtalk_SOURCE_DIR}/cmake/modules)
 
-include(AddOmtalk)
+include(AddOm)
 include(OmOptions)
 include(OmPlatform)
 include(CMakeFindDependencyMacro)
