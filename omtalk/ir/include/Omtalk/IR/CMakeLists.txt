@@ -7,5 +7,5 @@ mlir_tablegen(OmtalkDialect.h.inc -gen-dialect-decls -dialect=omtalk)
 mlir_tablegen(OmtalkDialect.cpp.inc -gen-dialect-defs -dialect=omtalk)
 add_public_tablegen_target(omtalk-ir-incgen)
 
-add_mlir_doc(OmtalkDialect -gen-dialect-doc OmtalkDialect Omtalk/)
-add_mlir_doc(OmtalkOps -gen-op-doc OmtalkOps Omtalk/)
+add_mlir_doc(OmtalkDialect OmtalkDialect Omtalk/ -gen-dialect-doc)
+add_mlir_doc(OmtalkOps OmtalkOps Omtalk/ -gen-op-doc)

@@ -2,7 +2,7 @@ if(OM_COMP_OM_GC)
   add_subdirectory(gc)
 endif()
 
-if(ON_COMP_COMPILER)
+if(OM_COMP_OM_COMPILER)
   add_subdirectory(ir)
 endif()
 

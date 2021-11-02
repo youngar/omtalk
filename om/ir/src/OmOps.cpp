@@ -13,7 +13,10 @@
 #include "mlir/IR/FunctionSupport.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "om/IR/OmDialect.h"
-#include "om/Support/LLVM.h"
 
+using namespace mlir;
+using namespace om;
+
+// ODS Op Implementations.
 #define GET_OP_CLASSES
-#include "om/IR/Om.cpp.inc"
+#include "om/IR/OmOps.cpp.inc"

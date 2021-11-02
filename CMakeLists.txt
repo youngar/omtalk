@@ -203,6 +203,12 @@ om_add_option(OM_COMP_OM_OM OM_OPTIONS
     OM_COMP_OM_GC
 )
 
+om_add_option(OM_COMP_OM_COMPILER OM_OPTIONS
+  DOC "Build the Omtalk Om object model compiler support."
+  REQUIRES
+    OM_COMP_OM_OM
+)
+
 ## Omtalk
 
 om_add_option(OM_COMP_OMTALK OM_OPTIONS

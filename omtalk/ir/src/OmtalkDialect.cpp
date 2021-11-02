@@ -17,6 +17,7 @@ void OmtalkDialect::initialize() {
 #define GET_OP_LIST
 #include "omtalk/IR/OmtalkOps.cpp.inc"
       >();
-  
+
+  // Register types.
   registerTypes();
 }

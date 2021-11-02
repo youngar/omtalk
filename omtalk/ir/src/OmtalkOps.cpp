@@ -28,5 +28,6 @@ void MethodOp::build(OpBuilder &builder, OperationState &result, StringRef name,
   result.addRegion();
 }
 
+// ODS Op Implementations.
 #define GET_OP_CLASSES
 #include "omtalk/IR/OmtalkOps.cpp.inc"
