@@ -1,10 +1,8 @@
-add_om_library(ab-util
-    src/Empty.cpp
-)
+add_library(ab-util INTERFACE)
 
 target_include_directories(ab-util
-    PUBLIC
-        include
+  INTERFACE
+    include
 )
 
 if(OM_TESTS)
