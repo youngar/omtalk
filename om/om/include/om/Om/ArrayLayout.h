@@ -12,6 +12,9 @@ struct ArrayLayout {
 
   static std::size_t allocSize() noexcept { return sizeof(ArrayLayout); }
 
+  ArrayLayout(gc::Ref<Object> layout, Type elementType)
+      : header(TYPE, layout), elementType(elementType) {}
+
   std::size_t size() const noexcept { return ArrayLayout::allocSize(); }
 
   template <typename ContextT, typename VisitorT>

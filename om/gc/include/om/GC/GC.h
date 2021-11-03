@@ -1,8 +1,8 @@
 #ifndef OM_GC_GC_H
 #define OM_GC_GC_H
 
-namespace omtalk {
+namespace om {
 namespace gc {}
-} // namespace omtalk
+} // namespace om
 
 #endif

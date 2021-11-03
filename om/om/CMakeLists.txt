@@ -1,5 +1,5 @@
 add_om_library(om-objectmodel
-  src/ObjectModel.cpp
+  src/om-om-dummy.cpp
 )
 
 target_include_directories(om-objectmodel

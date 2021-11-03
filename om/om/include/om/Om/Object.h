@@ -9,6 +9,8 @@ namespace om::om {
 /// This is the most generic representation of objects,
 /// providing basically no information.
 struct Object {
+  Object() = delete;
+
   ObjectType type() const noexcept { return header.type(); }
 
   template <typename T>

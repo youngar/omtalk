@@ -43,6 +43,10 @@ private:
 struct Struct {
   static const ObjectType TYPE = ObjectType::STRUCT;
 
+  /// RAW initialization. No write barriers!
+  explicit Struct(gc::Ref<StructLayout> layout)
+      : header(TYPE, layout.reinterpret<Object>()) {}
+
   StructLayout &layout() const noexcept {
     return header.layout()->as<StructLayout>();
   }

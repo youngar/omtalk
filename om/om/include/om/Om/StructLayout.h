@@ -33,6 +33,12 @@ struct StructLayout {
     return sizeof(StructLayout) + sizeof(SlotDecl) * instanceSlotCount;
   }
 
+  /// RAW initialization.
+  StructLayout(gc::Ref<Object> layout, std::uint32_t instanceSize,
+               std::uint32_t slotDeclCount)
+      : header(TYPE, layout), instanceSize(instanceSize),
+        slotDeclCount(slotDeclCount) {}
+
   /// The size of this object in bytes.
   std::size_t size() const noexcept { return allocSize(slotDeclCount); }
 

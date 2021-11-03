@@ -30,7 +30,7 @@ public:
   static constexpr std::uintptr_t TYPE_MASK = 0b111;
   static constexpr std::uintptr_t LAYOUT_MASK = ~TYPE_MASK;
 
-  ObjectHeader(gc::Ref<Object> layout, ObjectType type)
+  ObjectHeader(ObjectType type, gc::Ref<Object> layout)
       : value(layout.toAddr() | std::uint8_t(type)) {}
 
   gc::Ref<Object> layout() const noexcept {

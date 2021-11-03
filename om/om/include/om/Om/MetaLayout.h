@@ -10,6 +10,8 @@ struct MetaLayout {
 
   static std::size_t allocSize() noexcept { return sizeof(MetaLayout); }
 
+  MetaLayout() : header(TYPE, gc::Ref<Object>::fromPtr(this)) {}
+
   std::size_t size() const noexcept { return MetaLayout::allocSize(); }
 
   template <typename ContextT, typename VisitorT>

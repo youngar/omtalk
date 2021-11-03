@@ -15,6 +15,9 @@ struct Array {
     return getSize(type) * length;
   }
 
+  explicit Array(gc::Ref<ArrayLayout> layout, std::size_t length)
+      : header(TYPE, layout.reinterpret<Object>()), length(length) {}
+
   ArrayLayout &layout() const noexcept {
     return header.layout()->as<ArrayLayout>();
   }

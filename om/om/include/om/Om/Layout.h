@@ -8,13 +8,9 @@
 
 namespace om::om {
 
-// enum class LayoutType : std::uint8_t {
-//   STRUCT = std::uint8_t(ObjectType::STRUCT_LAYOUT),
-//   ARRAY = std::uint8_t(ObjectType::ARRAY_LAYOUT),
-//   META = std::uint8_t(ObjectType::META_LAYOUT),
-// };
-
 // struct Layout {
+//   Layout() = delete;
+
 //   ObjectHeader header;
 // };
 

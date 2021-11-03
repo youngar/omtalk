@@ -6,23 +6,11 @@
 #include <om/Om/Layout.h>
 #include <om/Om/Object.h>
 #include <om/Om/ObjectHeader.h>
+#include <om/Om/ObjectProxy.h>
 
 namespace om::om {
 
-class ObjectProxy {
-public:
-  template <typename T>
-  ObjectProxy(gc::Ref<T> target) : target(target) {}
-
-  SlotProxy slot(unsigned offset) {
-    return SlotProxy::fromPtr(&target->data + offset);
-  }
-
-private:
-  gc::Ref<Object> target;
-};
-
-class Scheme {
+struct Scheme {
   using ObjectProxy = ObjectProxy;
 };
 
