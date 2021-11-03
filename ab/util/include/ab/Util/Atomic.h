@@ -93,6 +93,7 @@ auto exchange(T &target, U &value) noexcept {
   return target.template exchange<M>(value);
 }
 
+/// Call target.compareExchange<M>(); Useful when target is a templated type.
 template <MemoryOrder M, typename T, typename U, typename V>
 auto compareExchange(T &target, U &expected, V &desired) noexcept {
   return target.template compareExchange<M>(expected, desired);

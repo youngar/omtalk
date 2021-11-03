@@ -12,6 +12,11 @@ struct MetaLayout {
 
   std::size_t size() const noexcept { return MetaLayout::allocSize(); }
 
+  template <typename ContextT, typename VisitorT>
+  void walk(ContextT &context, VisitorT &visitor) noexcept {
+    header.walk(context, visitor);
+  }
+
   ObjectHeader header;
 };
 

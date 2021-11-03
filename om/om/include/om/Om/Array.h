@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <om/Om/ArrayLayout.h>
 #include <om/Om/ObjectHeader.h>
+#include <om/Om/SlotProxy.h>
 
 namespace om::om {
 
@@ -22,9 +23,22 @@ struct Array {
 
   std::size_t size() const noexcept { return allocSize(elementType(), length); }
 
+  template <typename ContextT, typename VisitorT>
+  void walk(ContextT &context, VisitorT &visitor) noexcept {
+    header.walk(context, visitor);
+    if (elementType() == Type::ref) {
+      std::uintptr_t *ptr = data;
+      std::uintptr_t *end = data + length;
+      while (ptr < end) {
+        visitor.visit(context, SlotProxy::fromPtr(ptr));
+        ++ptr;
+      }
+    }
+  }
+
   ObjectHeader header;
   std::size_t length;
-  std::uint8_t data;
+  std::uintptr_t data[0];
 };
 
 } // namespace om::om

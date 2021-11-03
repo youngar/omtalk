@@ -41,6 +41,9 @@ public:
 
   inline ObjectHeaderProxy proxy() noexcept;
 
+  template <typename C, typename V>
+  void walk(C &cx, V &visitor) noexcept;
+
 private:
   friend class ObjectHeaderProxy;
 
@@ -73,6 +76,11 @@ private:
 
 inline ObjectHeaderProxy ObjectHeader::proxy() noexcept {
   return ObjectHeaderProxy(this);
+}
+
+template <typename C, typename V>
+void ObjectHeader::walk(C &cx, V &visitor) noexcept {
+  visitor.visit(cx, proxy());
 }
 
 } // namespace om::om
