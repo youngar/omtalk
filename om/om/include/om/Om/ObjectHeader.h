@@ -34,7 +34,7 @@ public:
       : value(layout.toAddr() | std::uint8_t(type)) {}
 
   gc::Ref<Object> layout() const noexcept {
-    return gc::Ref<Object>::fromAddr(value & ~TYPE_MASK);
+    return gc::Ref<Object>::fromAddr(value & LAYOUT_MASK);
   }
 
   ObjectType type() const noexcept { return ObjectType(value & TYPE_MASK); }
@@ -61,13 +61,14 @@ public:
 
   template <ab::MemoryOrder M>
   gc::Ref<void> load() const noexcept {
-    auto value = ab::mem::load<M>(&target->value) | ObjectHeader::LAYOUT_MASK;
+    auto value = ab::mem::load<M>(&target->value) & ObjectHeader::LAYOUT_MASK;
     return gc::Ref<void>::fromAddr(value);
   }
 
   template <ab::MemoryOrder M>
   void store(gc::Ref<void> value) const noexcept {
-    ab::mem::store<M>(&target->value, value.toAddr());
+    auto type = ab::mem::load<M>(&target->value) & ObjectHeader::TYPE_MASK;
+    ab::mem::store<M>(&target->value, value.toAddr() | type);
   }
 
 private:

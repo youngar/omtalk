@@ -18,6 +18,7 @@ struct ObjectProxy {
       : target(target.reinterpret<Object>()) {}
 
   gc::Ref<void> asRef() const noexcept { return target.reinterpret<void>(); }
+
   std::size_t getSize() const noexcept {
     switch (target->type()) {
     case ObjectType::STRUCT:
