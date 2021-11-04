@@ -18,12 +18,12 @@ void allocateBarrier(Context<S> &context, ObjectProxyT object) {
   }
 }
 
-template <typename S, typename SlotProxyT>
+template <typename T = void, typename S, typename SlotProxyT>
 auto load(Context<S> &context, SlotProxyT slot) {
 
   // if the slot points to an evactuate region, copy the object into the current
   // allocation region.
-  Ref<void> address = ab::proxy::load<ab::SEQ_CST>(slot);
+  Ref<T> address = ab::proxy::load<ab::SEQ_CST>(slot);
   auto *region = Region::get(address);
   if (region->isEvacuating()) {
     ForwardingMap &map = region->getForwardingMap();
@@ -48,11 +48,11 @@ auto load(Context<S> &context, SlotProxyT slot) {
       }
 
       entry.set(to);
-      address = to;
+      address = Ref<T>::fromPtr(to);
     } else {
       // Object is being or has already been copied. entry.get() will wait for
       // the object to be copied.
-      address = entry.get();
+      address = Ref<T>::fromPtr(entry.get());
     }
     // Update the slot with the object's new address
     ab::proxy::store<ab::SEQ_CST>(slot, address);
@@ -60,7 +60,7 @@ auto load(Context<S> &context, SlotProxyT slot) {
 
   // Mark the object for concurrent marking
   if (context.isMarking()) {
-    mark<S>(context.getCollectorContext(), address);
+    mark(context.getCollectorContext(), address);
   }
 
   return address;

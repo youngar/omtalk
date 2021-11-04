@@ -372,8 +372,7 @@ struct gc::RootWalker<TestCollectorScheme> {
 inline gc::Ref<TestObject> load(gc::Context<TestCollectorScheme> &context,
                                 gc::Ref<TestStructObject> object,
                                 std::size_t index) {
-  return om::gc::load<TestCollectorScheme>(
-             context, TestSlotProxy(&object->getSlot(index)))
+  return om::gc::load(context, TestSlotProxy(&object->getSlot(index)))
       .cast<TestObject>();
 }
 
@@ -381,9 +380,8 @@ inline gc::Ref<TestObject> load(gc::Context<TestCollectorScheme> &context,
 inline void store(gc::Context<TestCollectorScheme> &context,
                   gc::Ref<TestStructObject> object, std::size_t index,
                   gc::Ref<void> value) {
-  om::gc::store<TestCollectorScheme>(context, TestObjectProxy(object),
-                                     TestSlotProxy(&object->getSlot(index)),
-                                     value);
+  om::gc::store(context, TestObjectProxy(object),
+                TestSlotProxy(&object->getSlot(index)), value);
 }
 
 inline gc::Ref<TestStructObject>

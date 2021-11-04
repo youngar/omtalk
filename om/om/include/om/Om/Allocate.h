@@ -17,6 +17,11 @@ namespace om::om {
 
 //   Handle layout;
 // };
+inline gc::Ref<MetaLayout> allocateMetaLayout(Context &context) noexcept {
+  return gc::allocateZero(context, MetaLayout::allocSize(),
+                          [=](auto object) { new (object.get()) MetaLayout(); })
+      .reinterpret<MetaLayout>();
+}
 
 inline gc::Ref<Struct> allocateStruct(Context &context,
                                       gc::Ref<StructLayout> layout) noexcept {

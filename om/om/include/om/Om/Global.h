@@ -11,7 +11,7 @@ class Global {
 public:
   Global();
 
-  void init(Context &context);
+  void init(Context &context) noexcept;
 
   gc::Ref<MetaLayout> loadMetaLayout(Context &context) noexcept;
 
