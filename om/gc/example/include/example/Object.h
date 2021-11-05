@@ -388,14 +388,13 @@ inline gc::Ref<TestStructObject>
 allocateTestStructObject(gc::Context<TestCollectorScheme> &cx,
                          std::size_t nslots) noexcept {
   auto size = TestStructObject::allocSize(nslots);
-  return gc::allocate<TestCollectorScheme, TestStructObject>(
-      cx, size, [=](auto object) {
-        object->kind = TestObjectKind::STRUCT;
-        object->length = nslots;
-        for (unsigned i = 0; i < nslots; i++) {
-          object->setSlot(i, {REF, nullptr});
-        }
-      });
+  return gc::allocate<TestStructObject>(cx, size, [=](auto object) {
+    object->kind = TestObjectKind::STRUCT;
+    object->length = nslots;
+    for (unsigned i = 0; i < nslots; i++) {
+      object->setSlot(i, {REF, nullptr});
+    }
+  });
 }
 
 #endif

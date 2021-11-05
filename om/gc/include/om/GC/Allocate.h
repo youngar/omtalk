@@ -77,7 +77,7 @@ Ref<void> allocateBytesZeroFast(Context<S> &cx, std::size_t size) noexcept {
 template <typename S>
 AllocationResult allocateBytesSlow(Context<S> &cx, std::size_t size) noexcept {
   cx.getCollector()->refreshBuffer(cx, size);
-  auto allocation = allocateBytesFast<S>(cx, size);
+  auto allocation = allocateBytesFast(cx, size);
   return {allocation, Tax()};
 }
 
@@ -86,7 +86,7 @@ template <typename S>
 AllocationResult allocateBytesZeroSlow(Context<S> &cx,
                                        std::size_t size) noexcept {
   cx.getCollector()->refreshBuffer(cx, size);
-  auto allocation = allocateBytesFast<S>(cx, size);
+  auto allocation = allocateBytesFast(cx, size);
   return {allocation, Tax()};
 }
 
@@ -95,7 +95,7 @@ template <typename S>
 Ref<void> allocateBytesNoCollectSlow(Context<S> &cx,
                                      std::size_t size) noexcept {
   cx.getCollector()->refreshBuffer(cx, size);
-  return allocateBytesFast<S>(cx, size);
+  return allocateBytesFast(cx, size);
 }
 
 /// Slow-path byte allocator. Will NOT collect. Memory IS zeroed.
@@ -103,7 +103,7 @@ template <typename S>
 Ref<void> allocateBytesZeroNoCollectSlow(Context<S> &cx,
                                          std::size_t size) noexcept {
   cx.getCollector()->refreshBuffer(cx, size);
-  return allocateBytesFast<S>(cx, size);
+  return allocateBytesFast(cx, size);
 }
 
 //===----------------------------------------------------------------------===//
@@ -111,10 +111,10 @@ Ref<void> allocateBytesZeroNoCollectSlow(Context<S> &cx,
 //===----------------------------------------------------------------------===//
 
 /// Fast-path object allocator. Will NOT collect. Memory is NOT zeroed.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocateFast(Context<S> &cx, std::size_t size, Init &&init,
                     Args &&...args) noexcept {
-  auto object = cast<T>(allocateBytesFast<S>(cx, size));
+  auto object = cast<T>(allocateBytesFast(cx, size));
 
   if (object) {
     init(object, std::forward<Args>(args)...);
@@ -124,10 +124,10 @@ Ref<T> allocateFast(Context<S> &cx, std::size_t size, Init &&init,
 }
 
 /// Fast-path object allocator. Will NOT collect. Memory IS zeroed.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocateZeroFast(Context<S> &cx, std::size_t size, Init &&init,
                         Args &&...args) noexcept {
-  auto object = cast<T>(allocateBytesZeroFast<S>(cx, size));
+  auto object = cast<T>(allocateBytesZeroFast(cx, size));
   if (object) {
     init(object, std::forward<Args>(args)...);
     allocateBarrier(cx, object);
@@ -136,10 +136,10 @@ Ref<T> allocateZeroFast(Context<S> &cx, std::size_t size, Init &&init,
 }
 
 /// Slow-path object allocator. MAY collect. Memory is NOT zeroed.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocateSlow(Context<S> &cx, std::size_t size, Init &&init,
                     Args &&...args) noexcept {
-  auto [allocation, tax] = allocateBytesSlow<S>(cx, size);
+  auto [allocation, tax] = allocateBytesSlow(cx, size);
   auto object = cast<T>(allocation);
   if (object) {
     init(object, std::forward<Args>(args)...);
@@ -152,10 +152,10 @@ Ref<T> allocateSlow(Context<S> &cx, std::size_t size, Init &&init,
 }
 
 /// Slow-path object allocator. MAY collect. Memory IS zeroed.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocateZeroSlow(Context<S> &cx, std::size_t size, Init &&init,
                         Args &&...args) noexcept {
-  auto [allocation, tax] = allocateBytesZeroSlow<S>(cx, size);
+  auto [allocation, tax] = allocateBytesZeroSlow(cx, size);
   auto object = cast<T>(allocation);
   if (object) {
     init(object, std::forward<Args>(args)...);
@@ -168,10 +168,10 @@ Ref<T> allocateZeroSlow(Context<S> &cx, std::size_t size, Init &&init,
 }
 
 /// Slow-path object allocator. Will NOT collect. Memory is NOT zeroed.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocateNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
                              Args &&...args) noexcept {
-  auto object = cast<T>(allocateBytesNoCollectSlow<S>(cx, size));
+  auto object = cast<T>(allocateBytesNoCollectSlow(cx, size));
   if (object) {
     init(object, std::forward<Args>(args)...);
     allocateBarrier(cx, object);
@@ -180,10 +180,10 @@ Ref<T> allocateNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
 }
 
 /// Slow-path object allocator. Will NOT collect. Memory IS zeroed.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocateZeroNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
                                  Args &&...args) noexcept {
-  auto object = cast<T>(allocateBytesZeroNoCollectSlow<S>(cx, size));
+  auto object = cast<T>(allocateBytesZeroNoCollectSlow(cx, size));
   if (object) {
     init(object, std::forward<Args>(args)...);
     allocateBarrier(cx, object);
@@ -196,61 +196,61 @@ Ref<T> allocateZeroNoCollectSlow(Context<S> &cx, std::size_t size, Init &&init,
 //===----------------------------------------------------------------------===//
 
 /// Allocate an object and initialize it.  May cause a garbage collection.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocate(Context<S> &cx, std::size_t size, Init &&init,
                 Args &&...args) noexcept {
-  auto object = allocateFast<S, T>(cx, size, std::forward<Init>(init),
-                                   std::forward<Args>(args)...);
+  auto object = allocateFast<T>(cx, size, std::forward<Init>(init),
+                                std::forward<Args>(args)...);
   if (object) {
     return object;
   }
 
-  return allocateSlow<S, T>(cx, size, std::forward<Init>(init),
-                            std::forward<Args>(args)...);
+  return allocateSlow<T>(cx, size, std::forward<Init>(init),
+                         std::forward<Args>(args)...);
 }
 
 /// Allocate an object and initialize it.  May cause garbage collection. The
 /// underlying memory will be initialized to zero.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocateZero(Context<S> &cx, std::size_t size, Init &&init,
                     Args &&...args) noexcept {
-  auto object = allocateZeroFast<S, T>(cx, size, std::forward<Init>(init),
-                                       std::forward<Args>(args)...);
+  auto object = allocateZeroFast<T>(cx, size, std::forward<Init>(init),
+                                    std::forward<Args>(args)...);
   if (object) {
     return object;
   }
 
-  return allocateZeroSlow<S, T>(cx, size, std::forward<Init>(init),
-                                std::forward<Args>(args)...);
+  return allocateZeroSlow<T>(cx, size, std::forward<Init>(init),
+                             std::forward<Args>(args)...);
 }
 
 /// Allocate an object and initalize it.  Will not garbage collect.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocateNoCollect(Context<S> &cx, std::size_t size, Init &&init,
                          Args &&...args) noexcept {
-  auto object = allocateFast<S, T>(cx, size, std::forward<Init>(init),
-                                   std::forward<Args>(args)...);
+  auto object = allocateFast<T>(cx, size, std::forward<Init>(init),
+                                std::forward<Args>(args)...);
   if (object) {
     return object;
   }
 
-  return allocateNoCollectSlow<S, T>(cx, size, std::forward<Init>(init),
-                                     std::forward<Args>(args)...);
+  return allocateNoCollectSlow<T>(cx, size, std::forward<Init>(init),
+                                  std::forward<Args>(args)...);
 }
 
 /// Allocate an object and initalize it.  Will not garbage collect. The
 /// underlying memory will be initialized to zero.
-template <typename S, typename T = void, typename Init, typename... Args>
+template <typename T = void, typename S, typename Init, typename... Args>
 Ref<T> allocateZeroNoCollect(Context<S> &cx, std::size_t size, Init &&init,
                              Args &&...args) noexcept {
-  auto object = allocateZeroFast<S, T>(cx, size, std::forward<Init>(init),
-                                       std::forward<Args>(args)...);
+  auto object = allocateZeroFast<T>(cx, size, std::forward<Init>(init),
+                                    std::forward<Args>(args)...);
   if (object) {
     return object;
   }
 
-  return allocateZeroNoCollectSlow<S, T>(cx, size, std::forward<Init>(init),
-                                         std::forward<Args>(args)...);
+  return allocateZeroNoCollectSlow<T>(cx, size, std::forward<Init>(init),
+                                      std::forward<Args>(args)...);
 }
 
 } // namespace om::gc
