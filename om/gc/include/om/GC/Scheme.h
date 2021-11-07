@@ -79,7 +79,7 @@ struct Walk {
   template <typename ContextT, typename VisitorT>
   void operator()(ContextT &cx, ObjectProxy<S> target,
                   VisitorT &visitor) const noexcept {
-    target.walk(cx, visitor);
+    target.walk(visitor, cx);
   }
 };
 

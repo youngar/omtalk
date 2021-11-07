@@ -55,12 +55,13 @@ struct Struct {
 
   StructSlotSpan slots() noexcept;
 
-  template <typename ContextT, typename VisitorT>
-  void walk(ContextT &context, VisitorT &visitor) {
-    header.walk(context, visitor);
+  template <typename VisitorT, typename... Args>
+  void walk(VisitorT &visitor, Args &&...args) {
+    header.walk(visitor, std::forward<Args>(args)...);
     for (auto decl : layout().slotDeclSpan()) {
       if (decl.type == Type::ref) {
-        visitor.visit(context, SlotProxy::fromPtr(data + decl.offset));
+        visitor.visit(SlotProxy::fromPtr(data + decl.offset),
+                      std::forward<Args>(args)...);
       }
     }
   }

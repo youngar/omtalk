@@ -25,7 +25,7 @@ if(OM_WARNINGS)
   )
 endif()
 
-if (OMTALK_TEST)
+if(OM_TEST)
   add_executable(om-objectmodel-test
     test/test-objectmodel.cpp
     test/test-structbuilder.cpp

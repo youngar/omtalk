@@ -19,6 +19,8 @@ struct ObjectProxy {
 
   gc::Ref<void> asRef() const noexcept { return target.reinterpret<void>(); }
 
+  constexpr operator void *() const noexcept { return target.get(); }
+
   std::size_t getSize() const noexcept {
     switch (target->type()) {
     case ObjectType::STRUCT:
@@ -34,19 +36,19 @@ struct ObjectProxy {
     }
   }
 
-  template <typename C, typename V>
-  void walk(C &cx, V &visitor) const noexcept {
+  template <typename VisitorT, typename... Args>
+  void walk(VisitorT &visitor, Args... args) const noexcept {
     switch (target->type()) {
     case ObjectType::STRUCT:
-      return target->as<Struct>().walk(cx, visitor);
+      return target->as<Struct>().walk(visitor, args...);
     case ObjectType::ARRAY:
-      return target->as<Array>().walk(cx, visitor);
+      return target->as<Array>().walk(visitor, args...);
     case ObjectType::STRUCT_LAYOUT:
-      return target->as<StructLayout>().walk(cx, visitor);
+      return target->as<StructLayout>().walk(visitor, args...);
     case ObjectType::ARRAY_LAYOUT:
-      return target->as<ArrayLayout>().walk(cx, visitor);
+      return target->as<ArrayLayout>().walk(visitor, args...);
     case ObjectType::META_LAYOUT:
-      return target->as<MetaLayout>().walk(cx, visitor);
+      return target->as<MetaLayout>().walk(visitor, args...);
     }
   }
 

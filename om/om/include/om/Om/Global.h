@@ -15,9 +15,9 @@ public:
 
   gc::Ref<MetaLayout> loadMetaLayout(Context &context) noexcept;
 
-  template <typename ContextT, typename VisitorT>
-  void walk(ContextT &context, VisitorT &visitor) {
-    visitor.visit(context, gc::RefProxy(&metaLayout));
+  template <typename VisitorT, typename... Args>
+  void walk(VisitorT &visitor, Args... args) {
+    visitor.visit(gc::RefProxy(&metaLayout), args...);
   }
 
   gc::Ref<MetaLayout> metaLayout;

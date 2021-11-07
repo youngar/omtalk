@@ -26,14 +26,14 @@ struct Array {
 
   std::size_t size() const noexcept { return allocSize(elementType(), length); }
 
-  template <typename ContextT, typename VisitorT>
-  void walk(ContextT &context, VisitorT &visitor) noexcept {
-    header.walk(context, visitor);
+  template <typename VisitorT, typename... Args>
+  void walk(VisitorT &visitor, Args... args) noexcept {
+    header.walk(visitor, args...);
     if (elementType() == Type::ref) {
       std::uintptr_t *ptr = data;
       std::uintptr_t *end = data + length;
       while (ptr < end) {
-        visitor.visit(context, SlotProxy::fromPtr(ptr));
+        visitor.visit(SlotProxy::fromPtr(ptr), args...);
         ++ptr;
       }
     }

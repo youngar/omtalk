@@ -2,7 +2,7 @@
 #define OM_OM_STRUCTBUILDER_H
 
 #include <ab/Util/Bytes.h>
-#include <om/Om/ObjectModel.h>
+#include <om/Om/ObjectProxy.h>
 #include <om/Om/StructLayout.h>
 #include <om/Om/Type.h>
 
@@ -21,7 +21,7 @@ public:
 
   template <Type T>
   StructLayoutBuilder &add() {
-    offset = align(offset, alignment<T>);
+    offset = ab::align(offset, alignment<T>);
     fields.push_back({offset, T});
     offset = offset + size<T>;
     return *this;

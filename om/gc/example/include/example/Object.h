@@ -138,14 +138,14 @@ struct TestStructObject : public TestObject {
 
   TestValue &getSlot(unsigned slot) noexcept { return slots[slot]; }
 
-  template <typename C, typename V>
-  void walk(C &cx, V &visitor) {
+  template <typename Visitor, typename... Args>
+  void walk(Visitor &visitor, Args... args) {
     std::cout << "!!! TestStructObject::walk: " << this << std::endl;
     for (unsigned i = 0; i < length; i++) {
       auto &slot = slots[i];
       if (slot.kind == TestValue::Kind::REF && slot.asRef != nullptr) {
         std::cout << "!!!   slot:" << slot << std::endl;
-        visitor.visit(cx, &slot);
+        visitor.visit(&slot, args...);
       }
     }
   }
@@ -197,12 +197,12 @@ struct TestMapObject : public TestObject {
 
   TestValue get(int key) const noexcept { return {INT, 0}; }
 
-  template <typename C, typename V>
-  void walk(C &cx, V &visitor) {
+  template <typename Visitor, typename... Args>
+  void walk(Visitor &visitor, Args... args) {
     for (unsigned i = 0; i < length; i++) {
       auto &slot = buckets[i].value;
       if (slot.kind == TestValue::Kind::REF) {
-        visitor.visit(cx, &slot);
+        visitor.visit(&slot, args...);
       }
     }
   }
@@ -266,13 +266,16 @@ private:
 // TestObjectProxy
 //===----------------------------------------------------------------------===//
 
-template <typename C, typename V>
+template <typename Visitor, typename... Args>
 class SlotProxyVisitor {
 public:
-  explicit SlotProxyVisitor(V &visitor) : visitor(visitor) {}
+  explicit SlotProxyVisitor(Visitor &visitor) : visitor(visitor) {}
 
-  void visit(C &cx, TestValue *slot) { visitor.visit(TestSlotProxy(slot), cx); }
-  V &visitor;
+  void visit(TestValue *slot, Args... args) {
+    visitor.visit(TestSlotProxy(slot), args...);
+  }
+
+  Visitor &visitor;
 };
 
 class TestObjectProxy {
@@ -301,17 +304,17 @@ public:
     }
   }
 
-  template <typename ContextT, typename VisitorT>
-  void walk(ContextT &cx, VisitorT &visitor) const noexcept {
+  template <typename Visitor, typename... Args>
+  void walk(Visitor &visitor, Args... args) const noexcept {
 
-    SlotProxyVisitor<ContextT, VisitorT> proxyVisitor(visitor);
+    SlotProxyVisitor<Visitor, Args...> proxyVisitor(visitor);
 
     switch (target->kind) {
     case TestObjectKind::STRUCT:
-      target.cast<TestStructObject>()->walk(cx, proxyVisitor);
+      target.cast<TestStructObject>()->walk(proxyVisitor, args...);
       break;
     case TestObjectKind::MAP:
-      target.cast<TestMapObject>()->walk(cx, proxyVisitor);
+      target.cast<TestMapObject>()->walk(proxyVisitor, args...);
       break;
     default:
       abort();
