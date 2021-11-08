@@ -2,9 +2,12 @@
 #define OM_OM_STRUCTBUILDER_H
 
 #include <ab/Util/Bytes.h>
+#include <om/Om/Context.h>
 #include <om/Om/ObjectProxy.h>
 #include <om/Om/StructLayout.h>
 #include <om/Om/Type.h>
+
+#include <vector>
 
 namespace om::om {
 
@@ -12,17 +15,12 @@ namespace om::om {
 /// but respects the order of fields.
 class StructLayoutBuilder {
 public:
-  struct Field {
-    std::size_t offset;
-    Type type;
-  };
-
-  StructLayoutBuilder() : offset(0), fields() {}
+  StructLayoutBuilder() : offset(0), slotDecls() {}
 
   template <Type T>
   StructLayoutBuilder &add() {
     offset = ab::align(offset, alignment<T>);
-    fields.push_back({offset, T});
+    slotDecls.push_back({offset, T});
     offset = offset + size<T>;
     return *this;
   }
@@ -36,11 +34,15 @@ public:
   StructLayoutBuilder &ref() { return add<Type::ref>(); }
   StructLayoutBuilder &ply() { return add<Type::ply>(); }
 
-  const std::vector<Field> &build() { return fields; }
+  std::size_t instanceSize() const noexcept {
+    return ab::align(offset, gc::OBJECT_ALIGNMENT);
+  }
+
+  gc::Ref<StructLayout> build(Context &context) const noexcept;
 
 private:
   std::size_t offset;
-  std::vector<Field> fields;
+  std::vector<SlotDecl> slotDecls;
 };
 
 } // namespace om::om

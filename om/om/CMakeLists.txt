@@ -1,6 +1,9 @@
 add_om_library(om-objectmodel
   src/om-om-dummy.cpp
   src/om-om-global.cpp
+  src/om-MemoryManager.cpp
+  src/om-StructLayout.cpp
+  src/om-StructLayoutBuilder.cpp
 )
 
 target_include_directories(om-objectmodel
@@ -29,6 +32,7 @@ if(OM_TEST)
   add_executable(om-objectmodel-test
     test/test-objectmodel.cpp
     test/test-structbuilder.cpp
+    test/test-structlayout.cpp
     test/test-type.cpp
   )
 

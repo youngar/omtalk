@@ -222,39 +222,37 @@ constexpr Ref<T> makeRef(T *x) {
 /// A type-erasing stand-in for a `Ref<T>`. Forwards all calls along to target.
 class RefProxy {
 public:
-  template <typename T>
-  explicit RefProxy(Ref<T> *target)
-      : target(reinterpret_cast<Ref<void> *>(target)) {}
-
   /// Load from target Ref.
   template <ab::MemoryOrder M>
   Ref<void> load() const noexcept {
-    return target->load<M>();
+    return ab::mem::load<M>(target);
   }
 
   /// Store to target Ref.
   template <ab::MemoryOrder M>
   void store(Ref<void> value) const noexcept {
-    return target->store<M>(value);
+    return ab::mem::store<M>(target, value.get());
   }
 
   /// Exchange the held value for another.
   template <ab::MemoryOrder M>
   Ref<void> exchange(Ref<void> value) const noexcept {
-    return target->exchange<M>(value);
+    return ab::mem::exchange<M>(target, value.get());
   }
 
   /// Compare-and-swap the held value.
   template <ab::MemoryOrder S, ab::MemoryOrder F = ab::RELAXED>
   bool compareExchange(Ref<void> expected, Ref<void> value) const noexcept {
-    return target->compareExchange<S, F>(expected, value);
+    return ab::mem::compareExchange<S, F>(target, expected.get(), value.get());
   }
 
-  /// Get the underlying target we are proxying.
-  Ref<void> *get() const noexcept { return target; }
-
 private:
-  Ref<void> *target;
+  template <typename T>
+  friend class Ref;
+
+  explicit RefProxy(void **target) : target(target) {}
+
+  void **target;
 };
 
 template <typename T>
@@ -262,7 +260,7 @@ RefProxy Ref<T>::proxy() noexcept {
   return RefProxy(this);
 }
 
-inline RefProxy Ref<void>::proxy() noexcept { return RefProxy(this); }
+inline RefProxy Ref<void>::proxy() noexcept { return RefProxy(&value_); }
 
 } // namespace om::gc
 

@@ -266,6 +266,8 @@ private:
 // TestObjectProxy
 //===----------------------------------------------------------------------===//
 
+/// An adapting visitor, translating slot pointers into slot proxies, and
+/// forwarding them along to the wrapped visitor.
 template <typename Visitor, typename... Args>
 class SlotProxyVisitor {
 public:

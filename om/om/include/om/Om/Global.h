@@ -17,9 +17,10 @@ public:
 
   template <typename VisitorT, typename... Args>
   void walk(VisitorT &visitor, Args... args) {
-    visitor.visit(gc::RefProxy(&metaLayout), args...);
+    metaLayout->walk(visitor, args...);
   }
 
+  /// The layout of other layouts. A global singleton.
   gc::Ref<MetaLayout> metaLayout;
 };
 

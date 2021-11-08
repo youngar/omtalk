@@ -209,7 +209,7 @@ template <typename S>
 void GlobalCollector<S>::sweep(Context &context) noexcept {
   FreeList freeList;
   for (auto &region : memoryManager->getRegionManager()) {
-    om::gc::sweep<S>(context, region, freeList);
+    ::om::gc::sweep<S>(context, region, freeList);
   }
   memoryManager->setFreeList(freeList);
 }

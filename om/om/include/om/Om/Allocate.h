@@ -8,15 +8,6 @@
 
 namespace om::om {
 
-// struct StructInitializer {
-//   explicit StructInitializer(Context &context, gc::Ref<Layout> layout)
-//   noexcept
-//       : layout(context.getAuxData().rootScope, layout) {}
-
-//   void operator(gc::Ref<void> ptr) { new (ptr) Struct(layout); }
-
-//   Handle layout;
-// };
 inline gc::Ref<MetaLayout> allocateMetaLayout(Context &context) noexcept {
   return gc::allocateZero(context, MetaLayout::allocSize(),
                           [=](auto object) { new (object.get()) MetaLayout(); })
@@ -25,7 +16,6 @@ inline gc::Ref<MetaLayout> allocateMetaLayout(Context &context) noexcept {
 
 inline gc::Ref<Struct> allocateStruct(Context &context,
                                       gc::Ref<StructLayout> layout) noexcept {
-
   std::size_t size = layout->instanceSize;
 
   // fast path
