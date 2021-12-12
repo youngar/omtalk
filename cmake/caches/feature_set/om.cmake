@@ -1,0 +1,2 @@
+include(${CMAKE_CURRENT_LIST_DIR}/gc.cmake)
+set(OMTALK_COMP_OM ON CACHE BOOL "")
